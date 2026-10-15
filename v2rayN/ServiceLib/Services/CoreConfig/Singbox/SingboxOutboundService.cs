@@ -474,6 +474,11 @@ public partial class CoreConfigSingboxService
                     enabled = true,
                     fingerprint = _node.Fingerprint.IsNullOrEmpty() ? _config.CoreBasicItem.DefFingerprint : _node.Fingerprint
                 };
+                // "hellochrome_120" is an Xray-only fingerprint; sing-box's uTLS rejects it, so use sing-box's Chrome
+                if (tls.utls.fingerprint == "hellochrome_120")
+                {
+                    tls.utls.fingerprint = "chrome";
+                }
             }
             if (_node.StreamSecurity == Global.StreamSecurity)
             {
