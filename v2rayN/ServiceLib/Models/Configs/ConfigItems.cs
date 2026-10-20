@@ -146,7 +146,8 @@ public class TunModeItem
     public bool StrictRoute { get; set; } = true;
     public string Stack { get; set; }
     public int Mtu { get; set; }
-    public bool EnableIPv6Address { get; set; }
+    // PattN: on by default; a saved config holds the value, so existing installs keep theirs
+    public bool EnableIPv6Address { get; set; } = true;
     public string IcmpRouting { get; set; }
     // PattN: default to Xray's native TUN inbound; sing-box legacy protect is opt-in
     public bool EnableLegacyProtect { get; set; }
