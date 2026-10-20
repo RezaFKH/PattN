@@ -28,8 +28,8 @@ case "$rid" in
 esac
 
 export NUGET_PACKAGES="${NUGET_PACKAGES:-$web_root/.packages/nuget}"
-# Official release builds pass the upstream release tag (for example 7.25.4) so the Web
-# build identity follows the same version as the v2rayN Release. Local builds keep a dev identity.
+# Official release builds pass the PattN release tag (for example 7.25.6-P35) so the Web
+# build identity follows the same version as the PattN Release. Local builds keep a dev identity.
 web_version="${V2RAYN_WEB_VERSION:-0.0.0-dev}"
 web_repository="${V2RAYN_WEB_REPOSITORY:-${GITHUB_REPOSITORY:-patterniha/PattN}}"
 web_commit="${V2RAYN_WEB_COMMIT:-$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf unknown)}"

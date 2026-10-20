@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build or verify the v2rayN WebAPI `WebAPI-update.json` release manifest.
+"""Build or verify the PattN WebAPI `WebAPI-update.json` release manifest.
 
-The manifest is published next to the official v2rayN Release assets. Every URL points at the
+The manifest is published next to the official PattN Release assets. Every URL points at the
 official release tag in the repository that produced the assets, so the Web self-update never
 depends on a fork-specific release channel.
 

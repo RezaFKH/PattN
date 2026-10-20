@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace v2rayN.WebAPI.Services;
 
 /// <summary>
-/// The single source of truth for v2rayN Web release asset names.
+/// The single source of truth for PattN Web release asset names.
 /// <c>Assets/web-assets.json</c> is embedded here and read by the packaging and manifest
 /// scripts, so the updater, the manifest, and the release ZIPs never disagree about names.
 /// </summary>

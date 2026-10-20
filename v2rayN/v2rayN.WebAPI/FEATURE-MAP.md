@@ -32,15 +32,16 @@ is not registered. `RuntimeMutationGate` serializes API-side writes to configura
 | General settings | `OptionSettingViewModel`; `Config`; `ConfigHandler.SaveConfig` | `GET /api/settings`; atomic `PUT /api/settings/apply`; section settings APIs |
 | Routing profiles | `AppManager.RoutingItems`; `ConfigHandler.SaveRoutingItem/RemoveRoutingItem/SetDefaultRouting/InitRouting` | `GET/POST/PUT/DELETE /api/settings/routing-profiles`; `/activate`; `/import`; `PUT /api/settings/routing` |
 | Routing rules | `RoutingItem.RuleSet`; `RulesItem`; `ConfigHandler.AddBatchRoutingRules/MoveRoutingRule` | `GET/PUT /api/settings/routing-profiles/{id}/rules`; `/rules/import`; `/rules/move`; `/rules/{ruleId}` |
-| Simple/per-Core DNS | `Config.SimpleDNSItem`; `DNSItem`; `ConfigHandler.SaveDNSItems/GetExternalDNSItem` | `GET/PUT /api/settings/dns/simple`; `GET/PUT /api/settings/dns/profiles` |
+| Simple/per-Core DNS | `Config.SimpleDNSItem`; `DNSItem`; `ConfigHandler.SaveDNSItems` | `GET/PUT /api/settings/dns/simple`; `GET/PUT /api/settings/dns/profiles` |
 | Core configuration templates | `FullConfigTemplateItem`; `ConfigHandler.SaveFullConfigTemplate` | `GET /api/settings/core-templates`; `PUT /api/settings/core-templates/{coreType}`; stored TUN fields are preserved, not editable |
-| Regional presets | `ConfigHandler.ApplyRegionalPreset/InitRouting` | `POST /api/settings/regional-presets/{preset}` |
+| Regional presets | `ConfigHandler.ApplyRegionalPreset/ActivateRegionalPresetRouting/InitRouting`; like PattN's desktop presets they never change the DNS settings | `POST /api/settings/regional-presets/{preset}` (`Default`, `Russia`, `Iran`, `China`) |
 | WebDAV and backup/restore | `WebDavManager`; existing `guiConfigs/` ZIP format; `FileUtils` | `GET/PUT /api/settings/webdav`; `/api/backup/webdav/check`; `/webdav`; `/webdav/restore`; `GET /api/backup/download`; multipart `POST /api/backup/restore` |
 
 Core selection/startup remain delegated to ServiceLib's `CoreInfoManager` and `CoreManager`,
 and require the selected Core executable. Generated speed-test configurations support Xray
 and sing-box; TCPing is available for any profile with a port. Release/container artifacts
-copy the complete architecture-matched official `2dust/v2rayN-core-bin` payload.
+copy the complete architecture-matched official `2dust/v2rayN-core-bin` payload, with
+patterniha/Xray-core and Chocolate4U's geo files in place of its Xray-core and geo files.
 
 ## Unsupported desktop capabilities
 

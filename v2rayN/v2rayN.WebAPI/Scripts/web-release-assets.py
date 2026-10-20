@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the headless v2rayN Web API release ZIPs and report their asset names.
+"""Package the headless PattN Web API release ZIPs and report their asset names.
 
 The RID-to-asset map lives in `../Assets/web-assets.json`. The Web assembly embeds the same
 file, so the runtime updater, the release manifest, and this packager never disagree about the

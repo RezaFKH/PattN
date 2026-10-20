@@ -1,6 +1,6 @@
 # v2rayN.WebAPI
 
-`v2rayN.WebAPI` is a headless ASP.NET Core host for v2rayN's existing `ServiceLib`. It exposes
+`v2rayN.WebAPI` is a headless ASP.NET Core host for PattN's existing `ServiceLib`. It exposes
 REST APIs, authenticated SSE/runtime events, setup and sessions, settings and options,
 profiles/subscriptions, routing and DNS, backups, updates, and the existing Core runtime bridge.
 It runs without a browser or desktop session. The API has no dependency on
@@ -137,8 +137,8 @@ the Windows smoke: `Test-Windows.ps1 -Mode startup|update`). The independent `bu
 workflow runs these checks, Windows x64/ARM64 build/startup smoke (the self-update
 replacement/rollback smoke stays on win-x64), native Linux builds, and Linux container builds on
 relevant PRs and pushes to `master`; it can also be dispatched manually or called by a release
-workflow. Releases include Linux x64/ARM64/RISC-V 64/LoongArch 64 and Windows x64/ARM64 packages;
-Linux containers are built for amd64 and arm64.
+workflow. Releases include Linux x64/ARM64 and Windows x64/ARM64 packages, and Linux RISC-V 64/
+LoongArch 64 packages with `exotic_arch`; Linux containers are built for amd64 and arm64.
 
 `Tests/Integration/test-native-update-identity.py <previous-publish-dir> <candidate-publish-dir>`
 additionally exercises real native helper replacement and health-mismatch rollback with two
@@ -205,28 +205,34 @@ executable assumptions.
 `build-all.yml` ("release all platforms") dispatches the desktop platform workflows and calls
 `release-WebAPI.yml`; the WebAPI packages ride the same `upload-sign.yml` path and land in the same
 release as the desktop assets. `release-WebAPI.yml` can also be dispatched directly with a
-`release_tag` (`x.y.z`) to call `build-WebAPI.yml`, assemble and validate the Linux and Windows
+`release_tag` (`x.y.z-P<n>`, on top of the version in `Directory.Build.props`) to call
+`build-WebAPI.yml`, assemble and validate the Linux and Windows
 WebAPI assets, then sign and upload them through the existing `upload-sign.yml` workflow. Signing
 uses the repository GPG key, so a fork that runs this flow publishes with its own
 `GPG_PRIVATE_KEY` secret. `build-WebAPI.yml` can also be dispatched with a tag for package-only
 verification. Web release orchestration and artifact names are RID-based, separately from
 containers and Desktop workflows. riscv64 builds on RISC-V runners with the community .NET SDK;
 loongarch64 builds inside the QEMU loong64 VM with the official Loongson SDK; both run a native
-smoke before packaging. Windows x64/ARM64 have full-install and app-only update ZIPs; Windows
+smoke before packaging. In PattN both run only when `release-WebAPI.yml` or `build-WebAPI.yml` is
+dispatched with `exotic_arch`, as for the desktop packages; "release all platforms" skips them, and
+`WebAPI-update.json` then lists the other packages.
+Windows x64/ARM64 have full-install and app-only update ZIPs; Windows
 containers are not built.
 
 The API release provides architecture-specific full-install and app-only update ZIPs plus
-`WebAPI-update.json`:
+`WebAPI-update.json`. Their Core bundle is the architecture-matched `2dust/v2rayN-core-bin` payload
+with patterniha/Xray-core and Chocolate4U's geo files in place of its Xray-core and geo files, as in
+PattN's desktop packages:
 
-- `v2rayN-linux-64-WebAPI.zip` / `v2rayN-linux-arm64-WebAPI.zip` / `v2rayN-linux-riscv64-WebAPI.zip`
-  / `v2rayN-linux-loong64-WebAPI.zip` — API, runtime files, `.env.example`, and Core bundle.
-- `v2rayN-linux-64-WebAPI-update.zip` / `v2rayN-linux-arm64-WebAPI-update.zip` /
-  `v2rayN-linux-riscv64-WebAPI-update.zip` / `v2rayN-linux-loong64-WebAPI-update.zip` — API
+- `PattN-linux-64-WebAPI.zip` / `PattN-linux-arm64-WebAPI.zip` / `PattN-linux-riscv64-WebAPI.zip`
+  / `PattN-linux-loong64-WebAPI.zip` — API, runtime files, `.env.example`, and Core bundle.
+- `PattN-linux-64-WebAPI-update.zip` / `PattN-linux-arm64-WebAPI-update.zip` /
+  `PattN-linux-riscv64-WebAPI-update.zip` / `PattN-linux-loong64-WebAPI-update.zip` — API
   executable and build identity only; user data, Core files, credentials, and unrelated files are
   excluded.
-- `v2rayN-windows-64-WebAPI.zip` / `v2rayN-windows-arm64-WebAPI.zip` — Windows API, runtime/Core
+- `PattN-windows-64-WebAPI.zip` / `PattN-windows-arm64-WebAPI.zip` — Windows API, runtime/Core
   files, and `.env.example`.
-- `v2rayN-windows-64-WebAPI-update.zip` / `v2rayN-windows-arm64-WebAPI-update.zip` — Windows API
+- `PattN-windows-64-WebAPI-update.zip` / `PattN-windows-arm64-WebAPI-update.zip` — Windows API
   executable and build identity only; user data, Core files, credentials, and unrelated files are
   excluded.
 - `WebAPI-update.json` — version, commit, per-RID asset names, sizes, and SHA-256 digests. A RID

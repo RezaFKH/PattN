@@ -33,7 +33,7 @@ internal static class BackupDatabaseCompatibility
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (!tableNames.Any(name => RequiredPrimaryKeys.ContainsKey(name)))
             {
-                error = "The database does not contain any known v2rayN data tables.";
+                error = "The database does not contain any known PattN data tables.";
                 return false;
             }
 
