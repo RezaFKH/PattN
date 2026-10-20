@@ -1005,7 +1005,7 @@ public sealed partial class V2rayRuntime
 
     public async Task<OperationView> ApplyRegionalPresetAsync(EPresetType preset, CancellationToken cancellationToken = default)
     {
-        if (preset is not (EPresetType.Default or EPresetType.Russia or EPresetType.Iran))
+        if (preset is not (EPresetType.Default or EPresetType.Russia or EPresetType.Iran or EPresetType.China))
         {
             return OperationView.Fail("regional_preset_invalid", ApiMessageKeys.RegionalPresetInvalid);
         }
@@ -1013,9 +1013,8 @@ public sealed partial class V2rayRuntime
         await _regionalPresetGate.WaitAsync(cancellationToken);
         try
         {
-            var existingDnsItems = await AppManager.Instance.DNSItems() ?? [];
             var existingRoutingItems = await AppManager.Instance.RoutingItems() ?? [];
-            var proxy = preset == EPresetType.Default
+            var proxy = preset is EPresetType.Default or EPresetType.China
                 ? null
                 : await GetRegionalPresetProxyAsync(cancellationToken);
             var stager = new RegionalPresetStager(async (url, webProxy, token) =>
@@ -1027,7 +1026,6 @@ public sealed partial class V2rayRuntime
             return await RegionalPresetWorkflow.RunAsync(
                 token => stager.StageAsync(
                     preset,
-                    existingDnsItems,
                     existingRoutingItems,
                     proxy,
                     token,
@@ -1081,19 +1079,12 @@ public sealed partial class V2rayRuntime
                             Config.ConstItem.GeoSourceUrl = stage.GeoSourceUrl;
                             Config.ConstItem.SrsSourceUrl = stage.SrsSourceUrl;
                             Config.ConstItem.RouteRulesTemplateSourceUrl = stage.RouteRulesTemplateSourceUrl;
-                            Config.SimpleDNSItem = stage.SimpleDnsItem;
+                            // PattN: a preset leaves the DNS settings as they are, and activates a routing that matches
+                            // its geo data before any template is imported, as ConfigHandler.ApplyRegionalPreset does
+                            await ConfigHandler.ActivateRegionalPresetRouting(Config);
 
-                            if (stage.Preset == EPresetType.Default)
+                            if (stage.Preset is EPresetType.Default or EPresetType.China)
                             {
-                                await SQLiteHelper.Instance.DeleteAllAsync<DNSItem>();
-                                foreach (var item in stage.DnsItems)
-                                {
-                                    if (await ConfigHandler.SaveDNSItems(Config, item) != 0)
-                                    {
-                                        throw new IOException($"The {item.CoreType} DNS profile could not be saved.");
-                                    }
-                                }
-
                                 // Default routing uses embedded data only; this call performs no network I/O
                                 // because the route template source was cleared in the staged plan.
                                 if (await ConfigHandler.InitRouting(Config, false) != 0)
@@ -1103,14 +1094,6 @@ public sealed partial class V2rayRuntime
                             }
                             else
                             {
-                                foreach (var item in stage.DnsItems)
-                                {
-                                    if (await ConfigHandler.SaveDNSItems(Config, item) != 0)
-                                    {
-                                        throw new IOException($"The {item.CoreType} DNS profile could not be saved.");
-                                    }
-                                }
-
                                 foreach (var itemId in stage.Routing.RemoveItemIds ?? [])
                                 {
                                     var item = await AppManager.Instance.GetRoutingItem(itemId);

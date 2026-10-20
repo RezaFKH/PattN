@@ -2745,6 +2745,11 @@ public static class ConfigHandler
     public const string IranDirectRoutingRemarks = "IR-ایران مستقیم، بقیه پراکسی";
 
     /// <summary>
+    /// PattN: name of the Iran global proxy rule-set
+    /// </summary>
+    public const string IranGlobalProxyRoutingRemarks = "IR-پراکسی سراسری";
+
+    /// <summary>
     /// PattN: clean an Iran direct rule-set of what custom_routing_white_iran no longer has and the Iran template
     /// (Chocolate4U) still ships:
     /// the IPOnDemand domain strategy, which 7.24.8-P5 stored too, so that the default (AsIs) applies;
@@ -2881,7 +2886,7 @@ public static class ConfigHandler
         //PattN: Iran global proxy
         var item5 = new RoutingItem()
         {
-            Remarks = "IR-پراکسی سراسری",
+            Remarks = IranGlobalProxyRoutingRemarks,
             Url = string.Empty,
             Sort = maxSort + 5,
         };
@@ -3157,6 +3162,18 @@ public static class ConfigHandler
                 break;
         }
 
+        await ActivateRegionalPresetRouting(config);
+
+        return true;
+    }
+
+    /// <summary>
+    /// PattN: activate a routing that matches the geo data of the preset just applied, as ApplyRegionalPreset does after
+    /// setting the sources; the WebAPI sets the sources of its staged presets itself and then calls this
+    /// </summary>
+    /// <param name="config">Current configuration</param>
+    public static async Task ActivateRegionalPresetRouting(Config config)
+    {
         // Activate a routing that matches the preset's geo data.
         // The IR rule-sets need geosite "category-ir" and geoip "ir", and geosite:gfw only exists on Loyalsoldier/runetfreedom;
         // an active routing with categories missing from the new dats would stop the core from starting.
@@ -3170,8 +3187,6 @@ public static class ConfigHandler
         {
             await SetDefaultRouting(config, presetRouting);
         }
-
-        return true;
     }
 
     #endregion Regional Presets
