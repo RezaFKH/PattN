@@ -36,7 +36,7 @@ public class SniffingSettingsIntegrationTests
         var runtime = new V2rayRuntime(null!, null!, null!, null!, null!);
         var reloadedSettings = await runtime.GetSettingsAsync();
         await reloadedSettings.Inbound.SniffingEnabled.Should().BeTrue();
-        await reloadedSettings.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls" }).Should().BeTrue();
+        await reloadedSettings.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls", "quic" }).Should().BeTrue();
     }
 
     [Test]
@@ -93,14 +93,14 @@ public class SniffingSettingsIntegrationTests
         V2rayRuntime.ApplyInboundSettings(config.Inbound[0], stalePayload);
         var afterFirstSave = await runtime.GetSettingsAsync();
         await afterFirstSave.Inbound.SniffingEnabled.Should().BeTrue();
-        await afterFirstSave.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls" }).Should().BeTrue();
+        await afterFirstSave.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls", "quic" }).Should().BeTrue();
 
         // The browser still submits its stale empty array. A subsequent save must not
         // erase the canonical backend defaults just because sniffing was already enabled.
         V2rayRuntime.ApplyInboundSettings(config.Inbound[0], stalePayload);
         var afterSecondSave = await runtime.GetSettingsAsync();
         await afterSecondSave.Inbound.SniffingEnabled.Should().BeTrue();
-        await afterSecondSave.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls" }).Should().BeTrue();
+        await afterSecondSave.Inbound.DestOverride.SequenceEqual(new[] { "http", "tls", "quic" }).Should().BeTrue();
 
         var generated = Generate(ECoreType.Xray, config);
         var sniffing = generated["inbounds"]![0]!["sniffing"]!;

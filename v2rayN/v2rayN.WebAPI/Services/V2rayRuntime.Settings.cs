@@ -172,7 +172,6 @@ public sealed partial class V2rayRuntime
         Global.DomainDirectDNSAddress.ToArray(),
         Global.DomainRemoteDNSAddress.ToArray(),
         Global.DomainPureIPDNSAddress.ToArray(),
-        Global.FakeIPRanges.ToArray(),
         Global.ExpectedIPs.ToArray());
 
     public IReadOnlyList<DnsDefaultProfileView> GetDefaultDnsProfiles() =>

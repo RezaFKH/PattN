@@ -280,7 +280,6 @@ public sealed record DnsEditorOptionsView(
     string[] DirectDnsAddresses,
     string[] RemoteDnsAddresses,
     string[] BootstrapDnsAddresses,
-    string[] FakeIpRanges,
     string[] ExpectedIps);
 
 public sealed record SubscriptionEditorOptionsView(string[] ConvertTargets, string[] CustomCoreTypes);
