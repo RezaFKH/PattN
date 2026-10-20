@@ -71,13 +71,18 @@ public partial class CoreConfigV2rayService
                 // the TUN, so IPv6 goes into the TUN only when EnableIPv6Address is on and is blocked otherwise.
                 // Elsewhere nothing blocks it: without ::/0, IPv6 bypasses the tunnel, so ::/0 is skipped only
                 // when the host has no global IPv6 address and EnableIPv6Address is off; NAT66 hosts have only
-                // ULA addresses.
+                // ULA addresses. Where the OS keeps IPv6 off on new interfaces, a TUN asked for IPv6 does not
+                // start (Xray-core leaves IPv6 out only when the config asks for none, XTLS/Xray-core#6874), so
+                // EnableIPv6Address counts for nothing there; a global IPv6 address that an existing interface
+                // still has keeps ::/0 outside Windows strict route, and the TUN then fails to start rather than
+                // let that IPv6 bypass it.
                 var wfpBlocksLeaks = context.IsWindows && _config.TunModeItem.StrictRoute == true;
-                var routeIPv6 = _config.TunModeItem.EnableIPv6Address || (!wfpBlocksLeaks && context.HasGlobalIPv6Address);
+                var tunIPv6 = _config.TunModeItem.EnableIPv6Address && !context.IsIPv6DisabledByOs;
+                var routeIPv6 = tunIPv6 || (!wfpBlocksLeaks && context.HasGlobalIPv6Address);
                 tunInbound.settings.autoSystemRoutingTable = routeIPv6
                     ? ["0.0.0.0/0", "::/0"]
                     : ["0.0.0.0/0"];
-                if (_config.TunModeItem.EnableIPv6Address == true)
+                if (tunIPv6)
                 {
                     var address6 = _config.TunModeItem.IPv6Address.NullIfEmpty() ?? Global.TunIPv6Address.First();
                     tunInbound.settings.gateway.Add(address6);

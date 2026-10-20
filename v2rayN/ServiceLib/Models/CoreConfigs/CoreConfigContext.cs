@@ -28,8 +28,12 @@ public record CoreConfigContext
 
     // Defaults to true so that a context built without this flag keeps routing IPv6 into the
     // tunnel; only a positive detection of the host having no global IPv6 address turns it off.
-    // PattN: the Xray TUN ignores it on Windows with strict route, where EnableIPv6Address alone decides (GenInbounds).
+    // PattN: the Xray TUN ignores it on Windows with strict route, where EnableIPv6Address decides (GenInbounds).
     public bool HasGlobalIPv6Address { get; init; } = true;
+
+    // PattN: the OS keeps IPv6 off on new interfaces (Utils.IsIPv6DisabledByOs), where a TUN asked for IPv6 does not
+    // start; the TUNs then take no IPv6 unless a global IPv6 address could bypass them (GenInbounds, TunTakesIPv6).
+    public bool IsIPv6DisabledByOs { get; init; }
 
     // Generation Context
     public Dictionary<object, string> CustomOutboundMap { get; init; } = new();
