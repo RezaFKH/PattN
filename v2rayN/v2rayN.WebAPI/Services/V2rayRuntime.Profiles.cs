@@ -160,6 +160,9 @@ public sealed partial class V2rayRuntime
             return OperationView.Fail(code, messageKey);
         }
 
+        // PattN: a blank or AsIs (Xray's default) targetStrategy is stored as nothing, as in the server editor
+        profile.TargetStrategy = profile.GetTargetStrategy() ?? string.Empty;
+
         var wasRunning = !isNew
             && profile.IndexId == CurrentCoreRuntime.ProfileId
             && CurrentCoreRuntime.State == CoreRuntimeState.Running;
@@ -230,6 +233,14 @@ public sealed partial class V2rayRuntime
             && JsonUtils.ParseJson(protocolExtra.HttpHeaders) is null)
         {
             code = "profile_http_headers_invalid";
+            messageKey = ApiMessageKeys.ProfileInvalid;
+            return false;
+        }
+
+        // PattN: the ECH outbound needs EchConfigList and a tag of its own, as the server editor checks before saving
+        if (NodeValidator.ValidateEchOutbound(profile) != null)
+        {
+            code = "profile_ech_outbound_invalid";
             messageKey = ApiMessageKeys.ProfileInvalid;
             return false;
         }

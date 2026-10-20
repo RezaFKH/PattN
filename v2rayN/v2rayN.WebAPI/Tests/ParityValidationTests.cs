@@ -97,6 +97,32 @@ public class ParityValidationTests
     }
 
     [Test]
+    public async Task EchOutboundIsCheckedLikeTheServerEditor()
+    {
+        // PattN: NodeValidator.ValidateEchOutbound, which AddServerViewModel runs before saving
+        static ProfileItem CreateEchProfile(string echConfigList, string echOutbound)
+        {
+            var profile = CreateProfile(EConfigType.VLESS);
+            profile.Password = "id";
+            profile.StreamSecurity = Global.StreamSecurity;
+            profile.EchConfigList = echConfigList;
+            profile.EchOutbound = echOutbound;
+            return profile;
+        }
+
+        var valid = CreateEchProfile("ech-config-list", "{\"tag\":\"ech-out\",\"protocol\":\"freedom\"}");
+        var withoutConfigList = CreateEchProfile(string.Empty, "{\"tag\":\"ech-out\",\"protocol\":\"freedom\"}");
+        var proxyTag = CreateEchProfile("ech-config-list", "{\"tag\":\"proxy-ech\",\"protocol\":\"freedom\"}");
+        var notAnObject = CreateEchProfile("ech-config-list", "[]");
+
+        await V2rayRuntime.TryValidateProfile(valid, out _, out _).Should().BeTrue();
+        await V2rayRuntime.TryValidateProfile(withoutConfigList, out var code, out _).Should().BeFalse();
+        await code.Should().BeEqualTo("profile_ech_outbound_invalid");
+        await V2rayRuntime.TryValidateProfile(proxyTag, out _, out _).Should().BeFalse();
+        await V2rayRuntime.TryValidateProfile(notAnObject, out _, out _).Should().BeFalse();
+    }
+
+    [Test]
     public async Task WebCoreMappingsAreLimitedToUpstreamEditableTypes()
     {
         var editableTypes = Enum.GetValues<EConfigType>()
