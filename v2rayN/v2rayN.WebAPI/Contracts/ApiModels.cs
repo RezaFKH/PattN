@@ -17,7 +17,11 @@ public sealed record SubscriptionInput(
     string? PrevProfile = null,
     string? NextProfile = null,
     int? PreSocksPort = null,
-    ECoreType? CustomCoreType = null);
+    ECoreType? CustomCoreType = null,
+    // PattN: the subscription's override address and port; a request that leaves them out keeps them, an empty
+    // address or port 0 clears them
+    string? OverrideAddress = null,
+    int? OverridePort = null);
 
 public sealed record SubscriptionView(
     string Id,
@@ -36,7 +40,9 @@ public sealed record SubscriptionView(
     string? PrevProfile,
     string? NextProfile,
     int? PreSocksPort,
-    string? CustomCoreType);
+    string? CustomCoreType,
+    string? OverrideAddress,
+    int? OverridePort);
 
 public sealed record SubscriptionMutationResult(bool Success, string Code, string MessageKey, SubscriptionView? Data);
 

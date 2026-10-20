@@ -1224,6 +1224,13 @@ public sealed partial class V2rayRuntime(
             messageKey = ApiMessageKeys.CommonInvalidInput;
             return false;
         }
+        // PattN: an override port is a port, as in the subscription editor; 0 clears it
+        if (input.OverridePort is < 0 or > 65535)
+        {
+            code = "subscription_override_port_invalid";
+            messageKey = ApiMessageKeys.CommonInvalidInput;
+            return false;
+        }
 
         code = "ok";
         messageKey = string.Empty;
@@ -1249,6 +1256,11 @@ public sealed partial class V2rayRuntime(
         NextProfile = input.NextProfile ?? existing?.NextProfile,
         PreSocksPort = input.PreSocksPort,
         CustomCoreType = input.CustomCoreType,
+        // PattN: kept when the request leaves them out (SubscriptionInput), stored like the subscription editor does
+        OverrideAddress = (input.OverrideAddress ?? existing?.OverrideAddress)?.Trim() is { Length: > 0 } overrideAddress
+            ? overrideAddress
+            : null,
+        OverridePort = (input.OverridePort ?? existing?.OverridePort) is int overridePort and > 0 ? overridePort : null,
     };
 
     internal static SubscriptionView ToSubscriptionView(SubItem item) => new(
@@ -1268,7 +1280,9 @@ public sealed partial class V2rayRuntime(
         item.PrevProfile,
         item.NextProfile,
         item.PreSocksPort,
-        item.CustomCoreType is null ? null : System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(item.CustomCoreType.Value.ToString()));
+        item.CustomCoreType is null ? null : System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(item.CustomCoreType.Value.ToString()),
+        item.OverrideAddress,
+        item.OverridePort);
 
     private static void EnsureInboundDefaults(Config config)
     {

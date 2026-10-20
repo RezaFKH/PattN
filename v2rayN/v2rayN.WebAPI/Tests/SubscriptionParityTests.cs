@@ -41,6 +41,8 @@ public class SubscriptionParityTests
             PreSocksPort = 10809,
             Memo = "memo",
             CustomCoreType = ECoreType.sing_box,
+            OverrideAddress = "edge.example",
+            OverridePort = 8443,
         };
 
         var loaded = V2rayRuntime.ToSubscriptionView(original);
@@ -59,7 +61,9 @@ public class SubscriptionParityTests
             loaded.PrevProfile,
             loaded.NextProfile,
             loaded.PreSocksPort,
-            ECoreType.sing_box);
+            ECoreType.sing_box,
+            loaded.OverrideAddress,
+            loaded.OverridePort);
         var saved = V2rayRuntime.ToSubItem(input, original);
         var reloaded = V2rayRuntime.ToSubscriptionView(saved);
 
@@ -78,6 +82,40 @@ public class SubscriptionParityTests
         await reloaded.NextProfile.Should().BeEqualTo("typed landing alias");
         await reloaded.PreSocksPort.Should().BeEqualTo(original.PreSocksPort);
         await reloaded.CustomCoreType.Should().BeEqualTo("sing_box");
+        await reloaded.OverrideAddress.Should().BeEqualTo(original.OverrideAddress);
+        await reloaded.OverridePort.Should().BeEqualTo(original.OverridePort);
+    }
+
+    [Test]
+    public async Task OverrideAddressAndPortAreKeptUnlessTheRequestClearsThem()
+    {
+        // PattN: a client that knows nothing of the override fields must not erase them
+        var original = new SubItem
+        {
+            Id = "override-subscription",
+            Remarks = "Overrides",
+            Url = "https://main.example/sub",
+            OverrideAddress = "edge.example",
+            OverridePort = 8443,
+        };
+
+        var untouched = V2rayRuntime.ToSubItem(new SubscriptionInput(original.Remarks, original.Url), original);
+        var changed = V2rayRuntime.ToSubItem(new SubscriptionInput(original.Remarks, original.Url,
+            OverrideAddress: "  other.example  ", OverridePort: 443), original);
+        var cleared = V2rayRuntime.ToSubItem(new SubscriptionInput(original.Remarks, original.Url,
+            OverrideAddress: " ", OverridePort: 0), original);
+
+        await untouched.OverrideAddress.Should().BeEqualTo("edge.example");
+        await untouched.OverridePort.Should().BeEqualTo(8443);
+        await changed.OverrideAddress.Should().BeEqualTo("other.example");
+        await changed.OverridePort.Should().BeEqualTo(443);
+        await cleared.OverrideAddress.Should().BeNull();
+        await cleared.OverridePort.Should().BeNull();
+        await V2rayRuntime.TryValidateSubscription(new SubscriptionInput("Overrides", string.Empty, OverridePort: 65536),
+            out var code, out _).Should().BeFalse();
+        await code.Should().BeEqualTo("subscription_override_port_invalid");
+        await V2rayRuntime.TryValidateSubscription(new SubscriptionInput("Overrides", string.Empty, OverridePort: 0),
+            out _, out _).Should().BeTrue();
     }
 
     [Test]
