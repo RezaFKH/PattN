@@ -10,9 +10,9 @@ Verification also opens each app-only archive and cross-checks its embedded
 and build identity; unrelated files are neither packaged nor touched by self-update.
 
 Usage:
-  web-update-manifest.py write --version 7.25.4 --repository 2dust/v2rayN --commit <sha> \
+  web-update-manifest.py write --version 7.25.4 --repository patterniha/PattN --commit <sha> \
       --build-date 2026-09-28T00:00:00Z --dist dist --output dist/WebAPI-update.json
-  web-update-manifest.py verify --manifest dist/WebAPI-update.json --dist dist [--repository 2dust/v2rayN]
+  web-update-manifest.py verify --manifest dist/WebAPI-update.json --dist dist [--repository patterniha/PattN]
 """
 
 from __future__ import annotations
@@ -42,7 +42,8 @@ WINDOWS_PE_MACHINES = {
 }
 MAX_ARCHIVE_ENTRIES = 10000
 MAX_EXPANDED_ARCHIVE_BYTES = 1024 * 1024 * 1024
-VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+# PattN: release tags are x.y.z-P<n>
+VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-P[1-9][0-9]*)?$")
 REPOSITORY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$")
 OFFICIAL_URL_RE = re.compile(
     r"^https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+/releases/download/(?P<tag>[^/]+)/(?P<asset>[^/]+)$"
@@ -90,8 +91,21 @@ def asset_url(repository: str, version: str, asset: str) -> str:
     return f"https://github.com/{repository}/releases/download/{version}/{asset}"
 
 
+# PattN: riscv64 and loongarch64 are built only with exotic_arch, as for the desktop packages
+OPTIONAL_RIDS = frozenset(("linux-riscv64", "linux-loongarch64"))
+
+
+def release_rids(dist: Path) -> list[str]:
+    """Every required runtime identifier, and an optional one when one of its assets was packaged."""
+    return [
+        rid for rid in ASSETS
+        if rid not in OPTIONAL_RIDS
+        or any((dist / asset).exists() for asset in (full_asset_name(rid), app_asset_name(rid)))
+    ]
+
+
 def require_release_files(dist: Path) -> None:
-    for rid in ASSETS:
+    for rid in release_rids(dist):
         for asset in (full_asset_name(rid), app_asset_name(rid)):
             path = dist / asset
             if not path.is_file() or path.stat().st_size == 0:
@@ -233,7 +247,7 @@ def build_manifest(dist: Path, version: str, repository: str, commit: str, build
         "version": version,
         "commit": commit,
         "buildDate": build_date,
-        "packages": [package_entry(dist, repository, version, rid) for rid in ASSETS],
+        "packages": [package_entry(dist, repository, version, rid) for rid in release_rids(dist)],
     }
 
 
@@ -255,8 +269,9 @@ def verify_manifest(manifest_path: Path, dist: Path, repository: str | None, ver
         fail(f"{manifest_path} has no build date")
 
     packages = manifest.get("packages")
-    if not isinstance(packages, list) or len(packages) != len(ASSETS):
-        fail(f"{manifest_path} must contain exactly {len(ASSETS)} packages")
+    expected_rids = release_rids(dist)
+    if not isinstance(packages, list) or len(packages) != len(expected_rids):
+        fail(f"{manifest_path} must contain exactly {len(expected_rids)} packages")
     by_rid = {}
     for package in packages:
         if not isinstance(package, dict):
@@ -288,7 +303,7 @@ def verify_manifest(manifest_path: Path, dist: Path, repository: str | None, ver
         verify_app_archive_identity(path, rid, manifest_version, manifest["commit"], manifest["buildDate"])
         by_rid[rid] = package
 
-    for rid in ASSETS:
+    for rid in expected_rids:
         if rid not in by_rid:
             fail(f"{manifest_path} is missing runtime {rid}")
     require_release_files(dist)

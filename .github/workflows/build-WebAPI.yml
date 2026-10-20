@@ -7,13 +7,22 @@ on:
         required: false
         type: string
         default: ''
+      exotic_arch: # PattN: also build linux-riscv64 (RISE runner) and linux-loongarch64 (emulated, 1-3 h)
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (for example 7.x.y). Empty builds a development API package.'
+        description: 'Release tag (for example 7.x.y-P<n>). Empty builds a development API package.'
         required: false
         default: ''
         type: string
+      exotic_arch: # PattN: also build linux-riscv64 (RISE runner) and linux-loongarch64 (emulated, 1-3 h)
+        description: 'Also build linux-riscv64 and linux-loongarch64'
+        required: false
+        default: false
+        type: boolean
   pull_request:
     branches: [master]
     paths:
@@ -55,6 +64,9 @@ jobs:
       release: ${{ steps.resolve.outputs.release }}
       build_date: ${{ steps.resolve.outputs.build_date }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Resolve release identity
         id: resolve
         shell: bash
@@ -71,8 +83,14 @@ jobs:
               echo "build_date=$build_date"
             } >> "$GITHUB_OUTPUT"
           else
-            [[ "$RELEASE_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            # PattN: release tags are x.y.z-P<n> on top of the upstream version in Directory.Build.props, as in build.yml
+            [[ "$RELEASE_TAG" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-P[1-9][0-9]*)?$ ]] || {
               echo "Invalid release tag: $RELEASE_TAG" >&2
+              exit 1
+            }
+            base="$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' v2rayN/Directory.Build.props | head -n 1)"
+            [[ "${RELEASE_TAG%%-P*}" == "$base" ]] || {
+              echo "Release tag $RELEASE_TAG must be based on upstream version $base (Directory.Build.props)" >&2
               exit 1
             }
             {
@@ -242,6 +260,9 @@ jobs:
             New-Item -ItemType Directory -Path $destinationBin -Force | Out-Null
             Copy-Item -Path (Join-Path $sourceBin '*') -Destination $destinationBin -Recurse -Force
           }
+          # PattN: patterniha/Xray-core and Chocolate4U's geo files, as in PattN's desktop packages
+          & ./v2rayN/v2rayN.WebAPI/Scripts/add-pattn-cores.ps1 -Rid win-x64 `
+            -BinDirectory (Join-Path $publishDirectory 'bin'), (Join-Path $previousDirectory 'bin')
           foreach ($directory in @($publishDirectory, $previousDirectory)) {
             $checkBin = Join-Path $directory 'bin'
             foreach ($relative in @('xray\xray.exe','sing_box\sing-box.exe','mihomo\mihomo.exe','geoip.dat','geosite.dat','geoip.metadb','Country.mmdb')) {
@@ -278,12 +299,12 @@ jobs:
           $publishDirectory = Join-Path $env:RUNNER_TEMP 'v2rayN.WebAPI-win-x64'
           $dist = Join-Path $env:RUNNER_TEMP 'v2rayN.WebAPI-win-x64-dist'
           python v2rayN/v2rayN.WebAPI/Scripts/web-release-assets.py package --rid win-x64 --publish $publishDirectory --dist $dist
-          $fullZip = Join-Path $dist 'v2rayN-windows-64-WebAPI.zip'
-          $appOnlyZip = Join-Path $dist 'v2rayN-windows-64-WebAPI-update.zip'
+          $fullZip = Join-Path $dist 'PattN-windows-64-WebAPI.zip'
+          $appOnlyZip = Join-Path $dist 'PattN-windows-64-WebAPI-update.zip'
           if (-not (Test-Path -LiteralPath $fullZip -PathType Leaf) -or -not (Test-Path -LiteralPath $appOnlyZip -PathType Leaf)) {
             throw 'Windows release ZIPs were not created.'
           }
-          $extracted = Join-Path $env:RUNNER_TEMP 'v2rayN-windows-64-WebAPI-smoke'
+          $extracted = Join-Path $env:RUNNER_TEMP 'PattN-windows-64-WebAPI-smoke'
           Expand-Archive -LiteralPath $fullZip -DestinationPath $extracted -Force
           & ./v2rayN/v2rayN.WebAPI/Tests/Integration/Test-Windows.ps1 -Mode startup -PublishDirectory $extracted
           "Windows full-install ZIP: $fullZip"
@@ -381,6 +402,8 @@ jobs:
           $destinationBin = Join-Path $publishDirectory 'bin'
           New-Item -ItemType Directory -Path $destinationBin -Force | Out-Null
           Copy-Item -Path (Join-Path $sourceBin '*') -Destination $destinationBin -Recurse -Force
+          # PattN: patterniha/Xray-core and Chocolate4U's geo files, as in PattN's desktop packages
+          & ./v2rayN/v2rayN.WebAPI/Scripts/add-pattn-cores.ps1 -Rid win-arm64 -BinDirectory $destinationBin
           foreach ($relative in @('xray\xray.exe','sing_box\sing-box.exe','mihomo\mihomo.exe','geoip.dat','geosite.dat','geoip.metadb','Country.mmdb')) {
             $required = Join-Path $destinationBin $relative
             if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Missing Windows ARM64 Core asset: $required" }
@@ -398,12 +421,12 @@ jobs:
           $publishDirectory = Join-Path $env:RUNNER_TEMP 'v2rayN.WebAPI-win-arm64'
           $dist = Join-Path $env:RUNNER_TEMP 'v2rayN.WebAPI-win-arm64-dist'
           python v2rayN/v2rayN.WebAPI/Scripts/web-release-assets.py package --rid win-arm64 --publish $publishDirectory --dist $dist
-          $fullZip = Join-Path $dist 'v2rayN-windows-arm64-WebAPI.zip'
-          $appOnlyZip = Join-Path $dist 'v2rayN-windows-arm64-WebAPI-update.zip'
+          $fullZip = Join-Path $dist 'PattN-windows-arm64-WebAPI.zip'
+          $appOnlyZip = Join-Path $dist 'PattN-windows-arm64-WebAPI-update.zip'
           if (-not (Test-Path -LiteralPath $fullZip -PathType Leaf) -or -not (Test-Path -LiteralPath $appOnlyZip -PathType Leaf)) {
             throw 'Windows ARM64 release ZIPs were not created.'
           }
-          $extracted = Join-Path $env:RUNNER_TEMP 'v2rayN-windows-arm64-WebAPI-smoke'
+          $extracted = Join-Path $env:RUNNER_TEMP 'PattN-windows-arm64-WebAPI-smoke'
           Expand-Archive -LiteralPath $fullZip -DestinationPath $extracted -Force
           & ./v2rayN/v2rayN.WebAPI/Tests/Integration/Test-Windows.ps1 -Mode startup -PublishDirectory $extracted
           "Windows ARM64 full-install ZIP: $fullZip"
@@ -472,7 +495,7 @@ jobs:
   native-riscv64:
     name: Native API build (linux-riscv64)
     needs: identity
-    if: needs.identity.outputs.release == 'true'
+    if: needs.identity.outputs.release == 'true' && inputs.exotic_arch
     runs-on: ubuntu-24.04-riscv
     container: debian:13
     env:
@@ -596,7 +619,7 @@ jobs:
   native-loong64:
     name: Native API build (linux-loongarch64)
     needs: identity
-    if: needs.identity.outputs.release == 'true'
+    if: needs.identity.outputs.release == 'true' && inputs.exotic_arch
     runs-on: ubuntu-26.04-arm
     env:
       RID: linux-loongarch64
@@ -881,7 +904,8 @@ jobs:
 
   release-assets:
     name: Assemble API release assets
-    if: needs.identity.outputs.release == 'true'
+    # PattN: also when the exotic_arch jobs were skipped; WebAPI-update.json then lists only the packages built
+    if: ${{ !cancelled() && !failure() && needs.identity.outputs.release == 'true' }}
     needs: [identity, verify, windows, windows-arm64, native, native-riscv64, native-loong64, container]
     runs-on: ubuntu-24.04
     steps:
@@ -910,7 +934,7 @@ jobs:
             --dist release-assets \
             --repository "${{ github.repository }}"
       - name: Smoke-test full API ZIP
-        run: bash v2rayN/v2rayN.WebAPI/Tests/Integration/test-full-zip-runtime.sh release-assets/v2rayN-linux-64-WebAPI.zip
+        run: bash v2rayN/v2rayN.WebAPI/Tests/Integration/test-full-zip-runtime.sh release-assets/PattN-linux-64-WebAPI.zip
       - uses: actions/upload-artifact@v7
         with:
           name: WebAPI-release-packages

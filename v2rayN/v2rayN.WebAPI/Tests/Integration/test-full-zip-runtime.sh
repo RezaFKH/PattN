@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-archive="${1:?Usage: test-full-zip-runtime.sh <v2rayN-linux-64-WebAPI.zip>}"
+archive="${1:?Usage: test-full-zip-runtime.sh <PattN-linux-64-WebAPI.zip>}"
 archive="$(realpath "$archive")"
 test -s "$archive"
 command -v curl >/dev/null

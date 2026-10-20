@@ -5,12 +5,12 @@ The RID-to-asset map lives in `../Assets/web-assets.json`. The Web assembly embe
 file, so the runtime updater, the release manifest, and this packager never disagree about the
 release asset names:
 
-  linux-x64        -> v2rayN-linux-64-WebAPI.zip        + v2rayN-linux-64-WebAPI-update.zip
-  linux-arm64      -> v2rayN-linux-arm64-WebAPI.zip     + v2rayN-linux-arm64-WebAPI-update.zip
-  linux-riscv64    -> v2rayN-linux-riscv64-WebAPI.zip   + v2rayN-linux-riscv64-WebAPI-update.zip
-  linux-loongarch64-> v2rayN-linux-loong64-WebAPI.zip   + v2rayN-linux-loong64-WebAPI-update.zip
-  win-x64          -> v2rayN-windows-64-WebAPI.zip      + v2rayN-windows-64-WebAPI-update.zip
-  win-arm64        -> v2rayN-windows-arm64-WebAPI.zip   + v2rayN-windows-arm64-WebAPI-update.zip
+  linux-x64        -> PattN-linux-64-WebAPI.zip        + PattN-linux-64-WebAPI-update.zip
+  linux-arm64      -> PattN-linux-arm64-WebAPI.zip     + PattN-linux-arm64-WebAPI-update.zip
+  linux-riscv64    -> PattN-linux-riscv64-WebAPI.zip   + PattN-linux-riscv64-WebAPI-update.zip
+  linux-loongarch64-> PattN-linux-loong64-WebAPI.zip   + PattN-linux-loong64-WebAPI-update.zip
+  win-x64          -> PattN-windows-64-WebAPI.zip      + PattN-windows-64-WebAPI-update.zip
+  win-arm64        -> PattN-windows-arm64-WebAPI.zip   + PattN-windows-arm64-WebAPI-update.zip
 
 Usage:
   web-release-assets.py get --rid linux-x64 --field full

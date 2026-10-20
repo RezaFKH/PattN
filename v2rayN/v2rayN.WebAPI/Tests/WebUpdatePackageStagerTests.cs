@@ -65,23 +65,23 @@ public class WebUpdatePackageStagerTests
     {
         var manifest = new WebUpdateManifest("v2rayN.WebAPI", "7.25.3", "0123456789abcdef", "2026-09-28T00:00:00Z",
         [
-            new WebUpdatePackage("linux-x64", "v2rayN-linux-64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-x64", "PattN-linux-64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-64-WebAPI-update.zip",
                 new string('a', 64), 1234),
-            new WebUpdatePackage("linux-arm64", "v2rayN-linux-arm64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-arm64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-arm64", "PattN-linux-arm64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-arm64-WebAPI-update.zip",
                 new string('b', 64), 2345),
-            new WebUpdatePackage("win-x64", "v2rayN-windows-64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-windows-64-WebAPI-update.zip",
+            new WebUpdatePackage("win-x64", "PattN-windows-64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-windows-64-WebAPI-update.zip",
                 new string('c', 64), 3456),
-            new WebUpdatePackage("linux-riscv64", "v2rayN-linux-riscv64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-riscv64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-riscv64", "PattN-linux-riscv64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-riscv64-WebAPI-update.zip",
                 new string('d', 64), 4567),
-            new WebUpdatePackage("linux-loongarch64", "v2rayN-linux-loong64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-loong64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-loongarch64", "PattN-linux-loong64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-loong64-WebAPI-update.zip",
                 new string('e', 64), 5678),
-            new WebUpdatePackage("win-arm64", "v2rayN-windows-arm64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-windows-arm64-WebAPI-update.zip",
+            new WebUpdatePackage("win-arm64", "PattN-windows-arm64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-windows-arm64-WebAPI-update.zip",
                 new string('f', 64), 6789),
         ]);
         var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -93,7 +93,7 @@ public class WebUpdatePackageStagerTests
         await WebUpdatePackageStager.RequirePackage(parsed, "linux-riscv64").Rid.Should().BeEqualTo("linux-riscv64");
         await WebUpdatePackageStager.RequirePackage(parsed, "linux-loongarch64").Rid.Should().BeEqualTo("linux-loongarch64");
         await WebUpdatePackageStager.RequirePackage(parsed, "win-arm64").Rid.Should().BeEqualTo("win-arm64");
-        await WebReleaseChannel.IsTrustedAssetUrl(parsed.Packages[0].Url, "2dust/v2rayN", parsed.Version, parsed.Packages[0].Asset)
+        await WebReleaseChannel.IsTrustedAssetUrl(parsed.Packages[0].Url, "patterniha/PattN", parsed.Version, parsed.Packages[0].Asset)
             .Should().BeTrue();
 
         var wrongRidRejected = false;
@@ -119,11 +119,11 @@ public class WebUpdatePackageStagerTests
     {
         var manifest = new WebUpdateManifest("v2rayN.WebAPI", "7.25.3", "0123456789abcdef", "2026-09-28T00:00:00Z",
         [
-            new WebUpdatePackage("linux-x64", "v2rayN-linux-64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-x64", "PattN-linux-64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-64-WebAPI-update.zip",
                 new string('a', 64), 1234),
-            new WebUpdatePackage("linux-future64", "v2rayN-linux-future64-WebAPI-update.zip",
-                "https://github.com/2dust/v2rayN/releases/download/7.25.3/v2rayN-linux-future64-WebAPI-update.zip",
+            new WebUpdatePackage("linux-future64", "PattN-linux-future64-WebAPI-update.zip",
+                "https://github.com/patterniha/PattN/releases/download/7.25.3/PattN-linux-future64-WebAPI-update.zip",
                 new string('b', 64), 2345),
         ]);
         var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -412,7 +412,7 @@ public class WebUpdatePackageStagerTests
             ?? throw new InvalidOperationException($"No app-only asset for {rid}.");
         return new WebUpdateManifest("v2rayN.WebAPI", version, commit, buildDate,
         [new WebUpdatePackage(rid, asset,
-            $"https://github.com/2dust/v2rayN/releases/download/{version}/{asset}",
+            $"https://github.com/patterniha/PattN/releases/download/{version}/{asset}",
             hash, new FileInfo(archive).Length)]);
     }
 

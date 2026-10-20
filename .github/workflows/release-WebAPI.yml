@@ -6,15 +6,24 @@ on:
       release_tag:
         required: true
         type: string
+      exotic_arch: # PattN: also build linux-riscv64 (RISE runner) and linux-loongarch64 (emulated, 1-3 h)
+        required: false
+        type: boolean
+        default: false
     secrets:
       GPG_PRIVATE_KEY:
         required: false
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (for example 7.x.y).'
+        description: 'Release tag (for example 7.x.y-P<n>).'
         required: true
         type: string
+      exotic_arch: # PattN: also build linux-riscv64 (RISE runner) and linux-loongarch64 (emulated, 1-3 h)
+        description: 'Also build linux-riscv64 and linux-loongarch64'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,6 +36,7 @@ jobs:
       contents: read
     with:
       release_tag: ${{ inputs.release_tag }}
+      exotic_arch: ${{ inputs.exotic_arch }}
 
   release-web-packages:
     name: sign and upload Web API packages
@@ -37,7 +47,7 @@ jobs:
     with:
       release_tag: ${{ inputs.release_tag }}
       artifact_name: WebAPI-release-packages
-      file_pattern: 'v2rayN-*-WebAPI*.zip'
+      file_pattern: 'PattN-*-WebAPI*.zip'
     secrets: { GPG_PRIVATE_KEY: "${{ secrets.GPG_PRIVATE_KEY }}" }
 
   release-web-manifest:
