@@ -67,9 +67,13 @@ public partial class CoreConfigV2rayService
 
                 var address = _config.TunModeItem.IPv4Address.NullIfEmpty() ?? Global.TunIPv4Address.First();
                 tunInbound.settings.gateway = [address];
-                // Without ::/0, IPv6 bypasses the tunnel. Skip it only when the host has no global IPv6
-                // address and EnableIPv6Address is off; NAT66 hosts have only ULA addresses.
-                var routeIPv6 = _config.TunModeItem.EnableIPv6Address || context.HasGlobalIPv6Address;
+                // PattN: on Windows with strict route, misconfigtun blocks an IP version that has no route into
+                // the TUN, so IPv6 goes into the TUN only when EnableIPv6Address is on and is blocked otherwise.
+                // Elsewhere nothing blocks it: without ::/0, IPv6 bypasses the tunnel, so ::/0 is skipped only
+                // when the host has no global IPv6 address and EnableIPv6Address is off; NAT66 hosts have only
+                // ULA addresses.
+                var wfpBlocksLeaks = context.IsWindows && _config.TunModeItem.StrictRoute == true;
+                var routeIPv6 = _config.TunModeItem.EnableIPv6Address || (!wfpBlocksLeaks && context.HasGlobalIPv6Address);
                 tunInbound.settings.autoSystemRoutingTable = routeIPv6
                     ? ["0.0.0.0/0", "::/0"]
                     : ["0.0.0.0/0"];
@@ -88,7 +92,7 @@ public partial class CoreConfigV2rayService
                 // PattN: respect the user's Route Only setting in TUN mode (upstream forces true)
                 // tunInbound.sniffing.routeOnly = true;
 
-                if (context.IsWindows && _config.TunModeItem.StrictRoute == true)
+                if (wfpBlocksLeaks)
                 {
                     tunInbound.settings.autoSystemWfpBlockLeak = ["dns", "misconfigtun"];
                 }
