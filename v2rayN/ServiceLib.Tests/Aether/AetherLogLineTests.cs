@@ -41,9 +41,9 @@ public class AetherLogLineTests
     [Test]
     public async Task WhereTheAppDialsPsiphonReadinessNeedsTheCoresWord()
     {
-        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:10819 leaves through psiphon, carried by the tunnel").Should().BeTrue();
-        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:10819 leaves through psiphon").Should().BeTrue();
-        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10820").Should().BeFalse();
+        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:10829 leaves through psiphon, carried by the tunnel").Should().BeTrue();
+        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:10829 leaves through psiphon").Should().BeTrue();
+        await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10830").Should().BeFalse();
         await AetherLogLine.IsReadyWord("[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon reached a server at 203.0.113.9").Should().BeFalse();
     }
 

@@ -18,7 +18,7 @@ public class OptionSettingAetherPortTests
     [Test]
     public async Task TheAetherListenPortIsAPortFrom1024To65532()
     {
-        foreach (var text in new[] { "1023", "65533", "abc", "", " ", "0", "-1", "10819.5", "70000", "99999999999" })
+        foreach (var text in new[] { "1023", "65533", "abc", "", " ", "0", "-1", "10829.5", "70000", "99999999999" })
         {
             await OptionSettingViewModel.AetherPortsProblem(L, text).Should().BeEqualTo(ResUI.FillAetherListenPort).Because($"\"{text}\"");
         }
@@ -80,7 +80,7 @@ public class OptionSettingAetherPortTests
     [NotInParallel("AppManager config")]
     public async Task TheDialogShowsThePortTheCoresUse()
     {
-        foreach (var (stored, shown) in new (int?, string)[] { (20808, "20808"), (null, "10819"), (80, "10819"), (65533, "10819") })
+        foreach (var (stored, shown) in new (int?, string)[] { (20808, "20808"), (null, "10829"), (80, "10829"), (65533, "10829") })
         {
             var config = CoreConfigTestFactory.CreateConfig();
             config.CoreBasicItem.AetherListenPort = stored;

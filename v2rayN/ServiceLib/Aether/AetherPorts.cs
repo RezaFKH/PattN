@@ -9,7 +9,7 @@ namespace ServiceLib.Aether;
 public static class AetherPorts
 {
     /// <summary>The Aether listen port unless the setting names another.</summary>
-    public const int DefaultListenPort = 10819;
+    public const int DefaultListenPort = 10829;
 
     /// <summary>
     /// How far above the listen port the secondary-socks inbound is: past the two after it that Psiphon and Tor may take.

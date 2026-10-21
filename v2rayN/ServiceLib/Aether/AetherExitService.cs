@@ -39,7 +39,7 @@ public sealed class AetherExitHost
         return new AetherExitHost
         {
             ListenPort = () => AetherPorts.ListenPortOf(AppManager.Instance.Config?.CoreBasicItem?.AetherListenPort),
-            Generate = GenerateAsync,
+            Generate = (exit, port) => GenerateAsync(exit, port, AetherUplinkBinding.Default),
             StartXray = async fileName =>
                 await CoreManager.Instance.RunAetherExitXrayAsync(fileName) is { } process ? new XrayProcess(process) : null,
         };
@@ -58,9 +58,10 @@ public sealed class AetherExitHost
 
     /// <summary>
     /// The exit configuration in a context of its own (<see cref="ContextProfile" />), with the node an exit names looked
-    /// up by its name and registered into it as any profile of a configuration is.
+    /// up by its name and registered into it as any profile of a configuration is, and its outbounds bound to the uplink
+    /// as <paramref name="uplink" /> decides (under a TUN, with no bind interface set; D2).
     /// </summary>
-    private static async Task<RetResult> GenerateAsync(AetherExit exit, int port)
+    public static async Task<RetResult> GenerateAsync(AetherExit exit, int port, AetherUplinkBinding uplink)
     {
         var config = AppManager.Instance.Config;
         var (context, _) = await CoreConfigContextBuilder.Build(config, ContextProfile());
@@ -68,6 +69,7 @@ public sealed class AetherExitHost
         {
             context.Aether.ExitNodes[node] = await CoreConfigContextBuilder.LookUpAetherExitNodeAsync(context, node);
         }
+        uplink.Apply(context, AetherUplinkBinding.ExitRole);
         return new CoreConfigV2rayService(context).GenerateAetherExitConfig(exit, port);
     }
 
@@ -101,7 +103,8 @@ public sealed class AetherExitHost
 /// The exit of a core of its own: a scan or a key run dials out through a short-lived Xray process (design 2.6.5, the
 /// desktop's stand-in for PattNG's in-process Libv2ray.openExit), whose secondary-socks inbound on a free loopback port
 /// sends what the core sends out by the exit-node, as the session's Xray does for the session's core. Under the TUN its
-/// freedom exit-node resolves names with the direct DNS servers (critique 19).
+/// freedom exit-node resolves names with the direct DNS servers (critique 19), and while a TUN runs its outbounds dial out
+/// by the uplink rather than into the TUN, unless the settings name a bind interface (AetherUplinkBinding, D2).
 /// </summary>
 public sealed class AetherExitService(AetherExitHost host)
 {

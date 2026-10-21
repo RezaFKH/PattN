@@ -1890,4 +1890,16 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
     <value>The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it</value>
   </data>
+  <data name="MsgAetherListenPortInUse" xml:space="preserve">
+    <value>Port {0}, which the Aether core listens on, is taken by another program or reserved by the system; change the Aether listen port in the settings, or the ports of the command</value>
+  </data>
+  <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
+    <value>Port {0}, three above the Aether listen port, which Xray opens for the Aether core to dial out through, is taken by another program or reserved by the system; change the Aether listen port in the settings</value>
+  </data>
+  <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
+    <value>"{0}" could not be built in the chain of its subscription</value>
+  </data>
+  <data name="MsgAetherListenPortInvalid" xml:space="preserve">
+    <value>The command of the Aether profile tells the core to listen on {0}, which is no port (1 to 65535); change the ports of the command</value>
+  </data>
 </root>

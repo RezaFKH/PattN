@@ -35,7 +35,7 @@ public class AetherProcessTests : IDisposable
     public async Task EveryArgumentReachesTheCoreAsOneWordWhateverItHolds()
     {
         var folders = Folders();
-        string[] arguments = ["--bind", "127.0.0.1:10819", "--dns", "1.1.1.1, 1.0.0.1", "--exit-loc", "\"DE\"", "--tor-bridge-lines", "obfs4 1.2.3.4:443 X cert=a\\b"];
+        string[] arguments = ["--bind", "127.0.0.1:10829", "--dns", "1.1.1.1, 1.0.0.1", "--exit-loc", "\"DE\"", "--tor-bridge-lines", "obfs4 1.2.3.4:443 X cert=a\\b"];
 
         var info = AetherProcess.StartInfo(folders, arguments, AetherRole.Session);
 

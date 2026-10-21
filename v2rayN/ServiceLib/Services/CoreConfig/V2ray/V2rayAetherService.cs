@@ -60,6 +60,8 @@ public partial class CoreConfigV2rayService
                 // reach a remote DNS through the very core that is starting (critique 19).
                 _coreConfig.dns = BuildAetherExitDns();
             }
+            // Bound to the uplink while a TUN runs, it looks every name up by its own DNS, which leaves by the uplink (D2-3).
+            LookUpNamesByUplink();
 
             ApplyOutboundBindInterface();
             ApplyOutboundSendThrough();
@@ -222,6 +224,281 @@ public partial class CoreConfigV2rayService
         }
     }
 
+    /// <summary>
+    /// The uplink the outbounds of this configuration are bound to (<see cref="AetherBuild.Uplink" />, D2): the Xray of a
+    /// scan, a key run or a latency test while a TUN runs; null for every other configuration, and while the settings
+    /// name a bind interface, which binds them as it binds every configuration's.
+    /// </summary>
+    private string? UplinkBinding => _config.CoreBasicItem.BindInterface.IsNullOrEmpty() ? context.Aether.Uplink : null;
+
+    /// <summary>
+    /// Binds <paramref name="echOutbound" />, an ECH outbound as its profile wrote it, to the uplink (<see cref="UplinkBinding" />),
+    /// as ApplyOutboundBindInterface binds the generated ones: unbound, the ECH query of a profile of that Xray enters the
+    /// TUN, where a query of port 53 meets the TUN's DNS rule, which answers no HTTPS record. A freedom one is bound too,
+    /// since it is how the query leaves; see <see cref="BindWrittenOutboundToUplink" /> for what is left as it is.
+    /// </summary>
+    private void BindEchOutboundToUplink(JsonObject echOutbound)
+    {
+        BindWrittenOutboundToUplink(echOutbound, ["blackhole", "loopback"]);
+        BindEchQueryToUplink(echOutbound);
+    }
+
+    /// <summary>
+    /// Binds <paramref name="outbound" />, the outbound of a profile as its file wrote it, tagged <paramref name="tag" />,
+    /// to the uplink, as ApplyOutboundBindInterface binds the generated ones (ShouldBindNet): its own JSON, not the stand-in
+    /// the generation built for it, tells whether it opens connections of its own and where to (D2-2). A freedom one is
+    /// bound only as the exit-node, as a generated one is.
+    /// </summary>
+    private void BindCustomOutboundToUplink(JsonObject outbound, string tag)
+    {
+        BindWrittenOutboundToUplink(outbound, tag == Global.AetherExitNodeTag
+            ? ["blackhole", "loopback", "dns"]
+            : ["freedom", "blackhole", "loopback", "dns"]);
+    }
+
+    /// <summary>
+    /// Binds <paramref name="outbound" />, written as JSON, to the uplink, with the download half of an xhttp transport,
+    /// and has the name of its server looked up by Xray's DNS, which leaves by the uplink too (D2-3). One whose protocol is
+    /// among <paramref name="unbound" />, that dials through another outbound, names an interface itself, or reaches the
+    /// loopback address, which no interface but the loopback one reaches, is left as it is.
+    /// </summary>
+    private void BindWrittenOutboundToUplink(JsonObject outbound, IReadOnlyCollection<string> unbound)
+    {
+        var protocol = TextOf(outbound["protocol"]);
+        if (UplinkBinding is not { } uplink
+            || (protocol != null && unbound.Contains(protocol))
+            || ReachesLoopback(outbound["settings"] as JsonObject))
+        {
+            return;
+        }
+        var streamSettings = outbound["streamSettings"];
+        if (streamSettings == null)
+        {
+            streamSettings = new JsonObject();
+            outbound["streamSettings"] = streamSettings;
+        }
+        if (streamSettings is not JsonObject settings)
+        {
+            return;
+        }
+        var sockopt = settings["sockopt"];
+        if (sockopt == null)
+        {
+            sockopt = new JsonObject();
+            settings["sockopt"] = sockopt;
+        }
+        if (sockopt is not JsonObject options
+            || !TextOf(options["dialerProxy"]).IsNullOrEmpty()
+            || !TextOf(options["interface"]).IsNullOrEmpty())
+        {
+            return;
+        }
+        options["interface"] = uplink;
+        // A freedom one dials the names it is handed, a proxy the name of its server.
+        var freedom = protocol == "freedom";
+        if (freedom || ServerHosts(outbound["settings"] as JsonObject).Any(Utils.IsDomain))
+        {
+            options["domainStrategy"] = UplinkDomainStrategy(TextOf(options["domainStrategy"]), freedom);
+        }
+        // As ApplyOutboundBindInterface does, the download half of an xhttp transport is bound with it.
+        if ((settings["xhttpSettings"] as JsonObject)?["extra"] is JsonObject extra
+            && extra["downloadSettings"] is JsonObject downloadSettings)
+        {
+            BindDownloadToUplink(downloadSettings, ServerHosts(outbound["settings"] as JsonObject).Any(Utils.IsDomain));
+        }
+    }
+
+    /// <summary>
+    /// Binds the download half of an xhttp transport, <paramref name="downloadSettings" />, to the uplink, its server's name
+    /// looked up by Xray's DNS when its own address, or else the outbound's (<paramref name="outboundByName" />), is one.
+    /// </summary>
+    private void BindDownloadToUplink(JsonObject downloadSettings, bool outboundByName)
+    {
+        if (UplinkBinding is not { } uplink)
+        {
+            return;
+        }
+        var downloadSockopt = downloadSettings["sockopt"] as JsonObject ?? new JsonObject();
+        downloadSockopt["interface"] = uplink;
+        var address = TextOf(downloadSettings["address"]);
+        if (address.IsNullOrEmpty() ? outboundByName : Utils.IsDomain(address))
+        {
+            downloadSockopt["domainStrategy"] = UplinkDomainStrategy(TextOf(downloadSockopt["domainStrategy"]));
+        }
+        downloadSettings["sockopt"] = downloadSockopt;
+    }
+
+    /// <summary>
+    /// Binds the ECH config query of every generated outbound to the uplink (D2-1): Xray sends it from a socket of its own,
+    /// with the outbound's echSockopt, not its sockopt, and through no dialerProxy of the outbound, so that a chain hop's
+    /// query leaves the machine all the same. Unbound, it enters the TUN, where the TUN's DNS rule answers no HTTPS record.
+    /// </summary>
+    private void BindEchQueriesToUplink()
+    {
+        if (UplinkBinding is not { } uplink)
+        {
+            return;
+        }
+        foreach (var tls in (_coreConfig.outbounds ?? []).Select(outbound => outbound.streamSettings?.tlsSettings).OfType<TlsSettings4Ray>())
+        {
+            // One that goes through an ECH outbound is bound there (BindEchOutboundToUplink).
+            if (EchQueryHost(tls.echConfigList) is not { } host
+                || IsLoopbackHost(host)
+                || (tls.echSockopt is { } own && (!own.dialerProxy.IsNullOrEmpty() || !own.Interface.IsNullOrEmpty())))
+            {
+                continue;
+            }
+            tls.echSockopt ??= new Sockopt4Ray();
+            tls.echSockopt.Interface = uplink;
+            if (Utils.IsDomain(host))
+            {
+                tls.echSockopt.domainStrategy = UplinkDomainStrategy(tls.echSockopt.domainStrategy);
+            }
+        }
+    }
+
+    /// <summary>
+    /// <see cref="BindEchQueriesToUplink" /> for <paramref name="outbound" />, written as JSON: the outbound of a profile as
+    /// its file wrote it, or an ECH outbound.
+    /// </summary>
+    private void BindEchQueryToUplink(JsonObject outbound)
+    {
+        if (UplinkBinding is not { } uplink
+            || (outbound["streamSettings"] as JsonObject)?["tlsSettings"] is not JsonObject tls
+            || EchQueryHost(TextOf(tls["echConfigList"])) is not { } host
+            || IsLoopbackHost(host))
+        {
+            return;
+        }
+        var echSockopt = tls["echSockopt"];
+        if (echSockopt == null)
+        {
+            echSockopt = new JsonObject();
+            tls["echSockopt"] = echSockopt;
+        }
+        if (echSockopt is not JsonObject options
+            || !TextOf(options["dialerProxy"]).IsNullOrEmpty()
+            || !TextOf(options["interface"]).IsNullOrEmpty())
+        {
+            return;
+        }
+        options["interface"] = uplink;
+        if (Utils.IsDomain(host))
+        {
+            options["domainStrategy"] = UplinkDomainStrategy(TextOf(options["domainStrategy"]));
+        }
+    }
+
+    /// <summary>
+    /// The host of the DNS server an ECH config list has Xray query (Xray's ApplyECH: a list with "://" in it, the server
+    /// after the "+" or the whole list); null for a list Xray takes as it is, or none.
+    /// </summary>
+    private static string? EchQueryHost(string? echConfigList)
+    {
+        if (echConfigList.IsNullOrEmpty() || !echConfigList.Contains("://"))
+        {
+            return null;
+        }
+        var plus = echConfigList.IndexOf('+');
+        var server = plus >= 0 ? echConfigList[(plus + 1)..] : echConfigList;
+        return Uri.TryCreate(server, UriKind.Absolute, out var uri) && !uri.IdnHost.IsNullOrEmpty() ? uri.IdnHost.Trim('[', ']') : null;
+    }
+
+    /// <summary>
+    /// The domain strategy a bound connection to a server named by its domain dials with (D2-3): a Force one, which looks the
+    /// name up with Xray's DNS alone, whose queries leave by the uplink as well; the system's resolver, which a strategy of
+    /// none, AsIs or a Use one falls back to, asks the TUN's DNS, whose fake addresses the bound connection cannot reach.
+    /// <paramref name="current" />'s family counts, then that of the DNS settings' strategy for the proxies' servers, or for
+    /// the direct outbound when <paramref name="freedom" />.
+    /// </summary>
+    private string UplinkDomainStrategy(string? current, bool freedom = false)
+    {
+        var rawDns = context.RawDnsItem is { Enabled: true };
+        var strategy = !current.IsNullOrEmpty() && current != Global.AsIs ? current
+            : freedom ? rawDns ? context.RawDnsItem!.DomainStrategy4Freedom : context.SimpleDnsItem?.Strategy4Freedom
+            : rawDns ? null : context.SimpleDnsItem?.Strategy4ProxyDial;
+        return AetherOutbound.ForcedStrategyOf(strategy);
+    }
+
+    /// <summary>The hosts of the servers an outbound of <paramref name="settings" /> connects to, as <see cref="ReachesLoopback" /> reads them.</summary>
+    private static IEnumerable<string> ServerHosts(JsonObject? settings)
+    {
+        if (settings == null)
+        {
+            yield break;
+        }
+        if (TextOf(settings["address"]) is { } address)
+        {
+            yield return address;
+        }
+        foreach (var (list, key) in new[] { ("servers", "address"), ("vnext", "address"), ("peers", "endpoint") })
+        {
+            if (settings[list] is not JsonArray items)
+            {
+                continue;
+            }
+            foreach (var host in items.OfType<JsonObject>().Select(item => key == "endpoint" ? HostOf(TextOf(item[key])) : TextOf(item[key])))
+            {
+                if (host != null)
+                {
+                    yield return host;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether an outbound of <paramref name="settings" /> reaches the loopback address: its address, its freedom
+    /// redirect, or the address or endpoint of a server, a vnext or a peer of it.
+    /// </summary>
+    private static bool ReachesLoopback(JsonObject? settings)
+    {
+        if (settings == null)
+        {
+            return false;
+        }
+        return IsLoopbackHost(HostOf(TextOf(settings["redirect"]))) || ServerHosts(settings).Any(IsLoopbackHost);
+    }
+
+    /// <summary>
+    /// Whether the generated WireGuard <paramref name="outbound" /> has a peer on the loopback address (D2-2): its endpoint
+    /// is host:port, which ShouldBindNet takes for no address.
+    /// </summary>
+    private static bool PeerReachesLoopback(Outbounds4Ray outbound)
+    {
+        return outbound.settings?.peers?.Any(peer => IsLoopbackHost(HostOf(peer.endpoint))) == true;
+    }
+
+    /// <summary>Whether <paramref name="host" /> is localhost or a loopback address.</summary>
+    private static bool IsLoopbackHost(string? host)
+    {
+        return host != null
+               && (host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                   || (IPAddress.TryParse(host.Trim('[', ']'), out var address) && IPAddress.IsLoopback(address)));
+    }
+
+    /// <summary>The host of host:port, [ipv6]:port or a bare host; null for null.</summary>
+    private static string? HostOf(string? endpoint)
+    {
+        if (endpoint == null)
+        {
+            return null;
+        }
+        if (endpoint.StartsWith('['))
+        {
+            var close = endpoint.IndexOf(']');
+            return close > 0 ? endpoint.Substring(1, close - 1) : endpoint;
+        }
+        var colon = endpoint.IndexOf(':');
+        return colon >= 0 && colon == endpoint.LastIndexOf(':') ? endpoint.Substring(0, colon) : endpoint;
+    }
+
+    /// <summary>The string <paramref name="node" /> holds; null for anything else.</summary>
+    private static string? TextOf(JsonNode? node)
+    {
+        return node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+    }
+
     #endregion outbounds
 
     #region GenAether
@@ -296,6 +573,7 @@ public partial class CoreConfigV2rayService
             core = core with { Exit = core.Exit with { NodeContent = one.Content } };
         }
         context.Aether.Core = core;
+        context.Aether.SecondaryInboundPort = secondaryPort;
         _coreConfig.aetherCommand = core.Command;
         return null;
     }
@@ -515,12 +793,19 @@ public partial class CoreConfigV2rayService
 
     /// <summary>
     /// The DNS of the exit Xray under the TUN: the direct DNS servers of the settings, a server named by its domain looked
-    /// up with the bootstrap DNS first, as the session's DNS does it.
+    /// up with the bootstrap DNS first, as the session's DNS does it. <paramref name="byUplink" />: for an Xray whose
+    /// outbounds are bound to the uplink (D2-3), no server asks the system's resolver, which asks the TUN's DNS: the
+    /// system's ("dhcp", "localhost") gives way to the bootstrap DNS, and one dialled by the system (a "+local" scheme) is
+    /// dialled by Xray, whose queries then leave by the uplink (<see cref="LookUpNamesByUplink" />).
     /// </summary>
-    private Dns4Ray BuildAetherExitDns()
+    private Dns4Ray BuildAetherExitDns(bool byUplink = false)
     {
-        var direct = DnsAddresses(context.SimpleDnsItem?.DirectDNS, Global.DomainDirectDNSAddress.First());
-        var bootstrap = DnsAddresses(context.SimpleDnsItem?.BootstrapDNS, Global.DomainPureIPDNSAddress.First());
+        var bootstrap = DnsAddresses(context.SimpleDnsItem?.BootstrapDNS, Global.DomainPureIPDNSAddress.First(), null);
+        if (byUplink)
+        {
+            bootstrap = DnsAddresses(context.SimpleDnsItem?.BootstrapDNS, Global.DomainPureIPDNSAddress.First(), [Global.DomainPureIPDNSAddress.First()]);
+        }
+        var direct = DnsAddresses(context.SimpleDnsItem?.DirectDNS, Global.DomainDirectDNSAddress.First(), byUplink ? bootstrap : null);
         var serverDomains = direct
             .Select(address => Utils.ParseUrl(address).Item1)
             .Where(host => host != "localhost" && Utils.IsDomain(host))
@@ -541,12 +826,17 @@ public partial class CoreConfigV2rayService
         servers.AddRange(direct.Select(address => (object)JsonUtils.SerializeToNode(DnsServer(address), options)!));
         return new Dns4Ray { servers = servers };
 
-        static List<string> DnsAddresses(string? text, string fallback)
+        // The addresses of text, the system's resolver as "localhost"; with byUplinkInstead, the system's resolver gives
+        // way to those, and a "+local" scheme to the plain one.
+        static List<string> DnsAddresses(string? text, string fallback, List<string>? byUplinkInstead)
         {
             var addresses = (Utils.String2List(text) ?? [])
                 .Select(address => address.Trim())
                 .Where(address => address.Length > 0)
                 .Select(address => address.StartsWith("dhcp", StringComparison.OrdinalIgnoreCase) ? "localhost" : address)
+                .SelectMany(address => byUplinkInstead == null ? new List<string> { address }
+                    : address.Equals("localhost", StringComparison.OrdinalIgnoreCase) ? byUplinkInstead
+                    : new List<string> { LocalScheme.Replace(address, "$1://") })
                 .Distinct()
                 .ToList();
             return addresses.Count > 0 ? addresses : [fallback];
@@ -565,6 +855,67 @@ public partial class CoreConfigV2rayService
             }
             return new DnsServer4Ray { address = address };
         }
+    }
+
+    // A DNS server Xray dials by the system's dialer: tcp+local://, https+local://, quic+local://.
+    private static readonly Regex LocalScheme = new(@"^([A-Za-z0-9]+)\+local://", RegexOptions.IgnoreCase);
+
+    /// <summary>The tag of the DNS of an Xray whose outbounds are bound to the uplink, which a rule sends out by the bound direct outbound.</summary>
+    public const string UplinkDnsTag = "uplink-dns";
+
+    /// <summary>
+    /// The names the Xray of a scan, a key run or a latency test looks up while its outbounds are bound to the uplink (D2-3):
+    /// by its own DNS (<see cref="BuildAetherExitDns" />), whose queries a rule sends out by the direct outbound, bound to
+    /// the uplink and resolving the names it dials with that DNS; never by the system's resolver, which asks the TUN's DNS,
+    /// whose fake addresses (FakeIP) a bound connection cannot reach, where an unbound one went through the TUN, which
+    /// gave the name back. The bound outbounds that dial a name look it up so (ApplyOutboundBindInterface). Nothing for
+    /// any other configuration.
+    /// </summary>
+    private void LookUpNamesByUplink()
+    {
+        if (UplinkBinding is not { } uplink)
+        {
+            return;
+        }
+        var dns = BuildAetherExitDns(byUplink: true);
+        dns.tag = UplinkDnsTag;
+        _coreConfig.dns = dns;
+        _coreConfig.outbounds ??= [];
+        var direct = _coreConfig.outbounds.FirstOrDefault(outbound => outbound is { protocol: "freedom", tag: Global.DirectTag });
+        if (direct == null)
+        {
+            direct = new Outbounds4Ray { tag = Global.DirectTag, protocol = "freedom" };
+            _coreConfig.outbounds.Add(direct);
+        }
+        direct.streamSettings ??= new();
+        direct.streamSettings.sockopt ??= new();
+        direct.streamSettings.sockopt.Interface = uplink;
+        direct.streamSettings.sockopt.domainStrategy = UplinkDomainStrategy(direct.streamSettings.sockopt.domainStrategy, freedom: true);
+        _coreConfig.routing ??= new Routing4Ray { domainStrategy = Global.AsIs, rules = [] };
+        _coreConfig.routing.rules ??= [];
+        _coreConfig.routing.rules.Insert(0, new RulesItem4Ray
+        {
+            type = "field",
+            inboundTag = [UplinkDnsTag],
+            outboundTag = Global.DirectTag,
+        });
+    }
+
+    /// <summary>
+    /// Has the name of the server of <paramref name="outbound" />, a generated one bound to the uplink, looked up by
+    /// Xray's DNS (D2-3; <see cref="LookUpNamesByUplink" />), and the names a freedom one is handed.
+    /// </summary>
+    private void LookUpServerByUplink(Outbounds4Ray outbound)
+    {
+        var freedom = outbound.protocol == "freedom";
+        var host = outbound.settings?.address?.ToString() ?? HostOf(outbound.settings?.peers?.FirstOrDefault()?.endpoint);
+        if (!freedom && !Utils.IsDomain(host))
+        {
+            return;
+        }
+        outbound.streamSettings ??= new();
+        outbound.streamSettings.sockopt ??= new();
+        outbound.streamSettings.sockopt.domainStrategy = UplinkDomainStrategy(outbound.streamSettings.sockopt.domainStrategy, freedom);
     }
 
     private static Inbounds4Ray BuildAetherSecondaryInbound(int port)

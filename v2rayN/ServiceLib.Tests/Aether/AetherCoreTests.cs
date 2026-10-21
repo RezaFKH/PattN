@@ -4,7 +4,7 @@ namespace ServiceLib.Tests.Aether;
 
 // From PattNG AetherCoreTest: the core of a profile or of a command line. Its exit-node tests are in AetherExitTests.
 // PattNG reads the Aether listen port from the settings where a test leaves it out (onListenPort swaps the setting);
-// AetherCore.Of and OfCommand take it, so the tests pass the port the setting would hold: 10819 unless one is named.
+// AetherCore.Of and OfCommand take it, so the tests pass the port the setting would hold: 10829 unless one is named.
 public class AetherCoreTests
 {
     private const int ListenPort = AetherPorts.DefaultListenPort;
@@ -94,7 +94,7 @@ public class AetherCoreTests
     {
         var core = AetherCore.Of(Pinned(), ListenPort);
         await core.Command.Should().BeEqualTo(
-            "aether --bind 127.0.0.1:10819 --protocol wg --scan balanced --ip v4 --peer 188.114.96.77:443 --quick-reconnect");
+            "aether --bind 127.0.0.1:10829 --protocol wg --scan balanced --ip v4 --peer 188.114.96.77:443 --quick-reconnect");
         await AetherCore.OfCommand(core.Command, ListenPort).Should().BeEqualTo(core);
 
         var gool = AetherCore.Of(Profile(extra => extra with { AetherProtocol = AetherProtocol.Gool.Type, AetherWiwOuter = "162.159.192.1:2408" }), ListenPort);
@@ -126,11 +126,11 @@ public class AetherCoreTests
     [Test]
     public async Task TheProgramNameInFrontIsDroppedWhateverItIs()
     {
-        string[] arguments = ["--wg", "--bind", "127.0.0.1:10819"];
-        await ShouldBe(OfCommand("aether --wg --bind 127.0.0.1:10819").Arguments, arguments);
-        await ShouldBe(OfCommand("/data/app/lib/libaether.so --wg --bind 127.0.0.1:10819").Arguments, arguments);
-        await ShouldBe(OfCommand("--wg --bind 127.0.0.1:10819").Arguments, arguments);
-        await ShouldBe(OfCommand("  aether   --wg\t--bind 127.0.0.1:10819\n").Arguments, arguments);
+        string[] arguments = ["--wg", "--bind", "127.0.0.1:10829"];
+        await ShouldBe(OfCommand("aether --wg --bind 127.0.0.1:10829").Arguments, arguments);
+        await ShouldBe(OfCommand("/data/app/lib/libaether.so --wg --bind 127.0.0.1:10829").Arguments, arguments);
+        await ShouldBe(OfCommand("--wg --bind 127.0.0.1:10829").Arguments, arguments);
+        await ShouldBe(OfCommand("  aether   --wg\t--bind 127.0.0.1:10829\n").Arguments, arguments);
     }
 
     [Test]
@@ -138,7 +138,7 @@ public class AetherCoreTests
     {
         // The core's own default is another port, which no outbound of the app dials.
         var core = OfCommand("aether --wg --turbo");
-        await ShouldBe(core.Arguments, "--wg", "--turbo", "--bind", "127.0.0.1:10819");
+        await ShouldBe(core.Arguments, "--wg", "--turbo", "--bind", "127.0.0.1:10829");
         await core.Port.Should().BeEqualTo(ListenPort);
     }
 
@@ -149,7 +149,7 @@ public class AetherCoreTests
         await AetherCore.OfCommand("   ", ListenPort).Should().BeNull();
         await AetherCore.OfCommand("aether", ListenPort).Should().BeNull();
         // A listener whose port cannot be read would otherwise be replaced without a word.
-        await AetherCore.OfCommand("aether --wg --bind 10819", ListenPort).Should().BeNull();
+        await AetherCore.OfCommand("aether --wg --bind 10829", ListenPort).Should().BeNull();
         await AetherCore.OfCommand("aether --wg --bind", ListenPort).Should().BeNull();
     }
 
@@ -157,9 +157,9 @@ public class AetherCoreTests
     public async Task QuotesKeepAWordTogether()
     {
         const string bridge = "obfs4 1.2.3.4:443 FINGERPRINT cert=abc iat-mode=0";
-        var core = OfCommand($"aether --tor-only --tor-bridge \"{bridge}\" --bind 127.0.0.1:10819");
-        await ShouldBe(core.Arguments, "--tor-only", "--tor-bridge", bridge, "--bind", "127.0.0.1:10819");
-        await core.Command.Should().BeEqualTo($"aether --tor-only --tor-bridge \"{bridge}\" --bind 127.0.0.1:10819");
+        var core = OfCommand($"aether --tor-only --tor-bridge \"{bridge}\" --bind 127.0.0.1:10829");
+        await ShouldBe(core.Arguments, "--tor-only", "--tor-bridge", bridge, "--bind", "127.0.0.1:10829");
+        await core.Command.Should().BeEqualTo($"aether --tor-only --tor-bridge \"{bridge}\" --bind 127.0.0.1:10829");
 
         await ShouldBe(AetherCore.Words("--x 'a b'"), "--x", "a b");
         await ShouldBe(AetherCore.Words("--x \"\""), "--x", "");
@@ -203,8 +203,8 @@ public class AetherCoreTests
         await ValueAfter(chain.Arguments, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:20808");
 
         // A hand-written command with Psiphon inside gets the app's port for Psiphon when it names none, and keeps its own otherwise.
-        await ShouldBe(OfCommand("aether --psiphon --wg").Arguments, "--psiphon", "--wg", "--psiphon-bind", "127.0.0.1:10819");
-        await OfCommand("aether --psiphon --bind 127.0.0.1:10819 --psiphon-bind 127.0.0.1:1821").Port.Should().BeEqualTo(1821);
+        await ShouldBe(OfCommand("aether --psiphon --wg").Arguments, "--psiphon", "--wg", "--psiphon-bind", "127.0.0.1:10829");
+        await OfCommand("aether --psiphon --bind 127.0.0.1:10829 --psiphon-bind 127.0.0.1:1821").Port.Should().BeEqualTo(1821);
         await AetherCore.OfCommand("aether --psiphon --psiphon-bind 1821", ListenPort).Should().BeNull();
     }
 
@@ -231,8 +231,8 @@ public class AetherCoreTests
         await ValueAfter(chain.Arguments, "--bind").Should().BeEqualTo("127.0.0.1:20809");
 
         // A hand-written command with Tor inside gets the app's port for Tor when it names none, and keeps its own otherwise.
-        await ShouldBe(OfCommand("aether --tor --wg").Arguments, "--tor", "--wg", "--tor-bind", "127.0.0.1:10819");
-        await OfCommand("aether --tor --bind 127.0.0.1:10819 --tor-bind 127.0.0.1:1820").Port.Should().BeEqualTo(1820);
+        await ShouldBe(OfCommand("aether --tor --wg").Arguments, "--tor", "--wg", "--tor-bind", "127.0.0.1:10829");
+        await OfCommand("aether --tor --bind 127.0.0.1:10829 --tor-bind 127.0.0.1:1820").Port.Should().BeEqualTo(1820);
     }
 
     [Test]
@@ -290,20 +290,20 @@ public class AetherCoreTests
     [Test]
     public async Task ACoreDialsOutThroughXrayAndStaysTheSameTunnel()
     {
-        var core = OfCommand("aether --bind 127.0.0.1:10819 --protocol wg --scan balanced");
-        var routed = core.Through(10821);
+        var core = OfCommand("aether --bind 127.0.0.1:10829 --protocol wg --scan balanced");
+        var routed = core.Through(10831);
         await core.HasUpstream.Should().BeFalse();
         await routed.HasUpstream.Should().BeTrue();
-        await ValueAfter(routed.Arguments, "--upstream").Should().BeEqualTo("socks5://127.0.0.1:10821");
+        await ValueAfter(routed.Arguments, "--upstream").Should().BeEqualTo("socks5://127.0.0.1:10831");
         // The session's core is the profile's tunnel still: a process running one runs the other.
         await core.RunsAs(routed.Arguments).Should().BeTrue();
         await routed.RunsAs(core.Arguments).Should().BeTrue();
         await ShouldBe(routed.Ports, core.Ports.ToArray());
 
         // A command that names an upstream of its own keeps it.
-        var own = OfCommand("aether --bind 127.0.0.1:10819 --upstream socks5://127.0.0.1:1080");
+        var own = OfCommand("aether --bind 127.0.0.1:10829 --upstream socks5://127.0.0.1:1080");
         await own.HasUpstream.Should().BeTrue();
-        await own.Through(10821).Should().BeEqualTo(own);
+        await own.Through(10831).Should().BeEqualTo(own);
     }
 
     [Test]
@@ -316,9 +316,9 @@ public class AetherCoreTests
             AetherPsiphon = AetherPsiphon.Chain.Type,
             AetherTor = AetherTor.Reverse.Type,
         });
-        await AetherPorts.DefaultListenPort.Should().BeEqualTo(10819);
-        await AetherPorts.SecondarySocksPortOf(AetherPorts.DefaultListenPort).Should().BeEqualTo(10822);
-        await ShouldBe(AetherCore.Of(most, ListenPort).Ports.Order().ToList(), 10819, 10820, 10821);
+        await AetherPorts.DefaultListenPort.Should().BeEqualTo(10829);
+        await AetherPorts.SecondarySocksPortOf(AetherPorts.DefaultListenPort).Should().BeEqualTo(10832);
+        await ShouldBe(AetherCore.Of(most, ListenPort).Ports.Order().ToList(), 10829, 10830, 10831);
         await AetherPorts.SecondarySocksPortOf(20808).Should().BeEqualTo(20811);
         await ShouldBe(AetherCore.Of(most, 20808).Ports.Order().ToList(), 20808, 20809, 20810);
     }
@@ -356,8 +356,8 @@ public class AetherCoreTests
         await OfCommand("aether --wg", 20808).Port.Should().BeEqualTo(20808);
         await AetherCore.Of(command, 20808).Port.Should().BeEqualTo(20808);
         // On the port of the settings, as before.
-        await OfCommand("aether --wg", 10819).Port.Should().BeEqualTo(10819);
-        await AetherCore.Of(command, 10819).Port.Should().BeEqualTo(10819);
+        await OfCommand("aether --wg", 10829).Port.Should().BeEqualTo(10829);
+        await AetherCore.Of(command, 10829).Port.Should().BeEqualTo(10829);
         // A listener the command names stays.
         await AetherCore.Of(Profile(extra => extra with { AetherCommand = "aether --wg --bind 127.0.0.1:30808" }), 20808).Port.Should().BeEqualTo(30808);
     }

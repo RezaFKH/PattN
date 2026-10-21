@@ -43,11 +43,27 @@ public sealed class AetherBuild
     public AetherCore? Core { get; set; }
 
     /// <summary>
+    /// The port of the secondary-socks inbound the generation gave the configuration for <see cref="Core" /> to dial out
+    /// through (<see cref="AetherCore.Through" />); null when it gave none: no core, or one whose command names an upstream
+    /// of its own. A session's load checks that it is free before Xray starts (AetherCoreLoad.BeforeXrayAsync, D3).
+    /// </summary>
+    public int? SecondaryInboundPort { get; set; }
+
+    /// <summary>
     /// The port of the secondary-socks inbound for a latency test's own core, which the test picks (never one of the
     /// Aether listen port and the three after it); null otherwise. With it, the test's configuration routes its core
     /// through its own Xray as a session's does; without it, its Aether outbounds dial whatever core listens.
     /// </summary>
     public int? SecondaryPort { get; set; }
+
+    /// <summary>
+    /// The interface the outbounds of the short-lived Xray of a scan, a key run or a latency test are bound to while a TUN
+    /// runs and the settings name no bind interface (AetherUplinkBinding, D2): the uplink, outside the TUN. It binds them
+    /// as a bind interface of the settings would (ApplyOutboundBindInterface), and binds besides the ECH outbounds of the
+    /// configuration and the ECH config queries of its outbounds, and has every name the Xray dials looked up by its own
+    /// DNS, which leaves by the uplink as well (V2rayAetherService.LookUpNamesByUplink); null for every other configuration.
+    /// </summary>
+    public string? Uplink { get; set; }
 
     /// <summary>The Aether outbounds of the configuration, the copies a chain makes of them included.</summary>
     public IEnumerable<Outbounds4Ray> Outbounds => _outbounds.Keys;
@@ -94,8 +110,8 @@ public sealed class AetherBuild
 
     /// <summary>
     /// Forgets what a previous generation built (critique 22): a context generated twice would otherwise find the
-    /// exit-node tag taken by its own earlier outbounds. The exit-node lookups and the test's secondary port, which come
-    /// from outside the generation, stay.
+    /// exit-node tag taken by its own earlier outbounds. The exit-node lookups, the test's secondary port and the uplink,
+    /// which come from outside the generation, stay.
     /// </summary>
     public void Reset()
     {
@@ -105,5 +121,6 @@ public sealed class AetherBuild
         Failure = null;
         ExitNodeTagTaken = false;
         Core = null;
+        SecondaryInboundPort = null;
     }
 }

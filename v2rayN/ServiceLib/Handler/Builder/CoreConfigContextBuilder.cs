@@ -31,8 +31,10 @@ public partial class CoreConfigContextBuilder
     /// <summary>
     ///     Builds a <see cref="CoreConfigContext" /> for the given node, resolves its proxy map,
     ///     and processes outbound nodes referenced by routing rules.
+    ///     PattN: <paramref name="rulesCarriedBehind" /> when the context is the pre-socks one, in front of a core whose
+    ///     routing has the same rules and builds their chains itself (RuleChainShortfallAsync).
     /// </summary>
-    public static async Task<CoreConfigContextBuilderResult> Build(Config config, ProfileItem node)
+    public static async Task<CoreConfigContextBuilderResult> Build(Config config, ProfileItem node, bool rulesCarriedBehind = false)
     {
         var runCoreType = AppManager.Instance.GetCoreType(node, node.ConfigType);
         var coreType = runCoreType == ECoreType.sing_box ? ECoreType.sing_box : ECoreType.Xray;
@@ -89,7 +91,22 @@ public partial class CoreConfigContextBuilder
                     continue;
                 }
 
-                var (actRuleNode, ruleNodeValidatorResult) = await ResolveNodeAsync(context, ruleOutboundNode, false);
+                // PattN: the profile a rule sends to runs inside its subscription's previous/next chain, as the main
+                // profile does (PattNG CoreConfigContextBuilder.kt resolveOutbound), where upstream resolves it alone
+                // (includeSubChain false). A chain holding an Aether profile that lacks a hop is refused for the rule as
+                // for the main profile; the rule then goes to the proxy with the error as a warning, as for any target
+                // that cannot be built.
+                // PattN: what resolving it adds to the context is taken back when the rule cannot use it (D1-R4)
+                var stateBeforeRule = RuleTargetState.Of(context);
+                var (actRuleNode, ruleNodeValidatorResult) = await ResolveNodeAsync(context, ruleOutboundNode, true);
+                // PattN: a chain that lost the profile itself, or in front of the core that carries the rule a hop, cannot
+                // carry the rule (D1-R1, D1-R2)
+                if (ruleNodeValidatorResult.Success
+                    && await RuleChainShortfallAsync(ruleOutboundNode, actRuleNode, ruleNodeValidatorResult,
+                        rulesCarriedBehind) is { } shortfall)
+                {
+                    ruleNodeValidatorResult = shortfall;
+                }
                 validatorResult.Warnings.AddRange(ruleNodeValidatorResult.Warnings.Select(w =>
                     string.Format(ResUI.MsgRoutingRuleOutboundNodeWarning, ruleItem.Remarks, ruleItem.OutboundTag, w)));
                 if (!ruleNodeValidatorResult.Success)
@@ -97,9 +114,13 @@ public partial class CoreConfigContextBuilder
                     validatorResult.Warnings.AddRange(ruleNodeValidatorResult.Errors.Select(e =>
                         string.Format(ResUI.MsgRoutingRuleOutboundNodeError, ruleItem.Remarks, ruleItem.OutboundTag,
                             e)));
+                    // PattN: (D1-R4)
+                    stateBeforeRule.Restore(context);
                     ruleItem.OutboundTag = Global.ProxyTag;
                     continue;
                 }
+                // PattN: a policy group keeps its strategy inside its subscription's chain (D1-R3)
+                KeepRuleGroupStrategy(ruleOutboundNode, actRuleNode);
 
                 context.AllProxiesMap[$"remark:{ruleItem.OutboundTag}"] = actRuleNode;
             }
@@ -203,7 +224,9 @@ public partial class CoreConfigContextBuilder
         var preSocksItem = ConfigHandler.GetPreSocksItem(config, node, coreType);
         if (preSocksItem != null)
         {
-            var preSocksResult = await Build(nodeContext.AppConfig, preSocksItem);
+            // PattN: in front of a core of PattN's own configuration, which routes the same rules with their whole chains;
+            // a custom configuration knows none of them
+            var preSocksResult = await Build(nodeContext.AppConfig, preSocksItem, rulesCarriedBehind: node.ConfigType != EConfigType.Custom);
 
             var protectCoreTypeList = new HashSet<ECoreType>(nodeContext.ProtectCoreTypeList) { nodeContext.RunCoreType };
 

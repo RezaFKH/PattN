@@ -49,7 +49,7 @@ public class InnerFmtTests
         {
             AetherProtocol = "masque",
             AetherExitNode = "socks-1",
-            AetherCommand = "aether --masque --bind 127.0.0.1:10819",
+            AetherCommand = "aether --masque --bind 127.0.0.1:10829",
         });
 
         var uri = InnerFmt.ToUri([aether, socks]);

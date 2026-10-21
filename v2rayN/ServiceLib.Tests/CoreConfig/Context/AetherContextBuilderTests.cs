@@ -176,7 +176,7 @@ public class AetherContextBuilderTests
         // resolver, whose query enters the TUN; the names it sends through that proxy are the proxy's to look up.
         var warp = Warp(NewName("warp"), "WARP", extra => extra with
         {
-            AetherCommand = "aether --bind 127.0.0.1:10819 --protocol masque --upstream socks5://proxy.example.net:1080",
+            AetherCommand = "aether --bind 127.0.0.1:10829 --protocol masque --upstream socks5://proxy.example.net:1080",
         });
         var tun = CoreConfigTestFactory.CreateConfigWithTun(ECoreType.Xray, enableIPv6Address: false);
         CoreConfigTestFactory.BindAppManagerConfig(tun);

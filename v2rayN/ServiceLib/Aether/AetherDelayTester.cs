@@ -74,6 +74,18 @@ public sealed class AetherTestHost
     /// <summary>Whether a SOCKS server answers on a loopback port (<see cref="AetherCoreManager.AnswersSocksAsync" />).</summary>
     public Func<int, CancellationToken, Task<bool>> AnswersSocks { get; init; } = AetherCoreManager.AnswersSocksAsync;
 
+    /// <summary>
+    /// Why the Aether core cannot run here, as when its program is missing (<see cref="AetherCoreLoad.MissingCoreMessage" />);
+    /// null when it can, and in fakes that leave it out.
+    /// </summary>
+    public Func<string?> MissingCore { get; init; } = () => null;
+
+    /// <summary>
+    /// Whether, and to what, the outbounds of the test's Xray are bound while a TUN runs (D2); none in fakes that leave it
+    /// out.
+    /// </summary>
+    public AetherUplinkBinding? Uplink { get; init; }
+
     /// <summary>The budget of a test, the start of its tunnel included (<see cref="AetherCoreManager.TestBudget" />).</summary>
     public TimeSpan Budget { get; init; } = AetherCoreManager.TestBudget;
 
@@ -89,6 +101,8 @@ public sealed class AetherTestHost
             Build = profile => CoreConfigContextBuilder.Build(AppManager.Instance.Config, profile),
             Generate = (context, port) => new CoreConfigV2rayService(context).GenerateClientSpeedtestConfig(port),
             StartXray = StartTestXrayAsync,
+            Uplink = AetherUplinkBinding.Default,
+            MissingCore = AetherCoreLoad.MissingCoreMessage,
         };
     }
 
@@ -162,8 +176,9 @@ public sealed class AetherTestHost
 /// listens on the one Aether listen port, so such a test runs alone: through the live session when it runs the core the
 /// test needs, through a core of its own while no session runs on Aether, and not at all beside a session that runs
 /// another core. Its configuration is the latency test's of the profile, which a test Xray of its own runs; a core of
-/// its own dials out through that same Xray, as the session's core dials out through the session's. The whole test,
-/// the start of its tunnel included, has the budget other profiles have (12 s).
+/// its own dials out through that same Xray, as the session's core dials out through the session's; while a TUN runs,
+/// that Xray dials out by the uplink rather than into the TUN (D2). The whole test, the start of its tunnel included,
+/// has the budget other profiles have (12 s).
 /// </summary>
 public sealed class AetherDelayTester(AetherTestHost host)
 {
@@ -200,9 +215,10 @@ public sealed class AetherDelayTester(AetherTestHost host)
     /// Measures <paramref name="profile" /> with <paramref name="probe" />, once the tunnel it needs is up: the live
     /// session's when it runs the core the profile needs, one of the test's own while no session runs on Aether, none
     /// beside a session that runs another core. A profile that cannot run as a session is refused (-1) as a session would
-    /// be; a test that a scan or a key run would have to wait for, that a session start ends, or that a stop of every
-    /// core ends (an update of aether-core) is left untested. A cancellation inside <paramref name="probe" /> that is not
-    /// the test's is a probe that got no answer (-1). A cancellation of <paramref name="ct" /> throws
+    /// be; a test that a scan or a key run would have to wait for, that a session start ends, that a stop of every core
+    /// ends (an update of aether-core), or that would need a core of its own while the core cannot run here (D5) is left
+    /// untested, with no Xray started for it. A cancellation inside <paramref name="probe" /> that is not the test's is a
+    /// probe that got no answer (-1). A cancellation of <paramref name="ct" /> throws
     /// <see cref="OperationCanceledException" />.
     /// </summary>
     public async Task<AetherTestResult> MeasureAsync(ProfileItem profile, AetherTestProbe probe, CancellationToken ct = default)
@@ -243,7 +259,9 @@ public sealed class AetherDelayTester(AetherTestHost host)
         if (context.Aether.Core is not { } core)
         {
             // It needs no core after all.
-            return await ThroughXrayAsync(generated, test, probe, id, ct).ConfigureAwait(false);
+            return BoundToUplink(context, test, generated, id) is { } alone
+                ? await ThroughXrayAsync(alone, test, probe, id, ct).ConfigureAwait(false)
+                : AetherTestResult.Failed;
         }
         switch (Route(core, await LiveSessionAsync(ct).ConfigureAwait(false)))
         {
@@ -261,6 +279,7 @@ public sealed class AetherDelayTester(AetherTestHost host)
                 // The same configuration without a core of its own: its Aether outbounds dial the live core, whose way
                 // out is the session's Xray.
                 context.Aether.SecondaryPort = null;
+                ApplyUplink(context);
                 var throughSession = host.Generate(context, test);
                 if (throughSession.Success != true)
                 {
@@ -270,8 +289,46 @@ public sealed class AetherDelayTester(AetherTestHost host)
                 return await ThroughXrayAsync(throughSession, test, probe, id, ct).ConfigureAwait(false);
 
             default:
-                return await ThroughNewTunnelAsync(core, generated, test, probe, id, ct).ConfigureAwait(false);
+                if (host.MissingCore() is { } missing)
+                {
+                    // D5: the app's state, not the profile's failure, which "Remove invalid" would take -1 for: the core is
+                    // not there yet, or an update of aether-core is replacing it. No test Xray starts for a core that cannot.
+                    Logging.SaveLog($"AetherTest: left untested, the Aether core cannot run: {missing}, id={id}");
+                    return AetherTestResult.Untested(missing);
+                }
+                return BoundToUplink(context, test, generated, id) is { } ownTunnel
+                    ? await ThroughNewTunnelAsync(core, ownTunnel, test, probe, id, ct).ConfigureAwait(false)
+                    : AetherTestResult.Failed;
         }
+    }
+
+    /// <summary>
+    /// Has the outbounds of the test's Xray bound to the uplink while a TUN runs (D2), once the test knows it starts that
+    /// Xray (D2-4): a test left untested looks for no uplink, nor says it found none. True when they are bound.
+    /// </summary>
+    private bool ApplyUplink(CoreConfigContext context)
+    {
+        return host.Uplink?.Apply(context, AetherUplinkBinding.TestRole) != null;
+    }
+
+    /// <summary>
+    /// <paramref name="generated" />, the test configuration of <paramref name="context" /> on <paramref name="test" />, as
+    /// the test's Xray starts on it: generated again with its outbounds bound to the uplink when they are
+    /// (<see cref="ApplyUplink" />); null when that generation fails.
+    /// </summary>
+    private RetResult? BoundToUplink(CoreConfigContext context, int test, RetResult generated, string id)
+    {
+        if (!ApplyUplink(context))
+        {
+            return generated;
+        }
+        var bound = host.Generate(context, test);
+        if (bound.Success != true)
+        {
+            Logging.SaveLog($"AetherTest: the test configuration could not be generated: {bound.Msg}, id={id}");
+            return null;
+        }
+        return bound;
     }
 
     /// <summary>
@@ -491,9 +548,10 @@ public sealed class AetherDelayTester(AetherTestHost host)
                     return Busy(id);
 
                 case AetherRunOutcome.Stopped:
-                    // Not the profile's failure: every core was stopped, as an update of aether-core does.
+                    // Not the profile's failure: every core was stopped, as an update of aether-core does; one that took
+                    // the core's program away meanwhile is told as a missing core is (D5).
                     Logging.SaveLog($"AetherTest: left untested, every Aether core was stopped, id={id}");
-                    return AetherTestResult.Untested(ResUI.SpeedtestingSkip);
+                    return AetherTestResult.Untested(host.MissingCore() ?? ResUI.SpeedtestingSkip);
 
                 case AetherRunOutcome.NoExit:
                     // Its own Xray did not come up, which it logged.

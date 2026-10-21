@@ -28,6 +28,41 @@ public class CoreManager
     /// </summary>
     public Func<string, Task>? AetherCoresStopped { get; set; }
 
+    // PattN: the core whose configuration has the TUN, the main one (Xray's own TUN) or the pre one (sing-box's TUN in
+    // front of Xray); null while none runs
+    private volatile ProcessService? _tunProcess;
+
+    /// <summary>
+    /// PattN: whether a TUN of PattN runs now: the cores were loaded with one, and the core that holds it still runs. The
+    /// short-lived Xray of an Aether scan, key run or latency test then binds to the uplink (AetherUplinkBinding, D2).
+    /// </summary>
+    public bool IsTunRunning
+    {
+        get
+        {
+            try
+            {
+                return _tunProcess is { HasExited: false };
+            }
+            catch (InvalidOperationException)
+            {
+                // Stopped and released meanwhile.
+                return false;
+            }
+        }
+    }
+
+    // PattN: the interface the configuration of the running TUN names (AetherUplink.TunInterfaceOf); null when it names
+    // none (sing-box's TUN on macOS) or no TUN runs
+    private volatile string? _tunInterface;
+
+    /// <summary>
+    /// PattN: the interface of the TUN that runs now as its configuration names it, which the uplink is looked for beside
+    /// (AetherUplink.IsTun, D2-5): on macOS Xray numbers its utun at random, and another utun may be another VPN's. Null
+    /// when no TUN runs, or its name is not known.
+    /// </summary>
+    public string? TunInterface => IsTunRunning ? _tunInterface : null;
+
     public async Task Init(Config config, Func<bool, string, Task> updateFunc)
     {
         _config = config;
@@ -138,6 +173,11 @@ public class CoreManager
         await UpdateFunc(false, string.Format(ResUI.StartService, DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")));
         await CoreStopInTurn(); // PattN: in the turn of this load
         await Task.Delay(100);
+        // PattN: nothing starts while a port the Aether core or Xray's inbound for it listens on is taken (D3)
+        if (!await AetherCoreLoad.BeforeXrayAsync(aether))
+        {
+            return;
+        }
 
         if (Utils.IsWindows() && (mainContext?.IsTunEnabled == true || preContext?.IsTunEnabled == true))
         {
@@ -146,6 +186,12 @@ public class CoreManager
         }
 
         await CoreStart(mainContext);
+        // PattN: Xray's own TUN runs with the main core (IsTunRunning), on the interface its configuration names (TunInterface)
+        if (mainContext.IsTunEnabled)
+        {
+            _tunInterface = AetherUplink.TunInterfaceOf(result.Data?.ToString());
+            _tunProcess = _processService;
+        }
         // PattN: the Aether core starts once Xray listens, and one that does not start stops Xray with it (design 2.6.4)
         if (await AetherCoreLoad.AfterXrayAsync(aether, generation) == AetherCoreLoadOutcome.AetherFailed)
         {
@@ -153,6 +199,13 @@ public class CoreManager
         }
         await WaitForProxyPort(preContext);
         await CoreStartPreService(preContext);
+        // PattN: sing-box's TUN in front of Xray runs with the pre core (IsTunRunning), which names its interface on macOS
+        // itself (TunInterface)
+        if (preContext?.IsTunEnabled == true)
+        {
+            _tunInterface = null;
+            _tunProcess = _processPreService;
+        }
 
         AppManager.Instance.RunningCoreType = preContext?.RunCoreType ?? mainContext.RunCoreType;
 
@@ -216,6 +269,9 @@ public class CoreManager
     // PattN: CoreStop's own work, from inside a turn
     private async Task CoreStopInTurn()
     {
+        // PattN: no TUN runs from here on (IsTunRunning, TunInterface)
+        _tunProcess = null;
+        _tunInterface = null;
         try
         {
             // PattN: the Aether session first, so that a reload's old core ends before Xray restarts (PattNG)
@@ -477,6 +533,7 @@ public class CoreManager
             MissingCore = AetherCoreLoad.MissingCoreMessage,
             NewGeneration = _turns.NewGeneration,
             CancelProbes = () => AetherCoreManager.Instance.CancelProbesAsync(),
+            SecondaryPort = () => mainContext.Aether.SecondaryInboundPort,
             XrayUp = () => _processService is { HasExited: false },
             WaitForPort = AetherCoreLoad.WaitForPortAsync,
             StartSession = (core, generation) => AetherCoreManager.Instance.StartSessionAsync(core, generation),

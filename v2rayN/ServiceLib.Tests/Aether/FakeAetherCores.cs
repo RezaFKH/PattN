@@ -181,6 +181,18 @@ internal sealed class AetherMeasureRig(string root)
     /// <summary>What the stop of a test's Xray waits for before it is logged, as a real Xray takes its time to end.</summary>
     public Func<Task>? XrayStopping { get; set; }
 
+    /// <summary>Why the Aether core cannot run, as AetherCoreLoad.MissingCoreMessage tells it; null while it can.</summary>
+    public Func<string?> MissingCore { get; set; } = () => null;
+
+    /// <summary>Whether, and to what, the test's Xray is bound under a TUN (D2); none unless a test says so.</summary>
+    public AetherUplinkBinding? Uplink { get; set; }
+
+    /// <summary>
+    /// The configurations the test's Xray was started on, in order: each generation gives "{}", or the uplink it was
+    /// bound to as {"uplink": name}.
+    /// </summary>
+    public List<string> XrayStartedOn { get; } = [];
+
     public void Answer(int port)
     {
         lock (_answering)
@@ -205,10 +217,14 @@ internal sealed class AetherMeasureRig(string root)
                 {
                     context.Aether.Core = Needed.Through(through);
                 }
-                return new RetResult(true, null, "{}");
+                return new RetResult(true, null, context.Aether.Uplink is { } uplink ? $$"""{"uplink": "{{uplink}}"}""" : "{}");
             },
-            StartXray = async _ =>
+            StartXray = async content =>
             {
+                lock (XrayStartedOn)
+                {
+                    XrayStartedOn.Add(content);
+                }
                 Cores.Log("xray start");
                 if (XrayStarting is { } starting)
                 {
@@ -235,6 +251,8 @@ internal sealed class AetherMeasureRig(string root)
                     return Task.FromResult(_answering.Contains(port));
                 }
             },
+            MissingCore = () => MissingCore(),
+            Uplink = Uplink,
             Budget = budget ?? TimeSpan.FromSeconds(3),
             Poll = TimeSpan.FromMilliseconds(20),
         });

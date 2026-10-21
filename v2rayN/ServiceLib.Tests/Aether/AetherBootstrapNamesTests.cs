@@ -15,7 +15,7 @@ public class AetherBootstrapNamesTests
     [Test]
     public async Task EveryCoreMayCallTheWarpApi()
     {
-        await Of("aether --bind 127.0.0.1:10819 --protocol masque").Should()
+        await Of("aether --bind 127.0.0.1:10829 --protocol masque").Should()
             .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
         // An address the command sends the calls to, when it is a name; an IP address needs no lookup.
         await Of("aether --protocol wg --api-address api.example.net").Should()
@@ -121,11 +121,11 @@ public class AetherBootstrapNamesTests
     public async Task TorAroundTheTunnelOrAloneReachesItsBridgesBeforeAnyTunnel()
     {
         List<string> withTor = [AetherBootstrapNames.WarpApi, .. AetherBootstrapNames.TorBootstrap];
-        await Of("aether --protocol masque --tor-reverse --tor-bind 127.0.0.1:10820").Should()
+        await Of("aether --protocol masque --tor-reverse --tor-bind 127.0.0.1:10830").Should()
             .BeEquivalentTo(withTor, CollectionOrdering.Matching);
         await Of("aether --tor-only").Should().BeEquivalentTo(withTor, CollectionOrdering.Matching);
         // Tor inside the tunnel starts once the tunnel is up, and its names go through it.
-        await Of("aether --protocol masque --tor --tor-bind 127.0.0.1:10819").Should()
+        await Of("aether --protocol masque --tor --tor-bind 127.0.0.1:10829").Should()
             .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
         await AetherBootstrapNames.TorBootstrap.Should().Contain("bridges.torproject.org");
         await AetherBootstrapNames.TorBootstrap.Should().Contain("stun.m-online.net");

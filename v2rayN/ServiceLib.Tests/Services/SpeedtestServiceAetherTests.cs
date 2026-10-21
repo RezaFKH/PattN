@@ -259,6 +259,28 @@ public class SpeedtestServiceAetherTests : IDisposable
     }
 
     [Test]
+    public async Task WithoutTheCoreAnAetherRowIsLeftUntestedNotInvalid()
+    {
+        // D5: the row says why and stores 0, which "Remove invalid" leaves alone; a result from before does not stay.
+        const string missing = "The Core file (file name: aether) was not found";
+        var warp = CoreConfigTestFactory.CreateAetherNode($"missing-{Guid.NewGuid():N}", "WARP missing");
+        var rig = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), MissingCore = () => missing };
+        rig.Answer(P);
+        ProfileExManager.Instance.SetTestDelay(warp.IndexId, 321);
+        var shown = new List<SpeedTestResult>();
+
+        await RunAetherTests(Service(TestConfig(), shown, rig.Tester()), ESpeedActionType.Mixedtest, Item(warp)).WaitAsync(Soon);
+
+        await Last(shown, warp.IndexId, row => row.Delay).Should().BeEqualTo(missing);
+        await Last(shown, warp.IndexId, row => row.Speed).Should().BeEqualTo(ResUI.SpeedtestingSkip);
+        var stored = (await ProfileExManager.Instance.GetProfileExs()).First(item => item.IndexId == warp.IndexId);
+        await stored.Delay.Should().BeEqualTo(0);
+        // No test Xray, and no core, started for it.
+        await rig.Cores.Events.Contains("xray start").Should().BeFalse();
+        await rig.Cores.Cores.Count.Should().BeEqualTo(0);
+    }
+
+    [Test]
     public async Task ATestThatASessionStartEndsInItsProbeShowsWhyItIsUntested()
     {
         // Critique 24: the session start cancels the test while its request is on its way; the row says the test was

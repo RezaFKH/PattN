@@ -4,12 +4,14 @@ namespace ServiceLib.Tests.Aether;
 
 /// <summary>
 /// PattN (design 2.6.4, critiques 15 and 31; PattNG CoreServiceManager.launchCore): what CoreManager.LoadCore does for the
-/// Aether core, once the configuration is generated and once Xray started, and the turns its loads and stops take with
-/// the stop that follows an Aether core exiting on its own. Every step is a fake that writes down that it ran.
+/// Aether core, once the configuration is generated, once the old cores stopped (D3: the ports are free, which the tests
+/// hold with listeners of their own) and once Xray started, the turns its loads and stops take with the stop that follows
+/// an Aether core exiting on its own, and the waits for a port (D6). Every other step is a fake that writes down that it
+/// ran.
 /// </summary>
 public class AetherCoreLoadTests
 {
-    private static readonly AetherCore Warp = new AetherCore(["--masque", "--bind", "127.0.0.1:10819"]).Through(10822);
+    private static readonly AetherCore Warp = new AetherCore(["--masque", "--bind", "127.0.0.1:10829"]).Through(10832);
 
     /// <summary>Steps that write down what they do; <paramref name="core" /> is the Aether core the configuration needs.</summary>
     private sealed class Steps(AetherCore? core)
@@ -25,6 +27,15 @@ public class AetherCoreLoadTests
         public string? SessionFailure { get; init; }
         public long Generation { get; private set; } = 41;
 
+        /// <summary>The port of Xray's secondary-socks inbound for the core.</summary>
+        public int? Secondary { get; init; } = 10832;
+
+        /// <summary>How long a taken port is given to be released.</summary>
+        public TimeSpan PortRelease { get; init; } = TimeSpan.FromMilliseconds(300);
+
+        /// <summary>Whether a port can be listened on: PattN's own probe unless a test says otherwise.</summary>
+        public Func<int, bool, bool> CanListen { get; init; } = AetherCoreLoad.CanListen;
+
         public AetherCoreLoadSteps Build()
         {
             return new AetherCoreLoadSteps
@@ -37,6 +48,9 @@ public class AetherCoreLoadTests
                     return ++Generation;
                 },
                 CancelProbes = () => Log("cancel probes"),
+                SecondaryPort = () => Secondary,
+                CanListen = CanListen,
+                PortRelease = PortRelease,
                 XrayUp = () => XrayUp,
                 WaitForPort = port =>
                 {
@@ -99,6 +113,196 @@ public class AetherCoreLoadTests
         await steps.Events.Should().BeEquivalentTo(["new generation"], CollectionOrdering.Matching);
     }
 
+    // ---- once the old cores stopped (D3): the ports are held by listeners of the test's own
+
+    /// <summary>
+    /// A loopback port P with P..P+3 free now, by TCP and UDP. It is drawn from 20000..31999, outside the ranges systems
+    /// give ports out of by default (Windows and macOS 49152 on, Linux 32768 to 60999), so that a port another test is
+    /// given meanwhile, which is the next one up on Windows, does not land among them.
+    /// </summary>
+    private static int FreePorts()
+    {
+        for (var attempt = 0; attempt < 64; attempt++)
+        {
+            var port = Random.Shared.Next(20000, 32000);
+            if (Enumerable.Range(port, AetherPorts.SecondaryOffset + 1).All(each => AetherCoreLoad.CanListen(each, udp: true)))
+            {
+                return port;
+            }
+        }
+        throw new InvalidOperationException("no four loopback ports in a row are free");
+    }
+
+    /// <summary>
+    /// The core of a session on <paramref name="p" />, dialling out through P+3; with <paramref name="inside" /> ("tor" or
+    /// "psiphon") inside the tunnel, which takes P, and the core's own listener on P+1.
+    /// </summary>
+    private static AetherCore SessionCore(int p, string? inside = null)
+    {
+        string[] arguments = inside == null
+            ? ["--masque", "--bind", $"127.0.0.1:{p}"]
+            : ["--masque", $"--{inside}", $"--{inside}-bind", $"127.0.0.1:{p}", "--bind", $"127.0.0.1:{p + 1}"];
+        return new AetherCore(arguments).Through(p + AetherPorts.SecondaryOffset);
+    }
+
+    /// <summary>The Aether steps of a load, in the order CoreManager.LoadCoreInTurn takes them among its own.</summary>
+    private static async Task Load(Steps steps)
+    {
+        var built = steps.Build();
+        if (await AetherCoreLoad.BeforeStopAsync(built) is not { } generation)
+        {
+            return;
+        }
+        steps.Events.Add("stop the old cores");
+        if (!await AetherCoreLoad.BeforeXrayAsync(built))
+        {
+            return;
+        }
+        steps.Events.Add("start xray");
+        await AetherCoreLoad.AfterXrayAsync(built, generation);
+    }
+
+    [Test]
+    public async Task TheCoresStartWhenTheirPortsAreFree()
+    {
+        var p = FreePorts();
+        var steps = new Steps(SessionCore(p, "tor")) { Secondary = p + 3 };
+
+        await Load(steps);
+
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", "start xray", $"wait for {p + 3}", "start aether 42"],
+            CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task AListenPortOfTheCoreThatIsTakenLeavesTheCoresStopped()
+    {
+        // P, the core's own listener, or Tor's or Psiphon's inside the tunnel; P+1, the core's own beside those.
+        foreach (var (inside, offset) in new (string?, int)[] { (null, 0), ("tor", 0), ("tor", 1), ("psiphon", 1) })
+        {
+            var p = FreePorts();
+            using var holder = new TcpHolder(p + offset);
+            var steps = new Steps(SessionCore(p, inside)) { Secondary = p + 3 };
+
+            await Load(steps);
+
+            // Neither Xray nor the core starts once the old cores stopped; the user is told which port is taken.
+            await steps.Events.Should().BeEquivalentTo(
+                ["new generation", "cancel probes", "stop the old cores", $"report True {string.Format(ResUI.MsgAetherListenPortInUse, p + offset)}"],
+                CollectionOrdering.Matching).Because($"P+{offset} taken, inside: {inside ?? "nothing"}");
+        }
+    }
+
+    [Test]
+    public async Task XraysInboundForTheCoreTakenByTcpOrUdpLeavesTheCoresStopped()
+    {
+        // The secondary-socks inbound serves UDP as well, on the same port.
+        foreach (var udp in new[] { false, true })
+        {
+            var p = FreePorts();
+            using IDisposable holder = udp
+                ? new UdpClient(new IPEndPoint(IPAddress.Loopback, p + 3))
+                : new TcpHolder(p + 3);
+            var steps = new Steps(SessionCore(p)) { Secondary = p + 3 };
+
+            await Load(steps);
+
+            await steps.Events.Should().BeEquivalentTo(
+                ["new generation", "cancel probes", "stop the old cores", $"report True {string.Format(ResUI.MsgAetherSecondaryPortInUse, p + 3)}"],
+                CollectionOrdering.Matching).Because($"UDP: {udp}");
+        }
+    }
+
+    [Test]
+    public async Task APortTheOldCoresStillHoldIsGivenAMomentToBeReleased()
+    {
+        // The old Xray is killed without a wait for its end, and may hold its inbound a moment longer.
+        var p = FreePorts();
+        var holder = new TcpHolder(p + 3);
+        var steps = new Steps(SessionCore(p)) { Secondary = p + 3, PortRelease = TimeSpan.FromSeconds(5) };
+        _ = Task.Delay(300).ContinueWith(_ => holder.Dispose(), TaskScheduler.Default);
+
+        await (await AetherCoreLoad.BeforeXrayAsync(steps.Build())).Should().BeTrue();
+
+        await steps.Events.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task AConfigurationWithoutAnAetherCoreChecksNoPort()
+    {
+        var asked = 0;
+        var steps = new Steps(null)
+        {
+            CanListen = (_, _) =>
+            {
+                asked++;
+                return false;
+            },
+        };
+
+        await (await AetherCoreLoad.BeforeXrayAsync(steps.Build())).Should().BeTrue();
+
+        await asked.Should().BeEqualTo(0);
+        await steps.Events.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task ACoreWithAnUpstreamOfItsOwnHasNoInboundOfXraysToCheck()
+    {
+        // A port another program listens on, as the proxy a command names may: the configuration gave no secondary-socks
+        // inbound, and only the core's own listener counts.
+        var p = FreePorts();
+        using var proxy = new TcpHolder(p + 3);
+        var own = new AetherCore(["--masque", "--bind", $"127.0.0.1:{p}", "--upstream", $"socks5://127.0.0.1:{p + 3}"]);
+
+        await AetherCoreLoad.PortsProblem(own, null, AetherCoreLoad.CanListen).Should().BeNull();
+        await AetherCoreLoad.PortsProblem(own, p + 3, AetherCoreLoad.CanListen).Should().BeEqualTo(string.Format(ResUI.MsgAetherSecondaryPortInUse, p + 3));
+    }
+
+    [Test]
+    public async Task ACommandThatNamesNoPortIsRefusedWithoutAnException()
+    {
+        // D3-1: a command written by hand may name a listener port outside 1..65535, which the editor stores and the
+        // generation passes on; the check of the ports refuses it, after no wait, rather than throw once the old cores
+        // stopped.
+        foreach (var port in new[] { 70000, -1, 65536 })
+        {
+            var core = AetherCore.OfCommand($"aether --masque --bind 127.0.0.1:{port}", AetherPorts.DefaultListenPort)!;
+            await core.Ports.Should().Contain(port);
+            await AetherCoreLoad.CanListen(port, udp: false).Should().BeFalse();
+            await AetherCoreLoad.CanListen(port, udp: true).Should().BeFalse();
+            var refusal = string.Format(ResUI.MsgAetherListenPortInvalid, port);
+            await AetherCoreLoad.PortsProblem(core, null, AetherCoreLoad.CanListen).Should().BeEqualTo(refusal);
+            var steps = new Steps(core) { Secondary = null, PortRelease = TimeSpan.FromSeconds(5) };
+
+            var waited = Stopwatch.StartNew();
+            await Load(steps);
+
+            await (waited.Elapsed < TimeSpan.FromSeconds(2)).Should().BeTrue().Because($"port {port}");
+            await steps.Events.Should().BeEquivalentTo(
+                ["new generation", "cancel probes", "stop the old cores", $"report True {refusal}"],
+                CollectionOrdering.Matching).Because($"port {port}");
+        }
+    }
+
+    /// <summary>Holds a loopback port by TCP, as another program's listener does, until disposed.</summary>
+    private sealed class TcpHolder : IDisposable
+    {
+        private readonly TcpListener _listener;
+
+        public TcpHolder(int port)
+        {
+            _listener = new TcpListener(IPAddress.Loopback, port);
+            _listener.Start();
+        }
+
+        public void Dispose()
+        {
+            _listener.Stop();
+        }
+    }
+
     // ---- once Xray started
 
     [Test]
@@ -109,7 +313,7 @@ public class AetherCoreLoadTests
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.Started);
 
         // Xray's secondary-socks inbound listens before the core is started on it, as a session of the load's generation.
-        await steps.Events.Should().BeEquivalentTo(["wait for 10822", "start aether 42"], CollectionOrdering.Matching);
+        await steps.Events.Should().BeEquivalentTo(["wait for 10832", "start aether 42"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -134,7 +338,7 @@ public class AetherCoreLoadTests
 
             await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.XrayDown).Because($"listens: {listens}");
 
-            await steps.Events.Should().BeEquivalentTo(["wait for 10822"], CollectionOrdering.Matching).Because($"listens: {listens}");
+            await steps.Events.Should().BeEquivalentTo(["wait for 10832"], CollectionOrdering.Matching).Because($"listens: {listens}");
         }
     }
 
@@ -146,7 +350,7 @@ public class AetherCoreLoadTests
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.AetherFailed);
 
         await steps.Events.Should().BeEquivalentTo(
-            ["wait for 10822", "start aether 42", "report True The Aether core could not start", "stop cores"], CollectionOrdering.Matching);
+            ["wait for 10832", "start aether 42", "report True The Aether core could not start", "stop cores"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -156,14 +360,14 @@ public class AetherCoreLoadTests
 
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.Started);
 
-        await steps.Events.Should().BeEquivalentTo(["wait for 10822", "start aether 42"], CollectionOrdering.Matching);
+        await steps.Events.Should().BeEquivalentTo(["wait for 10832", "start aether 42"], CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task ACoreThatNamesAnUpstreamOfItsOwnStartsWithoutAWaitForXray()
     {
         // A hand-written --upstream to a proxy elsewhere is no inbound of Xray's.
-        var steps = new Steps(new AetherCore(["--masque", "--bind", "127.0.0.1:10819", "--upstream", "socks5://192.0.2.7:1080"]));
+        var steps = new Steps(new AetherCore(["--masque", "--bind", "127.0.0.1:10829", "--upstream", "socks5://192.0.2.7:1080"]));
 
         await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42);
 
@@ -173,7 +377,7 @@ public class AetherCoreLoadTests
     [Test]
     public async Task TheUpstreamOfACoreIsTheLoopbackPortItNames()
     {
-        await AetherCoreLoad.UpstreamPort(Warp).Should().BeEqualTo(10822);
+        await AetherCoreLoad.UpstreamPort(Warp).Should().BeEqualTo(10832);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5://localhost:2080"])).Should().BeEqualTo(2080);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5h://user:pass@[::1]:2081"])).Should().BeEqualTo(2081);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5://192.0.2.7:1080"])).Should().BeNull();
@@ -198,6 +402,79 @@ public class AetherCoreLoadTests
         var waited = Stopwatch.StartNew();
         await (await AetherCoreLoad.WaitForPortAsync(port, TimeSpan.FromMilliseconds(400))).Should().BeFalse();
         await (waited.Elapsed < TimeSpan.FromSeconds(3)).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task AConnectionToItselfIsNoListener()
+    {
+        // D6: on Linux, a connection to a closed loopback port in the ephemeral range may be given that port to dial from,
+        // and then connects to itself; no wait counts it (WaitForPortAsync, AnswersSocksAsync).
+        var self = new IPEndPoint(IPAddress.Loopback, 50123);
+        await AetherCoreLoad.IsSelfConnect(self, new IPEndPoint(IPAddress.Loopback, 50123)).Should().BeTrue();
+        await AetherCoreLoad.IsSelfConnect(new IPEndPoint(IPAddress.IPv6Loopback, 50123), new IPEndPoint(IPAddress.IPv6Loopback, 50123)).Should().BeTrue();
+        // As a dual-mode socket gives the IPv4 address.
+        await AetherCoreLoad.IsSelfConnect(new IPEndPoint(IPAddress.Parse("::ffff:127.0.0.1"), 50123), self).Should().BeTrue();
+
+        await AetherCoreLoad.IsSelfConnect(self, new IPEndPoint(IPAddress.Loopback, 50124)).Should().BeFalse();
+        await AetherCoreLoad.IsSelfConnect(self, new IPEndPoint(IPAddress.Parse("127.0.0.2"), 50123)).Should().BeFalse();
+        await AetherCoreLoad.IsSelfConnect(null, self).Should().BeFalse();
+        await AetherCoreLoad.IsSelfConnect(self, null).Should().BeFalse();
+
+        // A connection a listener takes comes from a port of its own.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port);
+            await AetherCoreLoad.IsSelfConnect(client.Client.LocalEndPoint, client.Client.RemoteEndPoint).Should().BeFalse();
+        }
+        finally
+        {
+            listener.Stop();
+        }
+
+        // Where the system makes one (Linux and Windows: a socket dialling the port it is bound to), it is told as one.
+        if (MakesSelfConnections)
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            await socket.ConnectAsync(socket.LocalEndPoint!);
+            await AetherCoreLoad.IsSelfConnect(socket.LocalEndPoint, socket.RemoteEndPoint).Should().BeTrue();
+        }
+    }
+
+    /// <summary>Whether this system connects a socket that dials the loopback port it is bound to to itself.</summary>
+    private static bool MakesSelfConnections => OperatingSystem.IsLinux() || OperatingSystem.IsWindows();
+
+    [Test]
+    public async Task AWaitForAPortTakesNoConnectionToItselfForAListener()
+    {
+        // D6: each attempt dials from the port it waits for, nothing listening there, and so connects to itself; the
+        // wait closes that connection and runs out. Where the system makes no such connection, there is nothing to tell.
+        if (!MakesSelfConnections)
+        {
+            return;
+        }
+        int port;
+        using (var probe = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+        {
+            probe.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            port = ((IPEndPoint)probe.LocalEndPoint!).Port;
+        }
+        var attempts = 0;
+        TcpClient FromThePort()
+        {
+            Interlocked.Increment(ref attempts);
+            var client = new TcpClient(AddressFamily.InterNetwork);
+            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            client.Client.Bind(new IPEndPoint(IPAddress.Loopback, port));
+            return client;
+        }
+
+        await (await AetherCoreLoad.WaitForPortAsync(port, TimeSpan.FromMilliseconds(600), FromThePort)).Should().BeFalse();
+
+        await (attempts > 0).Should().BeTrue();
     }
 
     // ---- the turns of loads, stops and the end of a session (critique 15)

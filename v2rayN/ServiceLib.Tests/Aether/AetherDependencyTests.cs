@@ -238,10 +238,10 @@ public class AetherDependencyTests
             """{"tag": "socks", "protocol": "socks", "listen": "127.0.0.1", "port": 10808}""",
             """{"tag": "tun", "protocol": "tun", "settings": {"mtu": 1500}}""");
         await AetherDependency.InboundListensOn(built, 10808).Should().BeTrue();
-        await AetherDependency.InboundListensOn(built, 10819).Should().BeFalse();
+        await AetherDependency.InboundListensOn(built, 10829).Should().BeFalse();
 
         // The local proxy moved onto the default Aether port, or picked there at random.
-        await AetherDependency.InboundListensOn(WithInbounds("""{"protocol": "socks", "port": 10819}"""), 10819).Should().BeTrue();
+        await AetherDependency.InboundListensOn(WithInbounds("""{"protocol": "socks", "port": 10829}"""), 10829).Should().BeTrue();
     }
 
     [Test]
@@ -259,13 +259,13 @@ public class AetherDependencyTests
     [Test]
     public async Task AConfigurationWithoutReadableInboundsCollidesWithNothing()
     {
-        await AetherDependency.InboundListensOn("""{"outbounds": []}""", 10819).Should().BeFalse();
-        await AetherDependency.InboundListensOn("""{"inbounds": {"port": 10819}}""", 10819).Should().BeFalse();
-        await AetherDependency.InboundListensOn(WithInbounds("10819", """{"port": null}""", """{"port": [10819]}""", """{"port": true}"""), 10819)
+        await AetherDependency.InboundListensOn("""{"outbounds": []}""", 10829).Should().BeFalse();
+        await AetherDependency.InboundListensOn("""{"inbounds": {"port": 10829}}""", 10829).Should().BeFalse();
+        await AetherDependency.InboundListensOn(WithInbounds("10829", """{"port": null}""", """{"port": [10829]}""", """{"port": true}"""), 10829)
             .Should().BeFalse();
-        await AetherDependency.InboundListensOn("", 10819).Should().BeFalse();
-        await AetherDependency.InboundListensOn("not json {", 10819).Should().BeFalse();
-        await AetherDependency.InboundListensOn("[]", 10819).Should().BeFalse();
+        await AetherDependency.InboundListensOn("", 10829).Should().BeFalse();
+        await AetherDependency.InboundListensOn("not json {", 10829).Should().BeFalse();
+        await AetherDependency.InboundListensOn("[]", 10829).Should().BeFalse();
     }
 
     // PattN: the inbounds of a full-configuration template are written by hand and are what Xray binds; a range there
@@ -273,11 +273,11 @@ public class AetherDependencyTests
     [Test]
     public async Task ARangeOfATemplatesInboundTakesTheAetherPorts()
     {
-        var template = WithInbounds("""{"tag": "range", "protocol": "dokodemo-door", "port": "10800-10830"}""");
+        var template = WithInbounds("""{"tag": "range", "protocol": "dokodemo-door", "port": "10800-10840"}""");
         await AetherDependency.InboundListensOn(template, AetherPorts.DefaultListenPort).Should().BeTrue();
         await AetherDependency.InboundListensOn(template, AetherPorts.SecondarySocksPortOf(AetherPorts.DefaultListenPort)).Should().BeTrue();
-        await AetherDependency.InboundListensOn(template, 10831).Should().BeFalse();
+        await AetherDependency.InboundListensOn(template, 10841).Should().BeFalse();
         // Digits as Kotlin reads them, a reversed range included.
-        await AetherDependency.InboundListensOn(WithInbounds("""{"port": " 10830 - 10800 "}"""), 10819).Should().BeTrue();
+        await AetherDependency.InboundListensOn(WithInbounds("""{"port": " 10840 - 10800 "}"""), 10829).Should().BeTrue();
     }
 }

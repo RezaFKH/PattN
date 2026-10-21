@@ -2026,4 +2026,16 @@
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
     <value>Aether 監聽連接埠及其後的三個連接埠不能包含 PattN 的本機連接埠：本機混合偵聽埠及其後的六個連接埠</value>
   </data>
+  <data name="MsgAetherListenPortInUse" xml:space="preserve">
+    <value>Aether 核心監聽的連接埠 {0} 已被其他程式佔用或被系統保留；請在設定中變更 Aether 監聽連接埠，或變更命令中的連接埠</value>
+  </data>
+  <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
+    <value>連接埠 {0}（比 Aether 監聽連接埠大 3，Xray 在此為 Aether 核心提供向外連線的入口）已被其他程式佔用或被系統保留；請在設定中變更 Aether 監聽連接埠</value>
+  </data>
+  <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
+    <value>無法在其訂閱的鏈中建立「{0}」</value>
+  </data>
+  <data name="MsgAetherListenPortInvalid" xml:space="preserve">
+    <value>Aether 設定檔的命令讓核心監聽 {0}，這不是有效的連接埠（1 到 65535）；請變更命令中的連接埠</value>
+  </data>
 </root>

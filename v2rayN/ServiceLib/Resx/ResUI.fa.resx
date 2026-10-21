@@ -1896,4 +1896,16 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
     <value>پورت شنود Aether و سه پورت پس از آن نباید پورت‌های محلی PattN را در بر بگیرند: پورت Mixed و شش پورت پس از آن</value>
   </data>
+  <data name="MsgAetherListenPortInUse" xml:space="preserve">
+    <value>پورت {0} که هستهٔ Aether روی آن گوش می‌دهد، در اختیار برنامهٔ دیگری است یا سیستم آن را رزرو کرده است؛ پورت شنود Aether را در تنظیمات، یا پورت‌های فرمان را تغییر دهید</value>
+  </data>
+  <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
+    <value>پورت {0}، که سه تا بالاتر از پورت شنود Aether است و Xray آن را برای خروج هستهٔ Aether باز می‌کند، در اختیار برنامهٔ دیگری است یا سیستم آن را رزرو کرده است؛ پورت شنود Aether را در تنظیمات تغییر دهید</value>
+  </data>
+  <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
+    <value>«{0}» در زنجیرهٔ اشتراک آن ساخته نشد</value>
+  </data>
+  <data name="MsgAetherListenPortInvalid" xml:space="preserve">
+    <value>فرمان پروفایل Aether به هسته می‌گوید روی {0} گوش دهد که پورت نیست (1 تا 65535)؛ پورت‌های فرمان را تغییر دهید</value>
+  </data>
 </root>

@@ -1,8 +1,8 @@
 namespace ServiceLib.Aether;
 
 /// <summary>
-/// What CoreManager.LoadCore does for the Aether core, through <see cref="AetherCoreLoad.BeforeStopAsync" /> and
-/// <see cref="AetherCoreLoad.AfterXrayAsync" />; fakes in tests.
+/// What CoreManager.LoadCore does for the Aether core, through <see cref="AetherCoreLoad.BeforeStopAsync" />,
+/// <see cref="AetherCoreLoad.BeforeXrayAsync" /> and <see cref="AetherCoreLoad.AfterXrayAsync" />; fakes in tests.
 /// </summary>
 public sealed class AetherCoreLoadSteps
 {
@@ -17,6 +17,21 @@ public sealed class AetherCoreLoadSteps
 
     /// <summary>Cancels a latency test's core, which may hold the Aether listen port (AetherCoreManager.CancelProbesAsync).</summary>
     public required Func<Task> CancelProbes { get; init; }
+
+    /// <summary>
+    /// The port of the secondary-socks inbound Xray opens for the core to dial out through
+    /// (<see cref="AetherBuild.SecondaryInboundPort" />), read once the configuration was generated; null when it has none.
+    /// </summary>
+    public required Func<int?> SecondaryPort { get; init; }
+
+    /// <summary>
+    /// Whether a loopback port can be listened on now, by TCP, and by UDP as well when asked: PattN's own probe,
+    /// <see cref="AetherCoreLoad.CanListen" />, which tests use with listeners of their own on the ports.
+    /// </summary>
+    public Func<int, bool, bool> CanListen { get; init; } = AetherCoreLoad.CanListen;
+
+    /// <summary>How long a port the old cores held is given to be released (<see cref="AetherCoreLoad.PortReleaseWait" />).</summary>
+    public TimeSpan PortRelease { get; init; } = AetherCoreLoad.PortReleaseWait;
 
     /// <summary>Whether Xray runs.</summary>
     public required Func<bool> XrayUp { get; init; }
@@ -50,18 +65,25 @@ public enum AetherCoreLoadOutcome
 }
 
 /// <summary>
-/// PattN: the Aether part of CoreManager.LoadCore (design 2.6.4, PattNG CoreServiceManager.launchCore), in two steps that
+/// PattN: the Aether part of CoreManager.LoadCore (design 2.6.4, PattNG CoreServiceManager.launchCore), in steps that
 /// LoadCore takes among its own lines, so that the order is tested without processes. Once the configuration is
 /// generated, <see cref="BeforeStopAsync" />: a configuration whose Aether core cannot run leaves the cores that run alone,
-/// and a latency test's core, which may hold the Aether listen port, is cancelled before the old cores stop. Once Xray
-/// started, <see cref="AfterXrayAsync" />: the Aether core dials out through Xray's secondary-socks inbound, so it starts
-/// once Xray runs and that inbound listens, and never when Xray did not start or is gone by then. Xray and the Aether core
-/// run together or not at all: a core that does not start stops Xray as well.
+/// and a latency test's core, which may hold the Aether listen port, is cancelled before the old cores stop. Once they
+/// stopped, <see cref="BeforeXrayAsync" />: nothing starts unless the ports the core and Xray's inbound for it listen on
+/// are free (D3). Once Xray started, <see cref="AfterXrayAsync" />: the Aether core dials out through Xray's
+/// secondary-socks inbound, so it starts once Xray runs and that inbound listens, and never when Xray did not start or is
+/// gone by then. Xray and the Aether core run together or not at all: a core that does not start stops Xray as well.
 /// </summary>
 public static class AetherCoreLoad
 {
     /// <summary>How long the start of an Aether core waits for Xray's inbound it dials out through to listen.</summary>
     public static readonly TimeSpan UpstreamWait = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// How long a port the cores of the old session held is given to be released before Xray starts (D3): the old Xray was
+    /// killed a moment ago, without a wait for its end (ProcessService.StopAsync), and may hold its listeners for a moment.
+    /// </summary>
+    public static readonly TimeSpan PortReleaseWait = TimeSpan.FromSeconds(1);
 
     private static readonly TimeSpan PortPoll = TimeSpan.FromMilliseconds(100);
 
@@ -85,6 +107,112 @@ public static class AetherCoreLoad
             await steps.CancelProbes();
         }
         return generation;
+    }
+
+    /// <summary>
+    /// What follows the stop of the old cores, before Xray starts (D3): every loopback port the Aether core the
+    /// configuration needs listens on, and the port of the secondary-socks inbound Xray opens for it, by UDP as well, which
+    /// that inbound serves, can be listened on now. A port another program holds would have the core or Xray fail to
+    /// listen, or an Aether outbound dial that program; one the system keeps from programs (a Windows excluded port range)
+    /// would have them fail. A port that is not free is looked at again for <see cref="AetherCoreLoadSteps.PortRelease" />
+    /// at most, while the old cores' hold of it ends. False, after telling which port, when one cannot: the load ends
+    /// there, and the cores it stopped stay stopped. True otherwise, and for a configuration that needs no core.
+    /// </summary>
+    public static async Task<bool> BeforeXrayAsync(AetherCoreLoadSteps steps)
+    {
+        if (steps.Core() is not { } core)
+        {
+            return true;
+        }
+        var secondaryPort = steps.SecondaryPort();
+        var problem = PortsProblem(core, secondaryPort, steps.CanListen);
+        var waited = Stopwatch.StartNew();
+        // A port no listener can have is not released by waiting (D3-1).
+        while (problem != null && InvalidPort(core) == null && waited.Elapsed + PortPoll <= steps.PortRelease)
+        {
+            await Task.Delay(PortPoll);
+            problem = PortsProblem(core, secondaryPort, steps.CanListen);
+        }
+        if (problem == null)
+        {
+            return true;
+        }
+        Logging.SaveLog($"CoreManager: no core is started: {problem}");
+        await steps.Report(true, problem);
+        return false;
+    }
+
+    /// <summary>
+    /// Why the ports of <paramref name="core" />, and <paramref name="secondaryPort" /> (by TCP and UDP), cannot be listened
+    /// on, as <paramref name="canListen" /> finds them (<see cref="CanListen" />), naming the first port that cannot; null
+    /// when every one can. A port of the core outside 1..65535, which a command written by hand may name (D3-1), comes
+    /// first, with what it is.
+    /// </summary>
+    public static string? PortsProblem(AetherCore core, int? secondaryPort, Func<int, bool, bool> canListen)
+    {
+        if (InvalidPort(core) is { } invalid)
+        {
+            return string.Format(ResUI.MsgAetherListenPortInvalid, invalid);
+        }
+        foreach (var port in core.Ports)
+        {
+            if (!canListen(port, false))
+            {
+                return string.Format(ResUI.MsgAetherListenPortInUse, port);
+            }
+        }
+        if (secondaryPort is { } secondary && !canListen(secondary, true))
+        {
+            return string.Format(ResUI.MsgAetherSecondaryPortInUse, secondary);
+        }
+        return null;
+    }
+
+    /// <summary>The first port <paramref name="core" /> is told to listen on that is no port, outside 1..65535; null when there is none.</summary>
+    private static int? InvalidPort(AetherCore core)
+    {
+        return core.Ports.Where(port => port is < 1 or > IPEndPoint.MaxPort).Select(port => (int?)port).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Whether a program can listen on the loopback <paramref name="port" /> now, by TCP, and with <paramref name="udp" />
+    /// by UDP as well (D3): the port is taken and given back at once, as the core and Xray take it, with nothing more. False
+    /// when another program holds it, or the system keeps it from programs (a Windows excluded port range answers "access
+    /// denied"), and for a number that is no port, outside 1..65535 (D3-1).
+    /// </summary>
+    public static bool CanListen(int port, bool udp)
+    {
+        if (port is < 1 or > IPEndPoint.MaxPort)
+        {
+            return false;
+        }
+        var endpoint = new IPEndPoint(IPAddress.Loopback, port);
+        try
+        {
+            using (var tcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    // As Xray and the core bind there (Go and Rust listeners): connections of the old cores that wait out
+                    // their close (TIME_WAIT) leave the port free. On Windows they do anyway, and the option would let a
+                    // listener share the port of another.
+                    tcp.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                }
+                tcp.Bind(endpoint);
+                tcp.Listen(1);
+            }
+            if (udp)
+            {
+                using var datagrams = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                datagrams.Bind(endpoint);
+            }
+            return true;
+        }
+        catch (SocketException)
+        {
+            // In use, or access denied.
+            return false;
+        }
     }
 
     /// <summary>
@@ -164,9 +292,19 @@ public static class AetherCoreLoad
 
     /// <summary>
     /// Waits until the loopback <paramref name="port" /> accepts a connection, for at most <paramref name="timeout" />:
-    /// a bounded wait while a process comes up. False when the time is up.
+    /// a bounded wait while a process comes up. A connection to itself is no listener (<see cref="IsSelfConnect" />): it
+    /// is closed, which gives the port back, and the wait goes on. False when the time is up.
     /// </summary>
-    public static async Task<bool> WaitForPortAsync(int port, TimeSpan timeout, CancellationToken ct = default)
+    public static Task<bool> WaitForPortAsync(int port, TimeSpan timeout, CancellationToken ct = default)
+    {
+        return WaitForPortAsync(port, timeout, () => new TcpClient(), ct);
+    }
+
+    /// <summary>
+    /// <see cref="WaitForPortAsync(int, TimeSpan, CancellationToken)" /> with <paramref name="newClient" /> making the client
+    /// of each attempt; tests make one that dials from the port it waits for, which connects it to itself (D6).
+    /// </summary>
+    public static async Task<bool> WaitForPortAsync(int port, TimeSpan timeout, Func<TcpClient> newClient, CancellationToken ct = default)
     {
         var deadline = Stopwatch.StartNew();
         while (true)
@@ -174,11 +312,15 @@ public static class AetherCoreLoad
             ct.ThrowIfCancellationRequested();
             try
             {
-                using var client = new TcpClient();
+                using var client = newClient();
                 using var attempt = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 attempt.CancelAfter(AetherCoreManager.ProbeTimeout);
                 await client.ConnectAsync(Global.Loopback, port, attempt.Token).ConfigureAwait(false);
-                return true;
+                if (!IsSelfConnect(client.Client.LocalEndPoint, client.Client.RemoteEndPoint))
+                {
+                    return true;
+                }
+                Logging.SaveLog($"AetherCore: a connection to {port} was to itself; nothing listens there yet");
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
@@ -200,6 +342,24 @@ public static class AetherCoreLoad
     public static Task<bool> WaitForPortAsync(int port)
     {
         return WaitForPortAsync(port, UpstreamWait);
+    }
+
+    /// <summary>
+    /// Whether a TCP connection from <paramref name="local" /> to <paramref name="remote" /> is one to itself (D6): on Linux
+    /// a connection to a closed loopback port in the ephemeral range may be given that same port to dial from, and the
+    /// simultaneous open then connects the socket to itself, with nothing listening. No wait counts such a connection as
+    /// a listener.
+    /// </summary>
+    public static bool IsSelfConnect(EndPoint? local, EndPoint? remote)
+    {
+        return local is IPEndPoint mine && remote is IPEndPoint theirs
+               && mine.Port == theirs.Port && Unmapped(mine.Address).Equals(Unmapped(theirs.Address));
+    }
+
+    // An IPv4 address as a dual-mode socket gives it, ::ffff:127.0.0.1, is that IPv4 address.
+    private static IPAddress Unmapped(IPAddress address)
+    {
+        return address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
     }
 }
 

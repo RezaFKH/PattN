@@ -167,7 +167,7 @@ public class AetherDelayTesterTests : IDisposable
         // Without the need, the answering listener is enough.
         await (await AetherDelayTester.AwaitTunnelAsync(socks.Port, output.Reader, Budget(2_000), false, AetherCoreManager.AnswersSocksAsync, poll)).Should().BeTrue();
 
-        output.Writer.TryWrite("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10820");
+        output.Writer.TryWrite("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10830");
         output.Writer.TryWrite($"[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:{socks.Port} leaves through psiphon, carried by the tunnel");
         await (await AetherDelayTester.AwaitTunnelAsync(socks.Port, output.Reader, Budget(2_000), true, AetherCoreManager.AnswersSocksAsync, poll)).Should().BeTrue();
 
@@ -702,6 +702,143 @@ public class AetherDelayTesterTests : IDisposable
         await whenHeld.Should().BeEquivalentTo(["generate 41501 41502", "xray start", "spawn 1", "kill 1", "xray stop"], CollectionOrdering.Matching);
         await result.Should().BeEqualTo(AetherTestResult.Untested(ResUI.SpeedtestingSkip));
         await rig.Probed.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task WithoutTheCoreATestIsLeftUntestedWithNothingStarted()
+    {
+        // D5: the core not downloaded yet, or taken away by an update of aether-core, is a state of the app; -1 would have
+        // "Remove invalid" delete a profile that works.
+        const string missing = "The Core file (file name: aether) was not found";
+        var warp = Aether(AetherProtocol.Masque);
+        var rig = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), MissingCore = () => missing };
+        rig.Answer(P);
+
+        var result = await rig.Tester().MeasureAsync(warp, rig.Probe());
+
+        await result.Should().BeEqualTo(AetherTestResult.Untested(missing));
+        await result.Delay.Should().BeEqualTo(AetherDelayTester.Untested);
+        // No test Xray, and no core, started for it.
+        await rig.Cores.Events.Should().BeEquivalentTo(["generate 41501 41502"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ATestTheCoresAreHeldForWhileTheCoreIsTakenAwayIsToldAsAMissingCore()
+    {
+        // The core's program was there when the test looked; an update holds the cores and replaces it meanwhile.
+        const string missing = "The Core file (file name: aether) was not found";
+        var warp = Aether(AetherProtocol.Masque);
+        var looked = 0;
+        var rig = new AetherMeasureRig(_root)
+        {
+            Needed = AetherCore.Of(warp, P),
+            MissingCore = () => Interlocked.Increment(ref looked) == 1 ? null : missing,
+        };
+        var hold = await rig.Cores.Manager.HoldAsync();
+
+        var result = await rig.Tester().MeasureAsync(warp, rig.Probe());
+        await hold.DisposeAsync();
+
+        await result.Should().BeEqualTo(AetherTestResult.Untested(missing));
+        await rig.Cores.Events.Should().BeEquivalentTo(["generate 41501 41502"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task AMissingCoreLeavesTheTestThroughTheLiveSessionAlone()
+    {
+        // A test through the live session runs no core of its own: it is measured as before.
+        var warp = Aether(AetherProtocol.Masque);
+        var rig = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), MissingCore = () => "never shown" };
+        await (await rig.Cores.Manager.StartSessionAsync(rig.Needed!.Through(P + AetherPorts.SecondaryOffset))).Should().BeNull();
+        rig.Answer(P);
+
+        var result = await rig.Tester().MeasureAsync(warp, rig.Probe());
+
+        await result.Should().BeEqualTo(new AetherTestResult(42));
+        await rig.Cores.Manager.StopSessionAsync();
+    }
+
+    // ---- the uplink of the test's Xray under a TUN (D2)
+
+    /// <summary>A binding while a TUN runs that writes down each look for the uplink, and each line it says, in <paramref name="seen" />.</summary>
+    private static AetherUplinkBinding Uplink(List<string> seen, string? uplink = "Wi-Fi 2")
+    {
+        return new AetherUplinkBinding
+        {
+            TunRunning = () => true,
+            FindUplink = () =>
+            {
+                lock (seen)
+                {
+                    seen.Add("find uplink");
+                }
+                return uplink;
+            },
+            Log = line =>
+            {
+                lock (seen)
+                {
+                    seen.Add(line);
+                }
+            },
+        };
+    }
+
+    [Test]
+    public async Task ATestLeftUntestedLooksForNoUplink()
+    {
+        // D2-4: no test Xray starts beside a session of another core, while the session connects, or without the core:
+        // the uplink is not looked for, and no line says that a test Xray runs unbound.
+        var warp = Aether(AetherProtocol.Masque);
+        var seen = new List<string>();
+
+        var beside = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), Uplink = Uplink(seen, uplink: null) };
+        await beside.Cores.Manager.StartSessionAsync(AetherCore.Of(Aether(AetherProtocol.WireGuard, "w"), P).Through(P + AetherPorts.SecondaryOffset));
+        beside.Answer(P);
+        await (await beside.Tester().MeasureAsync(warp, beside.Probe())).Should().BeEqualTo(AetherTestResult.Untested(ResUI.MsgAetherTestSkipped));
+        await beside.Cores.Manager.StopSessionAsync();
+
+        var connecting = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), Uplink = Uplink(seen, uplink: null) };
+        await connecting.Cores.Manager.StartSessionAsync(connecting.Needed!.Through(P + AetherPorts.SecondaryOffset));
+        await (await connecting.Tester().MeasureAsync(warp, connecting.Probe())).Should().BeEqualTo(AetherTestResult.Untested(ResUI.MsgAetherConnecting));
+        await connecting.Cores.Manager.StopSessionAsync();
+
+        const string missing = "The Core file (file name: aether) was not found";
+        var noCore = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), MissingCore = () => missing, Uplink = Uplink(seen, uplink: null) };
+        noCore.Answer(P);
+        await (await noCore.Tester().MeasureAsync(warp, noCore.Probe())).Should().BeEqualTo(AetherTestResult.Untested(missing));
+
+        await seen.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task EveryTestXrayStartsOnItsConfigurationBoundToTheUplink()
+    {
+        // Each way a test Xray starts: through a core of its own, generated again once bound; through the live session,
+        // whose generation without a core is bound; and with no core needed at all. The uplink is looked for once a test.
+        var warp = Aether(AetherProtocol.Masque);
+        var seen = new List<string>();
+        const string bound = """{"uplink": "Wi-Fi 2"}""";
+
+        var own = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), Uplink = Uplink(seen) };
+        own.Answer(P);
+        await (await own.Tester().MeasureAsync(warp, own.Probe())).Should().BeEqualTo(new AetherTestResult(42));
+        await own.Cores.Events.Should().BeEquivalentTo(
+            ["generate 41501 41502", "generate 41501 41502", "xray start", "spawn 1", "probe 41501", "kill 1", "xray stop"], CollectionOrdering.Matching);
+        await own.XrayStartedOn.Should().BeEquivalentTo([bound]);
+
+        var live = new AetherMeasureRig(_root) { Needed = AetherCore.Of(warp, P), Uplink = Uplink(seen) };
+        await (await live.Cores.Manager.StartSessionAsync(live.Needed!.Through(P + AetherPorts.SecondaryOffset))).Should().BeNull();
+        live.Answer(P);
+        await (await live.Tester().MeasureAsync(warp, live.Probe())).Should().BeEqualTo(new AetherTestResult(42));
+        await live.XrayStartedOn.Should().BeEquivalentTo([bound]);
+        await live.Cores.Manager.StopSessionAsync();
+
+        var plain = new AetherMeasureRig(_root) { Uplink = Uplink(seen) };
+        await (await plain.Tester().MeasureAsync(warp, plain.Probe())).Should().BeEqualTo(new AetherTestResult(42));
+        await plain.XrayStartedOn.Should().BeEquivalentTo([bound]);
+
+        await seen.Should().BeEquivalentTo(["find uplink", "find uplink", "find uplink"]);
     }
 
     // ---- stubs

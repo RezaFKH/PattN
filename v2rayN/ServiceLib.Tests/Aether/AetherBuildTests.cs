@@ -55,6 +55,7 @@ public class AetherBuildTests
         build.Refuse("refused");
         build.ExitNodeTagTaken = true;
         build.Core = Use().Core;
+        build.SecondaryInboundPort = 10832;
         build.ExitNodes["germany"] = ExitNodeLookup.NotFound.Instance;
         build.SecondaryPort = 40000;
         var firstChain = build.NewChainTag(Global.ProxyTag);
@@ -66,6 +67,7 @@ public class AetherBuildTests
         await build.Failure.Should().BeNull();
         await build.ExitNodeTagTaken.Should().BeFalse();
         await build.Core.Should().BeNull();
+        await build.SecondaryInboundPort.Should().BeNull();
         await build.NewChainTag(Global.ProxyTag).Should().BeEqualTo(firstChain);
         // The exit-node lookups are the builder's, made once from the database; the test picks its secondary port.
         await build.ExitNodes.ContainsKey("germany").Should().BeTrue();

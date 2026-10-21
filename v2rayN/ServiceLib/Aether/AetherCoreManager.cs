@@ -902,7 +902,8 @@ public sealed class AetherCoreManager
     /// closes every connection, as Psiphon's does until it has a tunnel, does not count either. The whole reply to the
     /// greeting is read, the version and a method the greeting allows (PattNG reads the version alone): two probes of
     /// loopback ports nothing listens on can be connected to each other by a simultaneous open when each was given the
-    /// other's port to dial from, and each then reads the other's greeting, which begins with the version as well.
+    /// other's port to dial from, and each then reads the other's greeting, which begins with the version as well. A
+    /// connection to itself (<see cref="AetherCoreLoad.IsSelfConnect" />, D6) is closed unasked, as no answer.
     /// </summary>
     public static async Task<bool> AnswersSocksAsync(int port, CancellationToken ct = default)
     {
@@ -913,6 +914,10 @@ public sealed class AetherCoreManager
             {
                 connecting.CancelAfter(ProbeTimeout);
                 await client.ConnectAsync(Global.Loopback, port, connecting.Token).ConfigureAwait(false);
+            }
+            if (AetherCoreLoad.IsSelfConnect(client.Client.LocalEndPoint, client.Client.RemoteEndPoint))
+            {
+                return false;
             }
             using var answering = CancellationTokenSource.CreateLinkedTokenSource(ct);
             answering.CancelAfter(ProbeTimeout);

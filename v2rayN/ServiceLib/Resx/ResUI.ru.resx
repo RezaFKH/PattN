@@ -2028,4 +2028,16 @@
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
     <value>Порт прослушивания Aether и три следующих за ним порта не могут включать локальные порты PattN: смешанный порт и шесть следующих за ним портов</value>
   </data>
+  <data name="MsgAetherListenPortInUse" xml:space="preserve">
+    <value>Порт {0}, который слушает ядро Aether, занят другой программой или зарезервирован системой; измените порт прослушивания Aether в настройках или порты команды</value>
+  </data>
+  <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
+    <value>Порт {0} (на три выше порта прослушивания Aether), который Xray открывает для выхода ядра Aether наружу, занят другой программой или зарезервирован системой; измените порт прослушивания Aether в настройках</value>
+  </data>
+  <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
+    <value>«{0}» не удалось построить в цепочке его подписки</value>
+  </data>
+  <data name="MsgAetherListenPortInvalid" xml:space="preserve">
+    <value>Команда профиля Aether велит ядру слушать {0}, но это не порт (от 1 до 65535); измените порты команды</value>
+  </data>
 </root>

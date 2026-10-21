@@ -55,7 +55,7 @@ public class AetherInboundPortTests
         var config = NewConfig();
         var warning = V2rayRuntime.ProxyPortOverrideWarning(config, P - 4);
         await (warning != null).Should().BeTrue();
-        await warning!.Should().Contain("V2RAYN_WEB_PROXY_PORT=10815");
+        await warning!.Should().Contain($"V2RAYN_WEB_PROXY_PORT={P - 4}");
         await warning.Should().Contain($"{P}-{P + 3}");
         // Already in the settings file as well: an override equal to the stored mixed port is told all the same.
         await (V2rayRuntime.ProxyPortOverrideWarning(NewConfig(localPort: P - 4), P - 4) != null).Should().BeTrue();

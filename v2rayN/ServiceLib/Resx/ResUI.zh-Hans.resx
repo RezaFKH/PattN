@@ -2020,4 +2020,16 @@
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
     <value>Aether 监听端口及其后的三个端口不能包含 PattN 的本地端口：本地混合监听端口及其后的六个端口</value>
   </data>
+  <data name="MsgAetherListenPortInUse" xml:space="preserve">
+    <value>Aether 内核监听的端口 {0} 已被其他程序占用或被系统保留；请在设置中更改 Aether 监听端口，或更改命令中的端口</value>
+  </data>
+  <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
+    <value>端口 {0}（比 Aether 监听端口大 3，Xray 在此为 Aether 内核提供向外连接的入口）已被其他程序占用或被系统保留；请在设置中更改 Aether 监听端口</value>
+  </data>
+  <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
+    <value>无法在其订阅的链中构建“{0}”</value>
+  </data>
+  <data name="MsgAetherListenPortInvalid" xml:space="preserve">
+    <value>Aether 配置的命令让内核监听 {0}，这不是有效端口（1 到 65535）；请更改命令中的端口</value>
+  </data>
 </root>

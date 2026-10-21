@@ -96,6 +96,8 @@ public partial class CoreConfigV2rayService
         {
             var echOutbound = item.Outbound.DeepClone().AsObject();
             echOutbound["tag"] = item.Tag;
+            // PattN: the ECH queries of the Xray of an Aether scan, key run or latency test leave by the uplink under a TUN (D2)
+            BindEchOutboundToUplink(echOutbound);
             outboundsNode.Add(echOutbound);
         }
         coreConfigContent = JsonUtils.Serialize(coreConfigNode);
@@ -174,6 +176,17 @@ public partial class CoreConfigV2rayService
             else if (outboundDetour.IsNullOrEmpty())
             {
                 (customOutboundObj?["streamSettings"]?["sockopt"] as JsonObject)?.Remove("dialerProxy");
+            }
+            // PattN: the uplink binds the outbound by what its own JSON says, not by its stand-in, and never over an
+            // interface it names; and its ECH config query too (D2-1, D2-2)
+            if (UplinkBinding is { } uplink && customOutboundObj != null)
+            {
+                if (!containBindInterfacePlaceholder && outboundBindInterface == uplink)
+                {
+                    BindCustomOutboundToUplink(customOutboundObj, outboundTag);
+                    outboundBindInterface = string.Empty;
+                }
+                BindEchQueryToUplink(customOutboundObj);
             }
             if (!containBindInterfacePlaceholder && !outboundBindInterface.IsNullOrEmpty())
             {
@@ -366,19 +379,36 @@ public partial class CoreConfigV2rayService
     private void ApplyOutboundBindInterface()
     {
         var bindInterface = _config.CoreBasicItem.BindInterface?.TrimEx();
+        // PattN: with none set, the Xray of an Aether scan, key run or latency test binds to the uplink under a TUN (D2)
+        if (bindInterface.IsNullOrEmpty())
+        {
+            bindInterface = context.Aether.Uplink;
+        }
         if (bindInterface.IsNullOrEmpty())
         {
             return;
         }
+        // PattN: what the uplink binds besides: the names its outbounds dial, and their ECH config queries (D2-1, D2-3)
+        var uplink = UplinkBinding;
         foreach (var outbound in _coreConfig.outbounds ?? [])
         {
             if (!ShouldBindNet(outbound))
             {
                 continue;
             }
+            // PattN: no interface but the loopback one reaches a WireGuard peer there (D2-2)
+            if (uplink != null && PeerReachesLoopback(outbound))
+            {
+                continue;
+            }
             outbound.streamSettings ??= new();
             outbound.streamSettings.sockopt ??= new();
             outbound.streamSettings.sockopt.Interface = bindInterface;
+            // PattN: a custom outbound's own JSON decides (ApplyCustomOutboundReplace)
+            if (uplink != null && !context.CustomOutboundMap.ContainsKey(outbound))
+            {
+                LookUpServerByUplink(outbound);
+            }
             // xhttp download bind interface
             if (outbound?.streamSettings?.xhttpSettings?.extra is null)
             {
@@ -393,8 +423,15 @@ public partial class CoreConfigV2rayService
             var sockopt = downloadSettings["sockopt"] as JsonObject ?? new JsonObject();
             sockopt["interface"] = bindInterface;
             downloadSettings["sockopt"] = sockopt;
+            // PattN: (D2-3)
+            if (uplink != null)
+            {
+                BindDownloadToUplink(downloadSettings, Utils.IsDomain(outbound.settings?.address?.ToString()));
+            }
             outbound.streamSettings.xhttpSettings.extra = xhttpExtraObject;
         }
+        // PattN: (D2-1)
+        BindEchQueriesToUplink();
     }
 
     private void ApplyOutboundSendThrough()

@@ -2176,6 +2176,24 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Port {0}, which the Aether core listens on, is taken by another program or reserved by the system; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenPortInUse {
+            get {
+                return ResourceManager.GetString("MsgAetherListenPortInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The command of the Aether profile tells the core to listen on {0}, which is no port (1 to 65535); change the ports of the command 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenPortInvalid {
+            get {
+                return ResourceManager.GetString("MsgAetherListenPortInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it 的本地化字符串。
         /// </summary>
         public static string MsgAetherListenPortLocalProxy {
@@ -2190,6 +2208,15 @@ namespace ServiceLib.Resx {
         public static string MsgAetherListenPortTaken {
             get {
                 return ResourceManager.GetString("MsgAetherListenPortTaken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Port {0}, three above the Aether listen port, which Xray opens for the Aether core to dial out through, is taken by another program or reserved by the system; change the Aether listen port in the settings 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherSecondaryPortInUse {
+            get {
+                return ResourceManager.GetString("MsgAetherSecondaryPortInUse", resourceCulture);
             }
         }
         
@@ -2505,6 +2532,15 @@ namespace ServiceLib.Resx {
         public static string MsgPsiphonServersUpdated {
             get {
                 return ResourceManager.GetString("MsgPsiphonServersUpdated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 &quot;{0}&quot; could not be built in the chain of its subscription 的本地化字符串。
+        /// </summary>
+        public static string MsgRoutingRuleChainHopNotBuilt {
+            get {
+                return ResourceManager.GetString("MsgRoutingRuleChainHopNotBuilt", resourceCulture);
             }
         }
         

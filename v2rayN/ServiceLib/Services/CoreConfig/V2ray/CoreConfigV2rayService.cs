@@ -357,10 +357,11 @@ public partial class CoreConfigV2rayService(CoreConfigContext context)
 
             _coreConfig.routing.rules.Add(BuildFinalRule());
 
-            // PattN: a test has no DNS, so the Aether outbounds pass every name on. A test whose own core the tester
-            // starts (it picks the secondary port) routes that core through this Xray, after the inbounds and rules of
-            // the session were cleared; one that measures through the live session's core leaves its routing to the
-            // session's Xray, and is refused for what one core cannot serve all the same.
+            // PattN: a test has no DNS (one bound to the uplink has its own, D2-3), so the Aether outbounds pass every
+            // name on. A test whose own core the tester starts (it picks the secondary port) routes that core through
+            // this Xray, after the inbounds and rules of the session were cleared; one that measures through the live
+            // session's core leaves its routing to the session's Xray, and is refused for what one core cannot serve all
+            // the same.
             TrimAetherOutboundsForTest();
             var aetherError = context.Aether.SecondaryPort is { } secondaryPort
                 ? GenAether(secondaryPort, forTest: true)
@@ -379,6 +380,8 @@ public partial class CoreConfigV2rayService(CoreConfigContext context)
             {
                 ApplyFinalFragment();
             }
+            // PattN: the Xray of an Aether latency test bound to the uplink under a TUN looks names up by its own DNS (D2-3)
+            LookUpNamesByUplink();
             ApplyOutboundBindInterface();
             ApplyOutboundSendThrough();
 
