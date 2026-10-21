@@ -306,6 +306,8 @@ public static class ConfigHandler
             EConfigType.Anytls => await AddAnytlsServer(config, item),
             EConfigType.Naive => await AddNaiveServer(config, item),
             EConfigType.MASQUE => await AddMasqueServer(config, item),
+            // PattN: the fork's Aether profiles
+            EConfigType.Aether => await AddAetherServer(config, item),
             _ => -1,
         };
         return ret;
@@ -449,12 +451,13 @@ public static class ConfigHandler
         {
             return 0;
         }
+        // PattN: an Aether profile is usable without a port: its core scans for an endpoint when none is pinned
         if (lstProfile.Count > 0)
         {
-            return await SetDefaultServerIndex(config, lstProfile.FirstOrDefault(t => t.Port > 0)?.IndexId);
+            return await SetDefaultServerIndex(config, lstProfile.FirstOrDefault(t => t.Port > 0 || t.ConfigType == EConfigType.Aether)?.IndexId);
         }
 
-        var item = await SQLiteHelper.Instance.TableAsync<ProfileItem>().FirstOrDefaultAsync(t => t.Port > 0);
+        var item = await SQLiteHelper.Instance.TableAsync<ProfileItem>().FirstOrDefaultAsync(t => t.Port > 0 || t.ConfigType == EConfigType.Aether);
         return await SetDefaultServerIndex(config, item?.IndexId);
     }
 
@@ -1033,6 +1036,49 @@ public static class ConfigHandler
     }
 
     /// <summary>
+    /// PattN: add or edit an Aether profile. Xray alone runs it. Its settings are the Aether fields of its protocol
+    /// extra; besides them it keeps only its pinned endpoint (Address/Port; none for a profile that scans) and the
+    /// finalMask, dialMode and targetStrategy of its outbounds. Every other column is cleared, so that an imported
+    /// profile and an edited one with the same settings are the same profile to the duplicate check. As in PattNG, a
+    /// profile is stored as it comes and never refused: the Aether editor refuses a profile with a problem on its next
+    /// save, and normalizes it before it calls this.
+    /// </summary>
+    /// <param name="config">Current configuration</param>
+    /// <param name="profileItem">Aether profile to add</param>
+    /// <param name="toFile">Whether to save to file</param>
+    /// <returns>0</returns>
+    public static async Task<int> AddAetherServer(Config config, ProfileItem profileItem, bool toFile = true)
+    {
+        profileItem.ConfigType = EConfigType.Aether;
+        profileItem.CoreType = ECoreType.Xray;
+
+        profileItem.Address = profileItem.Address.TrimEx();
+        profileItem.Password = string.Empty;
+        profileItem.Username = string.Empty;
+        profileItem.Network = Global.DefaultNetwork;
+        profileItem.StreamSecurity = string.Empty;
+        profileItem.Sni = string.Empty;
+        profileItem.Alpn = string.Empty;
+        profileItem.Fingerprint = string.Empty;
+        profileItem.CipherSuites = string.Empty;
+        profileItem.AllowInsecure = string.Empty;
+        profileItem.PublicKey = string.Empty;
+        profileItem.ShortId = string.Empty;
+        profileItem.SpiderX = string.Empty;
+        profileItem.Mldsa65Verify = string.Empty;
+        profileItem.Cert = string.Empty;
+        profileItem.CertSha = string.Empty;
+        profileItem.EchConfigList = string.Empty;
+        profileItem.EchOutbound = string.Empty;
+        profileItem.VerifyPeerCertByName = string.Empty;
+        profileItem.MuxEnabled = null;
+        profileItem.SetTransportExtra(new TransportExtraItem());
+
+        await AddServerCommon(config, profileItem, toFile);
+        return 0;
+    }
+
+    /// <summary>
     /// Sort the server list by the specified column
     /// Updates the sort order in the profile extension data
     /// </summary>
@@ -1336,6 +1382,13 @@ public static class ConfigHandler
                && AreEqual(o.ShortId, n.ShortId)
                && AreEqual(o.Finalmask, n.Finalmask)
                && AreEqual(o.EchOutbound, n.EchOutbound)
+               // PattN: two Aether profiles are the same only with every setting alike (PattNG duplicateIdentity): the
+               // whole protocol extra, which holds their Aether settings and is a record compared field by field, and
+               // the dialMode and targetStrategy of their outbounds
+               && (o.ConfigType != EConfigType.Aether
+                   || (oProtocolExtra == nProtocolExtra
+                       && AreEqual(o.DialMode, n.DialMode)
+                       && AreEqual(o.TargetStrategy, n.TargetStrategy)))
                && (!remarks || o.Remarks == n.Remarks);
 
         static bool AreEqual(string? a, string? b)
@@ -1724,6 +1777,8 @@ public static class ConfigHandler
                 EConfigType.Anytls => await AddAnytlsServer(config, profileItem, false),
                 EConfigType.Naive => await AddNaiveServer(config, profileItem, false),
                 EConfigType.MASQUE => await AddMasqueServer(config, profileItem, false),
+                // PattN: aether:// links, a subscription's overrides applied as they are, as PattNG applies them
+                EConfigType.Aether => await AddAetherServer(config, profileItem, false),
                 _ => -1,
             };
 

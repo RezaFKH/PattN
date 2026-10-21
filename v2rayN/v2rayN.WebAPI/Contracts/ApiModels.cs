@@ -463,6 +463,8 @@ public static class ApiMessageKeys
     public const string ProfileGrouped = "profiles.grouped";
     public const string ProfileSaved = "profiles.saved";
     public const string ProfileSaveFailed = "profiles.saveFailed";
+    // PattN: "Aether profiles are edited in the desktop app"
+    public const string ProfileTypeDesktopOnly = "profiles.typeDesktopOnly";
     public const string SubscriptionNotFound = "subscriptions.notFound";
     public const string SubscriptionAdded = "subscriptions.added";
     public const string SubscriptionSaved = "subscriptions.saved";

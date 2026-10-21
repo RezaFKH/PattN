@@ -91,6 +91,13 @@ public sealed partial class V2rayRuntime
             return OperationView.Fail("profile_data_required", ApiMessageKeys.CommonInvalidInput);
         }
 
+        // PattN: the API has no editor for the settings of an Aether profile, so it neither creates nor changes one;
+        // listing, selecting, deleting, sharing and testing one go through the code every profile goes through
+        if (profile.ConfigType == EConfigType.Aether)
+        {
+            return OperationView.Fail("profile_type_desktop_only", ApiMessageKeys.ProfileTypeDesktopOnly);
+        }
+
         var isNew = string.IsNullOrWhiteSpace(profileId);
         if (!isNew)
         {

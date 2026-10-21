@@ -7,6 +7,11 @@ public class Global
     public const string GithubApiUrl = "https://api.github.com/repos";
     public const string GeoUrl = "https://github.com/Chocolate4U/Iran-v2ray-rules/releases/latest/download/{0}.dat";
     public const string SingboxRulesetUrl = @"https://raw.githubusercontent.com/chocolate4u/Iran-sing-box-rules/rule-set/{1}.srs";
+    // PattN: Psiphon's signed server list as its client downloads it (the core's SERVER_LIST_URL, double slash as
+    // written), shipped beside the geo files with its publication time in seconds since the epoch
+    public const string PsiphonServersUrl = "https://s3.amazonaws.com//psiphon/web/mjr4-p23r-puwl/server_list_compressed";
+    public const string PsiphonServersFileName = "psiphon_servers.dat";
+    public const string PsiphonServersStampFileName = "psiphon_servers.stamp";
 
     public const string PromotionUrl = @"aHR0cHM6Ly90Lm1lL3BhdHRfY2hhbm5lbF94";
     public const string ConfigFileName = "guiNConfig.json";
@@ -59,6 +64,9 @@ public class Global
     public const string DnsTag = "dns-module";
     public const string DirectDnsTag = "direct-dns";
     public const string BalancerTagSuffix = "-balancer";
+    // PattN: the inbound the Aether core dials out through, and the outbound its traffic leaves Xray by
+    public const string AetherSecondarySocksTag = "secondary-socks";
+    public const string AetherExitNodeTag = "exit-node";
     public const string StreamSecurity = "tls";
     public const string StreamSecurityReality = "reality";
     public const string Loopback = "127.0.0.1";
@@ -251,7 +259,11 @@ public class Global
         { EConfigType.TUIC, "tuic://" },
         { EConfigType.WireGuard, "wireguard://" },
         { EConfigType.Anytls, "anytls://" },
-        { EConfigType.Naive, "naive://" }
+        { EConfigType.Naive, "naive://" },
+
+        // PattN: the links of Aether profiles, the scheme PattNG's are written with, so that the two apps read each
+        // other's links
+        { EConfigType.Aether, "aether://" },
     };
 
     public static readonly Dictionary<EConfigType, string> ProtocolTypes = new()
@@ -268,6 +280,11 @@ public class Global
         { EConfigType.Anytls, "anytls" },
         { EConfigType.Naive, "naive" },
         { EConfigType.MASQUE, "masque" },
+
+        // PattN: the outbound of an Aether profile is a SOCKS one to its core on the loopback address. Every type Xray
+        // runs needs its name here: a proxy domain strategy of the DNS settings maps them all through this table, and a
+        // missing one would leave the configuration of every profile without its DNS servers.
+        { EConfigType.Aether, "socks" },
     };
 
     public static readonly List<string> VmessSecurities =
@@ -431,6 +448,86 @@ public class Global
         "randomized",
         "unsafe",
         ""
+    ];
+
+    // PattN: the finalMasks the finalMask fields offer (PattNG arrays.xml final_mask_preset_names/values): the name the
+    // list shows, and the JSON a pick puts in the field, laid out as PattNG writes it, with "\n" line breaks whatever
+    // line endings this file is checked out with.
+    public static readonly List<(string Name, string Value)> FinalMaskPresets =
+    [
+        ("tlshello-0-len (0-104-1-0-0-114-1-1-11)",
+            """
+            {
+              "tcp": [
+                {"type": "fragment", "settings": {"packets": "tlshello", "lengths": ["0", "104", "1"], "delays": ["0"], "maxSplit": "0"}},
+                {"type": "fragment", "settings": {"packets": "1-1", "lengths": ["114", "1"], "delays": ["1"], "maxSplit": "11"}}
+              ]
+            }
+            """.ReplaceLineEndings("\n")),
+        ("tlshello (6-98-1-0-0-114-1-1-11)",
+            """
+            {
+              "tcp": [
+                {"type": "fragment", "settings": {"packets": "tlshello", "lengths": ["6", "98", "1"], "delays": ["0"], "maxSplit": "0"}},
+                {"type": "fragment", "settings": {"packets": "1-1", "lengths": ["114", "1"], "delays": ["1"], "maxSplit": "11"}}
+              ]
+            }
+            """.ReplaceLineEndings("\n")),
+        ("udp-noise (rnd-24-1200-1230)",
+            """
+            {
+              "udp": [
+                {
+                  "type": "noise",
+                  "settings": {
+                    "reset": "28",
+                    "noise": [
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"},
+                      {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}, {"rand": "1200-1230", "delay": "10"}
+                    ]
+                  }
+                }
+              ]
+            }
+            """.ReplaceLineEndings("\n")),
+    ];
+
+    // PattN: the lists the cipherSuites field offers (PattNG arrays.xml cipher_suites_preset_names/values): the name the
+    // list shows, and the names a pick puts in the field, joined by ':' as Xray reads them.
+    public static readonly List<(string Name, string Value)> CipherSuitesPresets =
+    [
+        ("semi-python-cipherSuites",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"),
+        ("real-firefox-cipherSuites",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:TLS_RSA_WITH_AES_128_GCM_SHA256:TLS_RSA_WITH_AES_256_GCM_SHA384:TLS_RSA_WITH_AES_128_CBC_SHA:TLS_RSA_WITH_AES_256_CBC_SHA"),
+    ];
+
+    // PattN: the resolvers and the domains the ECH fields of the Aether editor and the WARP keys window offer (PattNG
+    // arrays.xml aether_ech_dns_options / aether_ech_domain_options): each one the core takes, the default first.
+    public static readonly List<string> AetherEchDnsOptions =
+    [
+        "udp://1.1.1.1",
+        "udp://8.8.8.8",
+        "https://1.1.1.1/dns-query@sni=www.microsoft.com",
+        "https://doq.dns4all.eu/dns-query@address=194.0.5.3",
+        "tcp://1.1.1.1",
+        "tcp://8.8.8.8",
+    ];
+
+    public static readonly List<string> AetherEchDomainOptions =
+    [
+        "cloudflare-ech.com",
+        "crypto.cloudflare.com",
+        "ip.gs",
+        "api.cloudflareclient.com",
+        "consumer-masque.cloudflareclient.com",
+        "consumer-masque-proxy.cloudflareclient.com",
     ];
 
     public static readonly List<string> FragmentPacketsOptions =
