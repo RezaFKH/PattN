@@ -119,14 +119,16 @@ public sealed partial class V2rayRuntime
     public static WebEditorOptionsView GetEditorOptions() => new(
         new SubscriptionEditorOptionsView(
             Global.SubConvertTargets.ToArray(),
-            Enum.GetValues<ECoreType>().Where(coreType => coreType != ECoreType.v2rayN).Select(coreType => coreType.ToString()).ToArray()),
+            // PattN: not the Aether core, which takes no configuration file
+            Enum.GetValues<ECoreType>().Where(coreType => coreType is not (ECoreType.v2rayN or ECoreType.aether)).Select(coreType => coreType.ToString()).ToArray()),
         ProfileEditorOptionsValue.Value,
         GetDnsEditorOptions());
 
     private static ProfileEditorOptionsView CreateProfileEditorOptions()
     {
+        // PattN: not the Aether core, which runs no Shadowsocks profile
         var shadowsocksMethods = Enum.GetValues<ECoreType>()
-            .Where(coreType => coreType != ECoreType.v2rayN)
+            .Where(coreType => coreType is not (ECoreType.v2rayN or ECoreType.aether))
             .ToDictionary(
                 coreType => coreType.ToString(),
                 coreType => coreType switch

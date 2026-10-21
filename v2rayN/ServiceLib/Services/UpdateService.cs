@@ -282,6 +282,7 @@ public partial class UpdateService(Config config, Func<bool, string, Task> updat
                 case ECoreType.Xray:
                 case ECoreType.v2fly_v5:
                 case ECoreType.mihomo:
+                case ECoreType.aether: // PattN: its download URLs name the tag as it is, v2.3.2
                     {
                         curVersion = await GetCoreVersion(type, cancellationToken);
                         message = string.Format(ResUI.IsLatestCore, type, curVersion.ToStandardVersionString("v"));

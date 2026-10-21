@@ -23,8 +23,11 @@ public class DnsEditorParityTests
         var settings = V2rayRuntime.GetWebSettingsOptions();
 
         await options.Subscriptions.ConvertTargets.SequenceEqual(Global.SubConvertTargets).Should().BeTrue();
+        // PattN: the Aether core takes no configuration file and runs no Shadowsocks profile, so neither list offers it
         await options.Subscriptions.CustomCoreTypes.SequenceEqual(
-            Enum.GetValues<ECoreType>().Where(value => value != ECoreType.v2rayN).Select(value => value.ToString())).Should().BeTrue();
+            Enum.GetValues<ECoreType>().Where(value => value is not (ECoreType.v2rayN or ECoreType.aether)).Select(value => value.ToString())).Should().BeTrue();
+        await options.Subscriptions.CustomCoreTypes.Contains(nameof(ECoreType.aether)).Should().BeFalse();
+        await options.Profiles.ShadowsocksSecurities.ContainsKey(nameof(ECoreType.aether)).Should().BeFalse();
         await options.Profiles.CoreTypes.SequenceEqual(Global.CoreTypes).Should().BeTrue();
         await options.Profiles.ConfigTypes.SequenceEqual(Enum.GetValues<EConfigType>().Select(value => value.ToString())).Should().BeTrue();
         await options.Profiles.SingboxOnlyConfigTypes.ToHashSet().SetEquals(Global.SingboxOnlyConfigType.Select(value => value.ToString())).Should().BeTrue();
@@ -44,7 +47,7 @@ public class DnsEditorParityTests
         await options.Profiles.NaiveCongestionControls.SequenceEqual(Global.NaiveCongestionControls).Should().BeTrue();
         await options.Profiles.Fingerprints.SequenceEqual(Global.Fingerprints).Should().BeTrue();
         await options.Profiles.Alpns.SequenceEqual(Global.Alpns).Should().BeTrue();
-        foreach (var coreType in Enum.GetValues<ECoreType>().Where(value => value != ECoreType.v2rayN))
+        foreach (var coreType in Enum.GetValues<ECoreType>().Where(value => value is not (ECoreType.v2rayN or ECoreType.aether)))
         {
             var expected = coreType switch
             {

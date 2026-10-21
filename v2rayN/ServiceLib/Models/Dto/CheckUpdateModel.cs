@@ -11,5 +11,8 @@ public partial class CheckUpdateModel : ReactiveObject
     public bool? IsFinished { get; set; }
     public bool IsGeoFile { get; set; }
     public string CoreTypeForStorage => IsGeoFile ? "GeoFiles" : (CoreType?.ToString() ?? "");
-    public string CoreTypeDisplay => CoreType == ECoreType.v2rayN ? Global.AppName : CoreTypeForStorage;
+    // PattN: the Aether core's row reads "aether-core"; it is stored as "aether"
+    public string CoreTypeDisplay => CoreType == ECoreType.v2rayN ? Global.AppName
+        : CoreType == ECoreType.aether ? "aether-core"
+        : CoreTypeForStorage;
 }

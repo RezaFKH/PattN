@@ -791,6 +791,10 @@ public class Global
         { ECoreType.shadowquic, "spongebob888/shadowquic" },
         { ECoreType.mieru, "enfein/mieru" },
         { ECoreType.v2rayN, "patterniha/PattN" },
+
+        // PattN: the fork, not upstream CluvexStudio/Aether: only the fork's core takes --psiphon-server-entries and
+        // --api-address
+        { ECoreType.aether, "patterniha/Aether" },
     };
 
     public static readonly List<string> OtherGeoUrls =

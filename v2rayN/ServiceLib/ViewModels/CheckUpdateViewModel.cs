@@ -366,6 +366,13 @@ public partial class CheckUpdateViewModel : MyReactiveObject
                 continue;
             }
 
+            // PattN: the Aether core's archive holds three programs, two of them in a pt/ folder
+            if (item.CoreType == ECoreType.aether)
+            {
+                await UpgradeAetherCore(fileName);
+                continue;
+            }
+
             var coreTypeStr = item.CoreType?.ToString() ?? "";
             var toPath = Utils.GetBinPath("", coreTypeStr);
 
@@ -405,6 +412,40 @@ public partial class CheckUpdateViewModel : MyReactiveObject
             if (File.Exists(fileName))
             {
                 File.Delete(fileName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// PattN: puts the programs of a downloaded Aether archive into bin/aether, flat, and gives them their execute bits
+    /// outside Windows. A failure is shown on the row of the core alone, and the other rows are installed as usual.
+    /// </summary>
+    private async Task UpgradeAetherCore(string fileName)
+    {
+        try
+        {
+            // Every Aether process (the session's core, and those of scans, latency tests and WARP-key runs) has to
+            // be gone before its files are replaced: Windows keeps the file of a running program locked. PattN starts
+            // none of them yet; the code that starts them must stop them all and wait for them here, before Extract
+            // (AetherCoreManager.StopAllAsync).
+            AetherBinaries.Extract(fileName, AetherBinaries.Folder);
+            await AetherBinaries.SetExecutableAsync(AetherBinaries.Folder);
+            await UpdateView(ECoreType.aether, ResUI.MsgUpdateV2rayCoreSuccessfully);
+        }
+        catch (Exception ex)
+        {
+            Logging.SaveLog(_tag, ex);
+            await UpdateView(ECoreType.aether, ex.Message);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(fileName);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Logging.SaveLog(_tag, ex);
             }
         }
     }

@@ -48,6 +48,13 @@ public class CoreManager
                     continue;
                 }
 
+                // PattN: the Aether core and the two helpers beside it, psiphon-tunnel-core and lyrebird
+                if (it.CoreType == ECoreType.aether)
+                {
+                    await AetherBinaries.SetExecutableAsync(AetherBinaries.Folder);
+                    continue;
+                }
+
                 foreach (var name in it.CoreExes)
                 {
                     var exe = Utils.GetBinPath(Utils.GetExeName(name), it.CoreType.ToString());

@@ -105,6 +105,12 @@ public sealed class CoreInfoManager
                 lst.Add(ECoreType.Xray);
                 lst.Add(ECoreType.mihomo);
                 lst.Add(ECoreType.sing_box);
+
+                // PattN: the Aether core, only where patterniha/Aether publishes an archive for this system
+                if (IsAetherDownloadable())
+                {
+                    lst.Add(ECoreType.aether);
+                }
             }
         }
 
@@ -119,8 +125,75 @@ public sealed class CoreInfoManager
             ECoreType.Xray => true,
             ECoreType.mihomo => true,
             ECoreType.sing_box => true,
+            ECoreType.aether => true, // PattN
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// PattN: whether patterniha/Aether publishes an archive of its core for the running OS and architecture. Where it
+    /// publishes none (Linux on RISC-V and LoongArch), the update row of the core is left out rather than failing for
+    /// want of a download URL.
+    /// </summary>
+    public bool IsAetherDownloadable()
+    {
+        OSPlatform? os = Utils.IsWindows() ? OSPlatform.Windows
+            : Utils.IsLinux() ? OSPlatform.Linux
+            : Utils.IsMacOS() ? OSPlatform.OSX
+            : null;
+        return os is { } platform
+            && IsAetherDownloadable(GetCoreInfo(ECoreType.aether), platform, RuntimeInformation.ProcessArchitecture, Environment.OSVersion.Version.Build);
+    }
+
+    /// <summary>
+    /// PattN: whether a system is offered an archive of the Aether core. Windows on ARM gets the x64 core, which only
+    /// Windows 11 (build 22000 and later) runs there; Windows 10 on ARM emulates 32-bit x86 programs alone.
+    /// </summary>
+    public static bool IsAetherDownloadable(CoreInfo? coreInfo, OSPlatform os, Architecture architecture, int windowsBuild)
+    {
+        if (os == OSPlatform.Windows && architecture == Architecture.Arm64 && windowsBuild < 22000)
+        {
+            return false;
+        }
+        return GetDownloadUrl(coreInfo, os, architecture).IsNotEmpty();
+    }
+
+    /// <summary>
+    /// PattN: the archive of a core for an OS and an architecture, picked as UpdateService.GetUrlFromCore picks it for
+    /// the running system (apart from the "-desktop" archive of PattN itself); null where the core has none.
+    /// </summary>
+    public static string? GetDownloadUrl(CoreInfo? coreInfo, OSPlatform os, Architecture architecture)
+    {
+        if (os == OSPlatform.Windows)
+        {
+            return architecture switch
+            {
+                Architecture.Arm64 => coreInfo?.DownloadUrlWinArm64,
+                Architecture.X64 => coreInfo?.DownloadUrlWin64,
+                _ => null,
+            };
+        }
+        if (os == OSPlatform.Linux)
+        {
+            return architecture switch
+            {
+                Architecture.Arm64 => coreInfo?.DownloadUrlLinuxArm64,
+                Architecture.RiscV64 => coreInfo?.DownloadUrlLinuxRiscV64,
+                Architecture.LoongArch64 => coreInfo?.DownloadUrlLinuxLoong64,
+                Architecture.X64 => coreInfo?.DownloadUrlLinux64,
+                _ => null,
+            };
+        }
+        if (os == OSPlatform.OSX)
+        {
+            return architecture switch
+            {
+                Architecture.Arm64 => coreInfo?.DownloadUrlOSXArm64,
+                Architecture.X64 => coreInfo?.DownloadUrlOSX64,
+                _ => null,
+            };
+        }
+        return null;
     }
 
     public bool GetCheckPreRelease(ECoreType type, bool preRelease)
@@ -139,6 +212,7 @@ public sealed class CoreInfoManager
         var urlXray = GetCoreUrl(ECoreType.Xray);
         var urlMihomo = GetCoreUrl(ECoreType.mihomo);
         var urlSingbox = GetCoreUrl(ECoreType.sing_box);
+        var urlAether = GetCoreUrl(ECoreType.aether); // PattN
 
         _coreInfo =
         [
@@ -327,6 +401,29 @@ public sealed class CoreInfoManager
                     {
                         { "MIERU_CONFIG_JSON_FILE", "{0}" },
                     },
+                },
+
+                // PattN: the Aether WARP client (patterniha/Aether). Each release archive holds aether[.exe] and a pt/
+                // folder with lyrebird and psiphon-tunnel-core; the updater puts all three side by side in bin/aether
+                // (AetherBinaries.Extract), where the core finds both helpers beside itself. The archive names are
+                // those of the fork's release.yml.
+                new CoreInfo
+                {
+                    CoreType = ECoreType.aether,
+                    CoreExes = [AetherBinaries.CoreName],
+                    Arguments = "", // not used: the Aether code builds the argument list of each run itself
+                    Url = urlAether,
+                    ReleaseApiUrl = urlAether.Replace(Global.GithubUrl, Global.GithubApiUrl),
+                    DownloadUrlWin64 = urlAether + "/download/{0}/aether-windows-x86_64.zip",
+                    // The fork builds no arm64 Windows core; Windows 11 on ARM runs the x64 one.
+                    DownloadUrlWinArm64 = urlAether + "/download/{0}/aether-windows-x86_64.zip",
+                    // The static musl builds, which run on any distribution, whatever its C library.
+                    DownloadUrlLinux64 = urlAether + "/download/{0}/aether-linux-x86_64-musl.tar.gz",
+                    DownloadUrlLinuxArm64 = urlAether + "/download/{0}/aether-linux-aarch64-musl.tar.gz",
+                    DownloadUrlOSX64 = urlAether + "/download/{0}/aether-macos-x86_64.tar.gz",
+                    DownloadUrlOSXArm64 = urlAether + "/download/{0}/aether-macos-arm64.tar.gz",
+                    Match = "aether",
+                    VersionArg = "--version", // prints "aether 2.3.2"
                 },
         ];
     }
