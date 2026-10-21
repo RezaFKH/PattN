@@ -74,6 +74,22 @@ public class AetherBinariesTests : IDisposable
         await Path.GetDirectoryName(AetherBinaries.LyrebirdFile).Should().BeEqualTo(AetherBinaries.Folder);
     }
 
+    // PattN (design 2.7.6): the TUN's process rule sends what the programs that are there dial out themselves directly.
+    [Test]
+    public async Task TheProgramsThatAreThereAreNamedByTheirFullPathsTheCoreFirst()
+    {
+        await AetherBinaries.ExistingFiles(Folder).Should().BeEmpty();
+
+        Directory.CreateDirectory(Folder);
+        File.WriteAllText(AetherBinaries.FileIn(Folder, "lyrebird"), "lyrebird");
+        File.WriteAllText(AetherBinaries.FileIn(Folder, "aether"), "aether");
+        File.WriteAllText(Path.Combine(Folder, "run-aether.bat"), "bat");
+
+        await AetherBinaries.ExistingFiles(Folder).Should().BeEquivalentTo(
+            [Path.GetFullPath(AetherBinaries.FileIn(Folder, "aether")), Path.GetFullPath(AetherBinaries.FileIn(Folder, "lyrebird"))],
+            CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task TheWindowsZipIsUnpackedFlatWithoutAppleDoubleFiles()
     {

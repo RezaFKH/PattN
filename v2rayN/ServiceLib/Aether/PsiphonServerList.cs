@@ -167,6 +167,30 @@ public static partial class PsiphonServerList
     }
 
     /// <summary>
+    /// Keeps <paramref name="regions" /> in <paramref name="settings" /> as Psiphon's last report, in place of the one before:
+    /// the report is the whole set, so the last one is the truth. True when that changed what was kept, so that the
+    /// settings are worth saving.
+    /// </summary>
+    public static bool Remember(AetherItem settings, IEnumerable<string> regions)
+    {
+        var kept = string.Join(',', new SortedSet<string>(regions, StringComparer.Ordinal));
+        if ((settings.PsiphonRegions ?? string.Empty) == kept)
+        {
+            return false;
+        }
+        settings.PsiphonRegions = kept;
+        return true;
+    }
+
+    /// <summary>Psiphon's last report of the countries it can leave from, kept in <paramref name="settings" />; empty before the first.</summary>
+    public static SortedSet<string> Remembered(AetherItem? settings)
+    {
+        return new SortedSet<string>(
+            (settings?.PsiphonRegions ?? string.Empty).Split(',').Where(region => region.Length == 2),
+            StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// The server entries inside <paramref name="packed" />, a signed, compressed list as Psiphon writes it; throws an
     /// <see cref="IOException" /> when it is not one, or is not signed with <paramref name="signingKey" />. Psiphon names
     /// the key by the digest of its text as written, not of the key's bytes, and signs the entry text with it.

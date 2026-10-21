@@ -262,6 +262,12 @@ public partial class CoreConfigV2rayService
                 directExeSet.Add("xray/");
                 continue;
             }
+            // PattN: the Aether core and the helpers beside it, those that are there
+            if (coreConfig.CoreType == ECoreType.aether)
+            {
+                directExeSet.UnionWith(AetherBinaries.ExistingFiles(AetherBinaries.Folder));
+                continue;
+            }
             foreach (var baseExeName in coreConfig.CoreExes)
             {
                 //directExeSet.Add(Utils.GetExeName(baseExeName));

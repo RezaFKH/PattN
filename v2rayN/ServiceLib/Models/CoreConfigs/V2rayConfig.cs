@@ -2,6 +2,10 @@ namespace ServiceLib.Models.CoreConfigs;
 
 public class V2rayConfig
 {
+    // PattN: the command line of the Aether core the configuration runs on, first, so that an exported configuration
+    // names its core (PattNG dto/V2rayConfig.kt); Xray ignores the key, and a configuration without a core has none
+    public string? aetherCommand { get; set; }
+
     public Log4Ray log { get; set; }
     public object dns { get; set; }
     public List<Inbounds4Ray> inbounds { get; set; }

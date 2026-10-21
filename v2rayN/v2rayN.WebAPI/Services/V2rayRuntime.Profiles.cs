@@ -150,6 +150,12 @@ public sealed partial class V2rayRuntime
             {
                 return OperationView.Fail("profile_group_children_invalid", ApiMessageKeys.ProfileInvalid);
             }
+            // PattN: sing-box runs no Aether profile, and a chain can have one, as the desktop's group editor says
+            if (await ServiceLib.Aether.AetherMembers.SaveProblemAsync(profile, protocolExtra) is { } aetherProblem)
+            {
+                Logging.SaveLog($"WebAPI: the group or chain \"{profile.Remarks}\" was not saved: {aetherProblem}");
+                return OperationView.Fail("profile_group_aether_invalid", ApiMessageKeys.ProfileInvalid, new { detail = aetherProblem });
+            }
         }
         else if (profile.ConfigType is EConfigType.Custom or EConfigType.Outbound)
         {

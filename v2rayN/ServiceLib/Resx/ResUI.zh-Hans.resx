@@ -1933,4 +1933,67 @@
   <data name="menuAddMasqueServer" xml:space="preserve">
     <value>添加 [MASQUE]</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>一个配置只能使用一个 Aether 配置</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>这里一个 Aether 内核将不得不以两种方式向外连接：同一隧道既单独使用又位于代理链的某一跳之后，或位于两个不同的跳之后，或使用两种不同的 exit-node 设置</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>一个代理链只能包含一个 Aether 配置</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>无法构建此代理链中 Aether 配置向外连接所经的那一跳，Aether 内核将会不经它直接连接互联网</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>代理链“{0}”的 Aether 配置将经由一个策略组或代理链向外连接；请在其入口一侧放置单个配置</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>Aether 配置“{1}”位于“{0}”之中，而代理链经由“{0}”连接；请把该 Aether 配置直接放入代理链</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>代理链“{0}”包含 Aether 配置，只能完整构建或完全不构建：“{1}”无法使用，缺少它代理链将以比其所列更短的路径传送流量</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>找不到名为“{0}”的配置</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>找到两个名为“{0}”的配置；请重命名其中一个</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>exit-node 配置“{0}”无法生成出站；请另选一个，或选择 freedom</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>exit-node 配置“{0}”的 echOutbound 无法使用；请在该配置中修正，或另选一个，或选择 freedom</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>内核不能监听应用的本地代理端口，也不能监听比 Aether 监听端口大 3 的端口；请在设置中更改 Aether 监听端口，或更改命令中的端口</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>此配置的某个入站已在 {0} 上监听，而这是比 Aether 监听端口大 3 的端口，Aether 内核经由它向外连接；请在设置中更改 Aether 监听端口</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>策略组“{0}”排除了“{1}”：这是另一个设置不同的 Aether 配置，而一个内核只能服务一个配置</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>Aether 内核仍在连接中</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>Aether 内核已连接</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>Aether 内核已停止运行</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>Aether 内核已停止：ECH 已开启，但没有找到可用的 ECH 密钥。没有密钥，服务器名称就会以明文发送。</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>Aether 内核已停止运行：{0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>Aether 内核无法启动。在 Windows 上，2.3.2 之前的 aether-core 需要 Microsoft Visual C++ 2015-2022 Redistributable (x64)；请在“检查更新”中更新 aether-core</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>此配置中的某个负载均衡器或观测器会选取标签以 {0} 开头的出站，其中也包括 exit-node，即 Aether 内核向外连接所经的出站；请修改该选择器</value>
+  </data>
 </root>

@@ -150,6 +150,11 @@ public partial class CoreConfigV2rayService
             customOutboundContent = customOutboundContent.Replace("{{detour}}", outboundDetour);
             customOutboundContent = customOutboundContent.Replace("{{interface}}", outboundBindInterface);
             var customOutboundObj = JsonUtils.ParseJson(customOutboundContent) as JsonObject;
+            // PattN: the exit-node passes every name the Aether core sends on as it is, whatever its file sets (V2rayAetherService.cs)
+            if (outboundTag == Global.AetherExitNodeTag)
+            {
+                customOutboundObj?.Remove("targetStrategy");
+            }
 
             if (!containTagPlaceholder)
             {
@@ -213,6 +218,9 @@ public partial class CoreConfigV2rayService
         {
             return coreConfigContent;
         }
+        // PattN: the template's inbounds and routing take the place of the generated ones, so the Aether core's inbound
+        // and its rule go into them (V2rayAetherService.cs)
+        ApplyAetherToTemplate(fullConfigTemplateNode);
 
         // Handle balancer and rules modifications (for multiple load scenarios)
         if (_coreConfig.routing?.balancers?.Count > 0)
@@ -292,6 +300,8 @@ public partial class CoreConfigV2rayService
         }
 
         var customOutboundsNode = new JsonArray();
+        // PattN: the outbounds to the Aether core, which it reaches on the loopback address
+        var aetherOutboundTags = AetherOutboundTags();
 
         var coreConfigNode = JsonNode.Parse(coreConfigContent);
         var coreConfigOutboundsNode = coreConfigNode?["outbounds"] as JsonArray ?? [];
@@ -299,13 +309,26 @@ public partial class CoreConfigV2rayService
         {
             if (outbound?["protocol"]?.ToString()?.ToLower() is "blackhole" or "dns" or "freedom")
             {
-                if (fullConfigTemplate.AddProxyOnly == true)
+                if (fullConfigTemplate.AddProxyOnly == true
+                    // PattN: the exit-node the Aether core dials out by stays, a freedom one too
+                    && outbound?["tag"]?.ToString() != Global.AetherExitNodeTag)
                 {
                     continue;
                 }
+                // PattN: a freedom exit-node carries the Aether core's own connection to its server, which goes through
+                // the detour as every proxy's does
+                if (outbound?["tag"]?.ToString() == Global.AetherExitNodeTag && !fullConfigTemplate.ProxyDetour.IsNullOrEmpty()
+                    && (outbound["streamSettings"]?["sockopt"]?["dialerProxy"]?.ToString().IsNullOrEmpty() ?? true))
+                {
+                    outbound["streamSettings"] ??= new JsonObject();
+                    outbound["streamSettings"]["sockopt"] ??= new JsonObject();
+                    outbound["streamSettings"]["sockopt"]["dialerProxy"] = fullConfigTemplate.ProxyDetour;
+                }
             }
             else if (!fullConfigTemplate.ProxyDetour.IsNullOrEmpty()
-                && (outbound["streamSettings"]?["sockopt"]?["dialerProxy"].ToString().IsNullOrEmpty() ?? true))
+                && (outbound["streamSettings"]?["sockopt"]?["dialerProxy"].ToString().IsNullOrEmpty() ?? true)
+                // PattN: an Aether outbound dials its core on the loopback address, never through the detour
+                && !aetherOutboundTags.Contains(outbound["tag"]?.ToString() ?? string.Empty))
             {
                 var outboundAddress = outbound["settings"]?["servers"]?.AsArray()?.FirstOrDefault()?["address"]?.ToString()
                     ?? outbound["settings"]?["vnext"]?.AsArray()?.FirstOrDefault()?["address"]?.ToString()
@@ -336,7 +359,8 @@ public partial class CoreConfigV2rayService
 
         fullConfigTemplateNode["outbounds"] = customOutboundsNode;
 
-        return JsonUtils.Serialize(fullConfigTemplateNode);
+        // PattN: the command line of the Aether core first, as without a template
+        return JsonUtils.Serialize(WithAetherCommandFirst(fullConfigTemplateNode));
     }
 
     private void ApplyOutboundBindInterface()
@@ -389,7 +413,9 @@ public partial class CoreConfigV2rayService
 
     private static bool ShouldBindNet(Outbounds4Ray outbound)
     {
-        if (outbound.protocol is "freedom" or "blackhole" or "dns" or "loopback")
+        if (outbound.protocol is "freedom" or "blackhole" or "dns" or "loopback"
+            // PattN: a freedom exit-node carries the Aether core's own connection to its server, as a proxy's outbound does
+            && outbound.tag != Global.AetherExitNodeTag)
         {
             return false;
         }

@@ -41,6 +41,10 @@ public static class ConfigHandler
             LogEnabled = false,
             Loglevel = "warning",
         };
+        // PattN: the Aether listen port of a settings file from before it existed
+        config.CoreBasicItem.AetherListenPort ??= AetherPorts.DefaultListenPort;
+        // PattN: the settings of Aether that belong to no profile
+        config.AetherItem ??= new();
 
         if (config.Inbound == null)
         {

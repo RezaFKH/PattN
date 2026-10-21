@@ -397,6 +397,9 @@ public class Global
         EConfigType.MASQUE,
         EConfigType.SOCKS,
         EConfigType.HTTP,
+
+        // PattN: Xray alone runs an Aether profile, as a SOCKS outbound to its core (V2rayAetherService.cs)
+        EConfigType.Aether,
     ];
 
     public static readonly HashSet<EConfigType> SingboxSupportConfigType =

@@ -39,13 +39,14 @@ public class NodeValidator
 
     /// <summary>
     ///     PattN: the ECH outbound applies where the editor shows it: TLS on the protocols Xray runs,
-    ///     apart from WireGuard, which has no TLS settings. Anywhere else it is kept, but neither
-    ///     checked nor used.
+    ///     apart from WireGuard, which has no TLS settings, and Aether, whose outbound reaches its core on
+    ///     the loopback address. Anywhere else it is kept, but neither checked nor used.
     /// </summary>
     public static bool EchOutboundApplies(ProfileItem item)
     {
         return item.StreamSecurity == Global.StreamSecurity
             && item.ConfigType != EConfigType.WireGuard
+            && item.ConfigType != EConfigType.Aether
             && Global.XraySupportConfigType.Contains(item.ConfigType);
     }
 

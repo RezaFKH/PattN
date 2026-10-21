@@ -1800,4 +1800,67 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgEchOutboundTagConflict" xml:space="preserve">
     <value>Le tag "{0}" de EchOutbound est déjà utilisé par un autre outbound</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>A configuration can use only one Aether profile</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>One Aether core would have to dial out two ways here: the same tunnel is used on its own and behind a proxy chain's hop, behind two different hops, or with two different exit-node settings</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>A proxy chain can have only one Aether profile</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>The hop the Aether profile of this proxy chain dials out through could not be built, and the Aether core would reach the internet without it</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>The Aether profile of the proxy chain "{0}" would dial out through a policy group or a proxy chain; put a single profile on its entry side</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>The Aether profile "{1}" is inside "{0}", which a proxy chain dials through; put the Aether profile in the chain itself</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>The proxy chain "{0}" holds an Aether profile and is built whole or not at all: "{1}" could not be used, and without it the chain would carry the traffic a shorter way than it names</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>No profile named "{0}" was found</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>Two profiles named "{0}" were found; please rename one</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>The exit-node profile "{0}" gives no outbound; choose another one, or freedom</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>The echOutbound of the exit-node profile "{0}" cannot be used; fix it in that profile, or choose another one, or freedom</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>The core cannot listen on the local proxy port of the app, nor on the port three above the Aether listen port; change the Aether listen port in the settings, or the ports of the command</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>An inbound of this configuration already listens on {0}, the port three above the Aether listen port, which the Aether core dials out through; change the Aether listen port in the settings</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>Policy group "{0}" leaves out "{1}": a second Aether profile with other settings, and one core serves one profile</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>The Aether core is still connecting</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>The Aether core is connected</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>The Aether core stopped running</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>The Aether core stopped: ECH is on, but no usable ECH key was found. Without one, the server name would have gone out in the clear.</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>The Aether core stopped running: {0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>The Aether core could not start. On Windows, an aether-core older than 2.3.2 needs the Microsoft Visual C++ 2015-2022 Redistributable (x64); update aether-core under Check Update</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>A balancer or an observatory of this configuration picks the outbounds whose tags start with {0}, which would include exit-node, the outbound the Aether core dials out by; change that selector</value>
+  </data>
 </root>

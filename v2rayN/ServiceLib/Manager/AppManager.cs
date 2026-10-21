@@ -133,6 +133,8 @@ public sealed class AppManager
             await ProfileExManager.Instance.SaveTo();
             await StatisticsManager.Instance.SaveTo();
             await CoreManager.Instance.CoreStop();
+            // PattN: a scan, latency test or WARP key run of the Aether core still going
+            await AetherCoreManager.Instance.StopAllAsync();
             StatisticsManager.Instance.Close();
 
             Logging.SaveLog("AppExitAsync End");

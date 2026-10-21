@@ -116,6 +116,31 @@ internal static class CoreProcessTracker
         return active.OrderBy(process => process.ProcessId).ToArray();
     }
 
+    /// <summary>
+    /// PattN: the identity of the process <paramref name="processId" />, a core the app started and knows by its id (the
+    /// Aether session's core, whose program the cores of tests run as well, without a configuration file to tell them
+    /// apart by); none without an id, or when the process is gone or cannot be read.
+    /// </summary>
+    internal static CoreProcessIdentity[] CaptureProcess(int? processId)
+    {
+        if (processId is not { } id) return [];
+        try
+        {
+            using var process = Process.GetProcessById(id);
+            if (process.HasExited) return [];
+            var startTimeTicks = GetStartTimeUtcTicks(process);
+            var executablePath = GetProcessExecutablePath(process);
+            return startTimeTicks is null || executablePath is null
+                ? []
+                : [new CoreProcessIdentity(process.Id, NormalizeProcessName(process.ProcessName), startTimeTicks.Value, executablePath)];
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception or NotSupportedException)
+        {
+            // The process ended meanwhile, or cannot be read.
+            return [];
+        }
+    }
+
     private static string NormalizeProcessName(string name) =>
         Path.GetFileNameWithoutExtension(name.Trim());
 

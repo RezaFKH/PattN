@@ -25,7 +25,8 @@ public record CoreConfigContextBuilderAllResult(
         [.. MainResult.ValidatorResult.Warnings, .. PreSocksResult?.ValidatorResult.Warnings ?? []]);
 }
 
-public class CoreConfigContextBuilder
+// PattN: partial; the Aether part is in CoreConfigContextBuilder.Aether.cs
+public partial class CoreConfigContextBuilder
 {
     /// <summary>
     ///     Builds a <see cref="CoreConfigContext" /> for the given node, resolves its proxy map,
@@ -54,6 +55,11 @@ public class CoreConfigContextBuilder
             IsIPv6DisabledByOs = Utils.IsIPv6DisabledByOs(),
             ProtectCoreTypeList = config.TunModeItem.EnableTun ? [ECoreType.Xray, ECoreType.sing_box] : []
         };
+        // PattN: what the Aether core and its helpers dial out themselves goes direct under the TUN as well
+        if (context.IsTunEnabled)
+        {
+            context.ProtectCoreTypeList.Add(ECoreType.aether);
+        }
         var validatorResult = NodeValidatorResult.Empty();
         var (actNode, nodeValidatorResult) = await ResolveNodeAsync(context, node);
         if (!nodeValidatorResult.Success)
@@ -231,6 +237,11 @@ public class CoreConfigContextBuilder
         if (includeSubChain)
         {
             var (virtualChainNode, chainValidatorResult) = await BuildSubscriptionChainNodeAsync(node);
+            // PattN: a subscription chain holding an Aether profile that lacks a hop is refused rather than shortened
+            if (!chainValidatorResult.Success)
+            {
+                return (node, chainValidatorResult);
+            }
             if (virtualChainNode != null)
             {
                 context.AllProxiesMap[virtualChainNode.IndexId] = virtualChainNode;
@@ -291,6 +302,13 @@ public class CoreConfigContextBuilder
             {
                 result.Warnings.Add(string.Format(ResUI.MsgSubscriptionNextProfileNotFound, subItem.NextProfile));
             }
+        }
+
+        // PattN: a chain holding an Aether profile is built whole or not at all
+        if (AetherSubscriptionChainRefusal(node, subItem, prevNode, nextNode) is { } aetherRefusal)
+        {
+            result.Errors.Add(aetherRefusal);
+            return (null, result);
         }
 
         if (prevNode is null && nextNode is null)
@@ -375,6 +393,14 @@ public class CoreConfigContextBuilder
         }
 
         context.AllProxiesMap[node.IndexId] = node;
+
+        // PattN: an Aether profile's Address is the WARP endpoint its core dials, no server Xray resolves; the names its
+        // core asks Xray for are protected instead, and its exit-node is looked up
+        if (node.ConfigType == EConfigType.Aether)
+        {
+            await RegisterAetherNodeAsync(context, node);
+            return nodeValidatorResult;
+        }
 
         var address = node.Address;
         if (Utils.IsDomain(address))
@@ -560,6 +586,13 @@ public class CoreConfigContextBuilder
 
             globalVisitedGroup.Add(childNode.IndexId);
             childIndexIdList.Add(childNode.IndexId);
+        }
+
+        // PattN: one Aether core serves one profile, and a chain holding one is built whole
+        if (SettleAetherChildren(context, node, groupChildList, childIndexIdList, childNodeValidatorResult) is { } aetherRefusal)
+        {
+            childNodeValidatorResult.Errors.Add(aetherRefusal);
+            return childNodeValidatorResult;
         }
 
         if (childIndexIdList.Count == 0)

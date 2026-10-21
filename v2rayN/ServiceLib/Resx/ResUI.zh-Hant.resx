@@ -1939,4 +1939,67 @@
   <data name="MsgEchOutboundTagConflict" xml:space="preserve">
     <value>EchOutbound 的 tag "{0}" 已被其他出站使用</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>一個設定只能使用一個 Aether 設定檔</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>這裡一個 Aether 核心將不得不以兩種方式向外連線：同一隧道既單獨使用又位於代理鏈的某一跳之後，或位於兩個不同的跳之後，或使用兩種不同的 exit-node 設定</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>一個代理鏈只能包含一個 Aether 設定檔</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>無法建立此代理鏈中 Aether 設定檔向外連線所經的那一跳，Aether 核心將會不經它直接連線網際網路</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>代理鏈「{0}」的 Aether 設定檔將經由一個策略組或代理鏈向外連線；請在其入口一側放置單一設定檔</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>Aether 設定檔「{1}」位於「{0}」之中，而代理鏈經由「{0}」連線；請把該 Aether 設定檔直接放入代理鏈</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>代理鏈「{0}」包含 Aether 設定檔，只能完整建立或完全不建立：「{1}」無法使用，缺少它代理鏈將以比其所列更短的路徑傳送流量</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>找不到名為「{0}」的設定檔</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>找到兩個名為「{0}」的設定檔；請重新命名其中一個</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>exit-node 設定檔「{0}」無法產生出站；請另選一個，或選擇 freedom</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>exit-node 設定檔「{0}」的 echOutbound 無法使用；請在該設定檔中修正，或另選一個，或選擇 freedom</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>核心不能監聽應用程式的本機代理埠，也不能監聽比 Aether 監聽連接埠大 3 的連接埠；請在設定中變更 Aether 監聽連接埠，或變更命令中的連接埠</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>此設定的某個入站已在 {0} 上監聽，而這是比 Aether 監聽連接埠大 3 的連接埠，Aether 核心經由它向外連線；請在設定中變更 Aether 監聽連接埠</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>策略組「{0}」排除了「{1}」：這是另一個設定不同的 Aether 設定檔，而一個核心只能服務一個設定檔</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>Aether 核心仍在連線中</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>Aether 核心已連線</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>Aether 核心已停止執行</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>Aether 核心已停止：ECH 已開啟，但找不到可用的 ECH 金鑰。沒有金鑰，伺服器名稱就會以明文傳送。</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>Aether 核心已停止執行：{0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>Aether 核心無法啟動。在 Windows 上，2.3.2 之前的 aether-core 需要 Microsoft Visual C++ 2015-2022 Redistributable (x64)；請在「檢查更新」中更新 aether-core</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>此設定中的某個負載平衡器或觀測器會選取標籤以 {0} 開頭的出站，其中也包括 exit-node，即 Aether 核心向外連線所經的出站；請修改該選擇器</value>
+  </data>
 </root>

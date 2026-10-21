@@ -20,6 +20,10 @@ public class CoreBasicItem
     public bool EnableFinalFragment { get; set; }
 
     public bool EnableCacheFile4Sbox { get; set; } = true;
+
+    // PattN: the loopback port every Aether core listens on (the three after it are the core's as well); read it
+    // through AetherPorts.ListenPortOf, which gives the default for a value that is no such port
+    public int? AetherListenPort { get; set; }
 }
 
 [Serializable]

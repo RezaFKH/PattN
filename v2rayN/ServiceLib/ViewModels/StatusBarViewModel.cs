@@ -325,6 +325,15 @@ public partial class StatusBarViewModel : MyReactiveObject
 
         await TestServerAvailabilitySub(ResUI.Speedtesting);
 
+        // PattN: an Aether core still connecting is waited for within a test's budget, and reported rather than failed
+        // when it still connects or is gone by then (critique 20, PattNG measureV2rayDelay)
+        if (await AetherCoreManager.Instance.AwaitTestableAsync() is { } aetherNotReady)
+        {
+            NoticeManager.Instance.SendMessageEx(aetherNotReady);
+            await TestServerAvailabilitySub(aetherNotReady);
+            return new AvailabilityCheckResult(-1, Global.None);
+        }
+
         var result = await Task.Run(ConnectionHandler.RunAvailabilityCheck);
         var msg = string.Format(ResUI.TestMeOutput, result.Time, result.Ip);
 

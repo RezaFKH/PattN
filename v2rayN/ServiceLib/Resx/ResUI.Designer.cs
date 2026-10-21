@@ -2005,6 +2005,195 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 The proxy chain &quot;{0}&quot; holds an Aether profile and is built whole or not at all: &quot;{1}&quot; could not be used, and without it the chain would carry the traffic a shorter way than it names 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherChainHopDropped {
+            get {
+                return ResourceManager.GetString("MsgAetherChainHopDropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether profile of the proxy chain &quot;{0}&quot; would dial out through a policy group or a proxy chain; put a single profile on its entry side 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherChainHopGroup {
+            get {
+                return ResourceManager.GetString("MsgAetherChainHopGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The hop the Aether profile of this proxy chain dials out through could not be built, and the Aether core would reach the internet without it 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherChainHopMissing {
+            get {
+                return ResourceManager.GetString("MsgAetherChainHopMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 A proxy chain can have only one Aether profile 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherChainOneProfile {
+            get {
+                return ResourceManager.GetString("MsgAetherChainOneProfile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 A configuration can use only one Aether profile 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherConfigSingleProfile {
+            get {
+                return ResourceManager.GetString("MsgAetherConfigSingleProfile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 One Aether core would have to dial out two ways here: the same tunnel is used on its own and behind a proxy chain's hop, behind two different hops, or with two different exit-node settings 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherConfigTwoExits {
+            get {
+                return ResourceManager.GetString("MsgAetherConfigTwoExits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core is connected 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherConnected {
+            get {
+                return ResourceManager.GetString("MsgAetherConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core is still connecting 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherConnecting {
+            get {
+                return ResourceManager.GetString("MsgAetherConnecting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core could not start. On Windows, an aether-core older than 2.3.2 needs the Microsoft Visual C++ 2015-2022 Redistributable (x64); update aether-core under Check Update 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherCoreCannotStart {
+            get {
+                return ResourceManager.GetString("MsgAetherCoreCannotStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core stopped running 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherCoreStopped {
+            get {
+                return ResourceManager.GetString("MsgAetherCoreStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core stopped: ECH is on, but no usable ECH key was found. Without one, the server name would have gone out in the clear. 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherCoreStoppedNoEchKey {
+            get {
+                return ResourceManager.GetString("MsgAetherCoreStoppedNoEchKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether core stopped running: {0} 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherCoreStoppedWithError {
+            get {
+                return ResourceManager.GetString("MsgAetherCoreStoppedWithError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Two profiles named &quot;{0}&quot; were found; please rename one 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherExitNodeDuplicate {
+            get {
+                return ResourceManager.GetString("MsgAetherExitNodeDuplicate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The echOutbound of the exit-node profile &quot;{0}&quot; cannot be used; fix it in that profile, or choose another one, or freedom 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherExitNodeEchUnusable {
+            get {
+                return ResourceManager.GetString("MsgAetherExitNodeEchUnusable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 No profile named &quot;{0}&quot; was found 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherExitNodeNotFound {
+            get {
+                return ResourceManager.GetString("MsgAetherExitNodeNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The exit-node profile &quot;{0}&quot; gives no outbound; choose another one, or freedom 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherExitNodeUnusable {
+            get {
+                return ResourceManager.GetString("MsgAetherExitNodeUnusable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Policy group &quot;{0}&quot; leaves out &quot;{1}&quot;: a second Aether profile with other settings, and one core serves one profile 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherGroupLeavesOut {
+            get {
+                return ResourceManager.GetString("MsgAetherGroupLeavesOut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The Aether profile &quot;{1}&quot; is inside &quot;{0}&quot;, which a proxy chain dials through; put the Aether profile in the chain itself 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherInGroupHop {
+            get {
+                return ResourceManager.GetString("MsgAetherInGroupHop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The core cannot listen on the local proxy port of the app, nor on the port three above the Aether listen port; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenPortTaken {
+            get {
+                return ResourceManager.GetString("MsgAetherListenPortTaken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An inbound of this configuration already listens on {0}, the port three above the Aether listen port, which the Aether core dials out through; change the Aether listen port in the settings 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherSecondaryPortTaken {
+            get {
+                return ResourceManager.GetString("MsgAetherSecondaryPortTaken", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   查找类似 A balancer or an observatory of this configuration picks the outbounds whose tags start with {0}, which would include exit-node, the outbound the Aether core dials out by; change that selector 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherTemplateExitNodeSelected {
+            get {
+                return ResourceManager.GetString("MsgAetherTemplateExitNodeSelected", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 The current node uses an unencrypted connection, meaning your communications could be directly monitored by network intermediaries controlled by authoritarian governments. For security reasons, nodes of this type cannot connect via Xray-core versions 26.2.6 or higher. If this is a self-built node, please enable TLS or other secure encryption, or pin the certificate using pinSHA256. If this is an airport/provider node, please contact your service provider for a technical upgrade. If the provider refuses to c [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         public static string MsgAllowInsecureDeprecated {

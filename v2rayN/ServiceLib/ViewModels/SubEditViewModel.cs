@@ -90,6 +90,16 @@ public partial class SubEditViewModel : MyReactiveObject, ICloseable
             return;
         }
 
+        // PattN: the previous and the next profile chain every profile of the subscription; either can be Aether, not
+        // both, since one core runs and a chain can have one Aether profile
+        var prevNode = await AppManager.Instance.GetProfileItemViaRemarks(PrevProfile);
+        var nextNode = await AppManager.Instance.GetProfileItemViaRemarks(NextProfile);
+        if (AetherMembers.HasSecondAetherMember([prevNode?.ConfigType, nextNode?.ConfigType]))
+        {
+            NoticeManager.Instance.Enqueue(ResUI.MsgAetherChainOneProfile);
+            return;
+        }
+
         SelectedSource.CustomCoreType = Enum.TryParse<ECoreType>(CustomCoreType, out var coreType) ? coreType : null;
         SelectedSource.PrevProfile = PrevProfile;
         SelectedSource.NextProfile = NextProfile;

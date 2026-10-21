@@ -1941,4 +1941,67 @@
   <data name="menuAddMasqueServer" xml:space="preserve">
     <value>Добавить сервер [MASQUE]</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>Конфигурация может использовать только один профиль Aether</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>Одному ядру Aether пришлось бы выходить наружу двумя путями: один и тот же туннель используется и сам по себе, и за звеном цепочки прокси, или за двумя разными звеньями, или с двумя разными настройками exit-node</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>В цепочке прокси может быть только один профиль Aether</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>Не удалось построить звено, через которое профиль Aether в этой цепочке прокси выходит наружу, и ядро Aether вышло бы в интернет без него</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>Профиль Aether цепочки прокси «{0}» выходил бы наружу через группу политик или цепочку прокси; поставьте со стороны входа один профиль</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>Профиль Aether «{1}» находится внутри «{0}», через которую подключается цепочка прокси; поместите профиль Aether в саму цепочку</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>Цепочка прокси «{0}» содержит профиль Aether и строится целиком или не строится вовсе: «{1}» использовать нельзя, а без него цепочка пустила бы трафик более коротким путём, чем указано</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>Профиль с именем «{0}» не найден</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>Найдено два профиля с именем «{0}»; переименуйте один из них</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>Профиль exit-node «{0}» не даёт исходящего соединения; выберите другой или freedom</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>echOutbound профиля exit-node «{0}» нельзя использовать; исправьте его в этом профиле, выберите другой или freedom</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>Ядро не может слушать порт локального прокси приложения или порт на три выше порта прослушивания Aether; измените порт прослушивания Aether в настройках или порты команды</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>Один из входящих (inbound) этой конфигурации уже слушает порт {0} — порт на три выше порта прослушивания Aether, через который ядро Aether выходит наружу; измените порт прослушивания Aether в настройках</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>Группа политик «{0}» не включает «{1}»: это второй профиль Aether с другими настройками, а одно ядро обслуживает один профиль</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>Ядро Aether ещё подключается</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>Ядро Aether подключено</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>Ядро Aether остановлено</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>Ядро Aether остановлено: ECH включён, но пригодный ключ ECH не найден. Без него имя сервера ушло бы в открытом виде.</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>Ядро Aether остановлено: {0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>Ядро Aether не запустилось. В Windows для aether-core версий до 2.3.2 нужен Microsoft Visual C++ 2015-2022 Redistributable (x64); обновите aether-core в разделе «Проверить обновления»</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>Балансировщик или обсерватория этой конфигурации выбирает исходящие подключения, чьи теги начинаются с {0}, а значит и exit-node — исходящее подключение, через которое ядро Aether выходит наружу; измените этот селектор</value>
+  </data>
 </root>

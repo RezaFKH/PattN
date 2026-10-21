@@ -20,13 +20,19 @@ public class NodeValidatorAetherTests
         return item;
     }
 
-    // Xray takes an Aether profile once it can build its outbound, which Global.XraySupportConfigType tells; until
-    // then it refuses it with the message sing-box gives, and never for a missing endpoint.
+    // Xray takes an Aether profile, since it builds its outbound (Global.XraySupportConfigType), and never refuses one
+    // for a missing endpoint.
     private static string XrayErrors()
     {
-        return Global.XraySupportConfigType.Contains(EConfigType.Aether)
-            ? string.Empty
-            : string.Format(ResUI.MsgCoreNotSupportProtocol, nameof(ECoreType.Xray), EConfigType.Aether);
+        return string.Empty;
+    }
+
+    [Test]
+    public async Task XrayRunsAnAetherProfile()
+    {
+        await Global.XraySupportConfigType.Contains(EConfigType.Aether).Should().BeTrue();
+        await Global.SingboxSupportConfigType.Contains(EConfigType.Aether).Should().BeFalse();
+        await Errors(Aether("masque"), ECoreType.Xray).Should().BeEqualTo(string.Empty);
     }
 
     private static string Errors(ProfileItem item, ECoreType coreType)

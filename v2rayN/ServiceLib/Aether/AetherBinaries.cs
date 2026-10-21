@@ -48,6 +48,16 @@ public static class AetherBinaries
     public static string FileIn(string folder, string name) => Path.Combine(folder, Utils.GetExeName(name));
 
     /// <summary>
+    /// The full paths of those of the three programs that are in <paramref name="folder" />, the core first. A routing
+    /// rule of the TUN sends what they dial out directly: a core whose command names an upstream of its own dials out
+    /// itself, and so do the helpers a command leaves without one, which must not loop back into the TUN.
+    /// </summary>
+    public static List<string> ExistingFiles(string folder)
+    {
+        return Names.Select(name => FileIn(folder, name)).Where(File.Exists).Select(Path.GetFullPath).ToList();
+    }
+
+    /// <summary>
     /// Whether <paramref name="file" /> can be run (PattNG File.canExecute): it exists and, outside Windows, has an
     /// execute bit, without which neither PattN nor the core can start it.
     /// </summary>

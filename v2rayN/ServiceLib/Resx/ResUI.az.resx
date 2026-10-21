@@ -1935,4 +1935,67 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgEchOutboundTagConflict" xml:space="preserve">
     <value>EchOutbound-un "{0}" tag-ı artıq başqa outbound tərəfindən istifadə olunur</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>Konfiqurasiya yalnız bir Aether profilindən istifadə edə bilər</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>Burada bir Aether nüvəsi xaricə iki yolla qoşulmalı olardı: eyni tunel həm təkbaşına, həm də proksi zəncirinin halqası arxasında, iki fərqli halqanın arxasında və ya iki fərqli exit-node tənzimləməsi ilə istifadə olunur</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>Proksi zəncirində yalnız bir Aether profili ola bilər</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>Bu proksi zəncirindəki Aether profilinin xaricə qoşulduğu halqa qurula bilmədi və Aether nüvəsi internetə onsuz çıxardı</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>The Aether profile of the proxy chain "{0}" would dial out through a policy group or a proxy chain; put a single profile on its entry side</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>The Aether profile "{1}" is inside "{0}", which a proxy chain dials through; put the Aether profile in the chain itself</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>The proxy chain "{0}" holds an Aether profile and is built whole or not at all: "{1}" could not be used, and without it the chain would carry the traffic a shorter way than it names</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>"{0}" adlı profil tapılmadı</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>"{0}" adlı iki profil tapıldı; zəhmət olmasa birinin adını dəyişin</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>"{0}" exit-node profili heç bir çıxış vermir; başqasını və ya freedom seçin</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>"{0}" exit-node profilinin echOutbound-u istifadə edilə bilmir; onu həmin profildə düzəldin, başqasını və ya freedom seçin</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>Nüvə tətbiqin yerli proksi portunda və Aether dinləmə portundan üç yuxarı olan portda dinləyə bilməz; tənzimləmələrdə Aether dinləmə portunu və ya əmrin portlarını dəyişin</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>Bu konfiqurasiyanın bir girişi artıq {0} portunda dinləyir; bu, Aether dinləmə portundan üç yuxarı olan və Aether nüvəsinin xaricə qoşulduğu portdur; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>Policy group "{0}" leaves out "{1}": a second Aether profile with other settings, and one core serves one profile</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>Aether nüvəsi hələ qoşulur</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>The Aether core is connected</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>Aether nüvəsi dayandı</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>Aether nüvəsi dayandı: ECH aktivdir, lakin istifadə edilə bilən ECH açarı tapılmadı. Açar olmadan server adı açıq şəkildə göndəriləcəkdi.</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>The Aether core stopped running: {0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>The Aether core could not start. On Windows, an aether-core older than 2.3.2 needs the Microsoft Visual C++ 2015-2022 Redistributable (x64); update aether-core under Check Update</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>Bu konfiqurasiyanın balanslaşdırıcısı və ya observatory-si tag-ları {0} ilə başlayan çıxışları seçir; bura Aether nüvəsinin xaricə qoşulduğu exit-node çıxışı da daxildir; həmin seçicini dəyişin</value>
+  </data>
 </root>

@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Net.NetworkInformation;
 using ServiceLib;
+using ServiceLib.Aether; // PattN
 using ServiceLib.Common;
 using ServiceLib.Enums;
 using ServiceLib.Handler;
@@ -277,6 +278,8 @@ public sealed partial class V2rayRuntime(
         await CertPemManager.Instance.Init(Config);
         // The Web frontend owns its runtime and rejects generated launch contexts that enable TUN.
         await CoreManager.Instance.Init(Config, OnCoreMessageAsync);
+        // PattN: the cores stopped because the Aether core exited on its own (critique 32)
+        CoreManager.Instance.AetherCoresStopped = OnAetherCoresStoppedAsync;
         if (Config.GuiItem.EnableStatistics || Config.GuiItem.DisplayRealTimeSpeed)
         {
             await StatisticsManager.Instance.Init(Config, OnStatisticsUpdateAsync);
@@ -362,6 +365,9 @@ public sealed partial class V2rayRuntime(
                 try
                 {
                     await StopCoreMonitorAsync();
+                    // PattN: every Aether core, a latency test's among them, as the desktop's AppExitAsync ends them; first,
+                    // so that a stop of the other cores that fails or times out leaves none of them running
+                    await AetherCoreManager.Instance.StopAllAsync();
                     await StopCoreAndConfirmAsync(deadline.Token);
                     SetCoreRuntime(CoreRuntimeSnapshot.Stopped);
                     return true;
@@ -440,6 +446,11 @@ public sealed partial class V2rayRuntime(
         }
 
         var item = ToSubItem(input, null);
+        // PattN: the previous and the next profile can be one Aether profile, not two, as the desktop's editor says
+        if (await AetherSubscriptionRefusalAsync(item) is { } aetherRefusal)
+        {
+            return aetherRefusal;
+        }
         var result = await _mutations.RunAsync(() => ConfigHandler.AddSubItem(Config, item));
         if (result != 0)
         {
@@ -469,6 +480,11 @@ public sealed partial class V2rayRuntime(
 
             var item = ToSubItem(input, existing);
             item.Id = id;
+            // PattN: the previous and the next profile can be one Aether profile, not two, as the desktop's editor says
+            if (await AetherSubscriptionRefusalAsync(item) is { } aetherRefusal)
+            {
+                return aetherRefusal;
+            }
             var result = await ConfigHandler.AddSubItem(Config, item);
             if (result != 0)
             {
@@ -804,6 +820,17 @@ public sealed partial class V2rayRuntime(
     {
         var preflight = await CoreLaunchPreflight.BuildAndValidateAsync(Config, profile, coreType =>
         {
+            // PattN: the Aether core has to be there and runnable, as LoadCore asks it (AetherCoreLoad.MissingCoreMessage)
+            if (coreType == ECoreType.aether)
+            {
+                if (AetherCoreLoad.MissingCoreMessage() is not { } aetherMissing)
+                {
+                    return null;
+                }
+                AddLog("core", aetherMissing);
+                return OperationView.Fail("core_binary_missing", ApiMessageKeys.CoreBinaryMissing,
+                    new { coreType = coreType.ToString() });
+            }
             var coreInfo = CoreInfoManager.Instance.GetCoreInfo(coreType);
             var executable = CoreInfoManager.Instance.GetCoreExecFile(coreInfo, out var missingCoreMessage);
             if (!string.IsNullOrEmpty(executable))
@@ -823,6 +850,15 @@ public sealed partial class V2rayRuntime(
             {
                 AddLog("core-validation", message);
             }
+        }
+
+        // PattN: what the generator refuses for the Aether core is refused before the running core stops (design 2.7.5)
+        if (preflight.Success
+            && await CoreLaunchPreflight.AetherRefusalAsync(preflight.BuiltContext,
+                context => CoreConfigHandler.GenerateClientConfig(context, null)) is { } aetherRefusal)
+        {
+            AddLog("core", aetherRefusal);
+            return preflight with { Failure = CoreLaunchPreflight.AetherRefused(aetherRefusal) };
         }
 
         if (preflight.Success)
@@ -911,14 +947,21 @@ public sealed partial class V2rayRuntime(
                     existingProcessIds,
                     expectedExecutablePaths,
                     expectedConfigPaths));
+                // PattN: the Aether session's core by the id its manager knows; tests run the same program (design 4, W5)
+                TrackAetherSessionCore();
+                // PattN: a stop of the cores the Aether core caused before this start is no failure of it (critique 32)
+                _aetherStopNotice.Clear();
             }
             var started = await WaitForListenerAsync(port, cancellationToken);
             var processIds = GetActiveCoreProcessIds();
-            if (!started || processIds.Length == 0)
+            // PattN: the Aether core exited on its own while the start waited, which stopped the cores (critique 32)
+            var aetherStop = _aetherStopNotice.Take();
+            if (!started || processIds.Length == 0 || aetherStop != null)
             {
                 var failure = !started
                     ? "The Core process did not open its configured proxy listener."
                     : "The Web runtime could not identify a live Core child process.";
+                failure = aetherStop ?? failure; // PattN: in the Aether core's own words
                 try
                 {
                     await StopCoreAndConfirmAsync(CancellationToken.None);
@@ -948,6 +991,11 @@ public sealed partial class V2rayRuntime(
                 ProcessIds = processIds,
                 LastFailure = null,
             });
+            // PattN: an Aether core's end that came in while the state was still Starting (critique 32)
+            if (_aetherStopNotice.Take() is { } lateAetherStop)
+            {
+                await OnAetherCoresStoppedAsync(lateAetherStop);
+            }
             await StartCoreMonitorAsync();
             AddLog("core", ApiMessageKeys.CoreStarted);
             _events.Publish("status", await GetStatusAsync());
@@ -973,7 +1021,7 @@ public sealed partial class V2rayRuntime(
             {
                 State = CoreRuntimeState.Faulted,
                 ProcessIds = processIds,
-                LastFailure = exception.Message,
+                LastFailure = _aetherStopNotice.Take() ?? exception.Message, // PattN: the Aether core's own words first
             });
             _events.Publish("status", await GetStatusAsync());
             return OperationView.Fail("core_start_failed", ApiMessageKeys.CoreStartFailed,
@@ -1139,6 +1187,55 @@ public sealed partial class V2rayRuntime(
         AddLog("core", message);
         await Task.CompletedTask;
     }
+
+    // PattN: what the end of an Aether core on its own did to a start that was under way (critique 32)
+    private readonly AetherCoreStopNotice _aetherStopNotice = new();
+
+    // PattN: CoreManager stopped the cores because the Aether core exited on its own; the runtime state says so with the
+    // core's own words instead of waiting for the monitor to find the processes gone (critique 32). A start under way
+    // owns the state, and takes the words as its failure.
+    private async Task OnAetherCoresStoppedAsync(string message)
+    {
+        if (_aetherStopNotice.Apply(() => CurrentCoreRuntime, message) is not { } faulted)
+        {
+            return;
+        }
+        SetCoreRuntime(faulted);
+        _events.Publish("status", await GetStatusAsync());
+    }
+
+    // PattN: tracks the core of the Aether session the load started, by the process id its manager knows (design 4, W5):
+    // the cores of tests run the same program, without a configuration file to tell them apart by
+    private void TrackAetherSessionCore()
+    {
+        var session = CoreProcessTracker.CaptureProcess(AetherCoreManager.Instance.SessionProcessId);
+        if (session.Length > 0)
+        {
+            SetTrackedCoreProcesses([.. Volatile.Read(ref _trackedCoreProcesses), .. session]);
+        }
+    }
+
+    // PattN: the previous and the next profile of a subscription chain each of its profiles; one of them can be an Aether
+    // profile, not both, as the desktop's subscription editor says (AetherMembers.SubscriptionProblemAsync)
+    private static async Task<SubscriptionMutationResult?> AetherSubscriptionRefusalAsync(SubItem item)
+    {
+        if (await AetherMembers.SubscriptionProblemAsync(item.PrevProfile, item.NextProfile) is not { } problem)
+        {
+            return null;
+        }
+        Logging.SaveLog($"WebAPI: the subscription \"{item.Remarks}\" was not saved: {problem}");
+        return new SubscriptionMutationResult(false, "subscription_aether_chain_invalid", ApiMessageKeys.CommonInvalidInput, null);
+    }
+
+    /// <summary>
+    /// PattN: the runtime state once the cores were stopped because the Aether core exited on its own: a running core is
+    /// faulted with <paramref name="message" />, as is one the monitor already found gone; a stopped, starting or
+    /// stopping runtime is left as it is, since a start or a stop owns it.
+    /// </summary>
+    internal static CoreRuntimeSnapshot? AetherStoppedRuntime(CoreRuntimeSnapshot snapshot, string message) =>
+        snapshot.State is CoreRuntimeState.Running or CoreRuntimeState.Faulted
+            ? snapshot with { State = CoreRuntimeState.Faulted, LastFailure = message }
+            : null;
 
     private void AddLog(string source, string message)
     {

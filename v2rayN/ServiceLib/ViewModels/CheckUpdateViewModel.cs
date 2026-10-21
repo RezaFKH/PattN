@@ -353,6 +353,9 @@ public partial class CheckUpdateViewModel : MyReactiveObject
 
     private async Task UpgradeCore()
     {
+        // PattN: the stop asked for before the upgrade ends the Aether session before Xray; it is waited for here, so
+        // that no core's file is still held when it is replaced
+        await CoreManager.Instance.CoreStop();
         foreach (var item in _lstUpdated)
         {
             if (item.FileName.IsNullOrEmpty() || item.IsGeoFile)
@@ -425,11 +428,14 @@ public partial class CheckUpdateViewModel : MyReactiveObject
         try
         {
             // Every Aether process (the session's core, and those of scans, latency tests and WARP-key runs) has to
-            // be gone before its files are replaced: Windows keeps the file of a running program locked. PattN starts
-            // none of them yet; the code that starts them must stop them all and wait for them here, before Extract
-            // (AetherCoreManager.StopAllAsync).
-            AetherBinaries.Extract(fileName, AetherBinaries.Folder);
-            await AetherBinaries.SetExecutableAsync(AetherBinaries.Folder);
+            // be gone before its files are replaced: Windows keeps the file of a running program locked. The cores were
+            // asked to stop before the upgrade without waiting for them; the hold waits for them, and keeps any from
+            // starting until the files are in place (critique 17).
+            await using (await AetherCoreManager.Instance.HoldAsync())
+            {
+                AetherBinaries.Extract(fileName, AetherBinaries.Folder);
+                await AetherBinaries.SetExecutableAsync(AetherBinaries.Folder);
+            }
             await UpdateView(ECoreType.aether, ResUI.MsgUpdateV2rayCoreSuccessfully);
         }
         catch (Exception ex)

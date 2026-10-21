@@ -40,6 +40,10 @@ public record CoreConfigContext
 
     // PattN: the ECH outbounds of the profiles in this config, appended after every other outbound
     public List<EchOutboundItem> EchOutbounds { get; init; } = [];
+
+    // PattN: what the Aether outbounds of this config need: filled while the outbounds are built, read by GenAether and
+    // by whoever starts the core it settles on (Aether.Core)
+    public AetherBuild Aether { get; init; } = new();
 }
 
 // PattN: an ECH outbound as a profile wrote it, and the tag it has in the generated config

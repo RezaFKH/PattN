@@ -18,10 +18,29 @@ public class CoreManager
     private Func<bool, string, Task>? _updateFunc;
     private const string _tag = "CoreHandler";
 
+    // PattN: loads and stops take turns with the stop that follows an Aether core exiting on its own (critique 15)
+    private readonly AetherCoreTurns _turns = new();
+    private bool _aetherSessionWatched;
+
+    /// <summary>
+    /// PattN: called once the cores were stopped because the Aether core exited on its own, with what the user was told;
+    /// the WebAPI reflects it in its runtime state (critique 32).
+    /// </summary>
+    public Func<string, Task>? AetherCoresStopped { get; set; }
+
     public async Task Init(Config config, Func<bool, string, Task> updateFunc)
     {
         _config = config;
         _updateFunc = updateFunc;
+
+        // PattN: the Aether cores' output goes to the message view, and a session core that exits on its own takes
+        // Xray with it (design 2.6.4)
+        AetherCoreManager.Instance.Relay = msg => UpdateFunc(false, msg);
+        if (!_aetherSessionWatched)
+        {
+            _aetherSessionWatched = true;
+            AetherCoreManager.Instance.SessionEnded += OnAetherSessionEnded;
+        }
 
         //Copy the bin folder to the storage location (for init)
         if (Environment.GetEnvironmentVariable(Global.LocalAppData) == "1")
@@ -77,6 +96,23 @@ public class CoreManager
             return;
         }
 
+        // PattN: one load or stop at a time, with the stop that follows an Aether core exiting on its own (critique 15)
+        await _turns.RunAsync(async () =>
+        {
+            try
+            {
+                await LoadCoreInTurn(mainContext, preContext);
+            }
+            finally
+            {
+                AetherCoreManager.Instance.EndSessionStart();
+            }
+        });
+    }
+
+    // PattN: LoadCore's own work, from inside a turn
+    private async Task LoadCoreInTurn(CoreConfigContext mainContext, CoreConfigContext? preContext)
+    {
         var node = mainContext.Node;
         var fileName = Utils.GetBinConfigPath(Global.CoreConfigFileName);
         var result = await CoreConfigHandler.GenerateClientConfig(mainContext, fileName);
@@ -85,11 +121,17 @@ public class CoreManager
             await UpdateFunc(true, result.Msg);
             return;
         }
+        // PattN: an Aether core that cannot run keeps the cores that run; a latency test's core gives up its port (design 2.6.4)
+        var aether = AetherLoadSteps(mainContext);
+        if (await AetherCoreLoad.BeforeStopAsync(aether) is not { } generation)
+        {
+            return;
+        }
 
         await UpdateFunc(false, $"{node.GetSummary()}");
         await UpdateFunc(false, $"{Utils.GetRuntimeInfo()}");
         await UpdateFunc(false, string.Format(ResUI.StartService, DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")));
-        await CoreStop();
+        await CoreStopInTurn(); // PattN: in the turn of this load
         await Task.Delay(100);
 
         if (Utils.IsWindows() && (mainContext?.IsTunEnabled == true || preContext?.IsTunEnabled == true))
@@ -99,6 +141,11 @@ public class CoreManager
         }
 
         await CoreStart(mainContext);
+        // PattN: the Aether core starts once Xray listens, and one that does not start stops Xray with it (design 2.6.4)
+        if (await AetherCoreLoad.AfterXrayAsync(aether, generation) == AetherCoreLoadOutcome.AetherFailed)
+        {
+            return;
+        }
         await WaitForProxyPort(preContext);
         await CoreStartPreService(preContext);
 
@@ -153,8 +200,22 @@ public class CoreManager
 
     public async Task CoreStop()
     {
+        // PattN: in its turn, as a new generation of the cores (critique 15)
+        await _turns.RunAsync(async () =>
+        {
+            _turns.NewGeneration();
+            await CoreStopInTurn();
+        });
+    }
+
+    // PattN: CoreStop's own work, from inside a turn
+    private async Task CoreStopInTurn()
+    {
         try
         {
+            // PattN: the Aether session first, so that a reload's old core ends before Xray restarts (PattNG)
+            await AetherCoreManager.Instance.StopSessionAsync();
+
             if (_linuxSudo)
             {
                 await CoreAdminManager.Instance.KillProcessAsLinuxSudo();
@@ -382,5 +443,71 @@ public class CoreManager
         }
     }
 
+    // PattN: an Aether core ends with PattN as the other cores do (the job object kills what it holds when PattN dies)
+    internal void AddProcessJob(Process process)
+    {
+        try
+        {
+            AddProcessJob(process.Handle);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+        {
+            Logging.SaveLog(_tag, ex);
+        }
+    }
+
     #endregion Process
+
+    #region PattN: Aether
+
+    /// <summary>
+    /// PattN: what LoadCore does for the Aether core of <paramref name="mainContext" />, once it was generated (design
+    /// 2.6.4): see <see cref="AetherCoreLoad" />.
+    /// </summary>
+    private AetherCoreLoadSteps AetherLoadSteps(CoreConfigContext mainContext)
+    {
+        return new AetherCoreLoadSteps
+        {
+            Core = () => mainContext.Aether.Core,
+            MissingCore = AetherCoreLoad.MissingCoreMessage,
+            NewGeneration = _turns.NewGeneration,
+            CancelProbes = () => AetherCoreManager.Instance.CancelProbesAsync(),
+            XrayUp = () => _processService is { HasExited: false },
+            WaitForPort = AetherCoreLoad.WaitForPortAsync,
+            StartSession = (core, generation) => AetherCoreManager.Instance.StartSessionAsync(core, generation),
+            StopCores = CoreStopInTurn,
+            Report = UpdateFunc,
+        };
+    }
+
+    /// <summary>
+    /// PattN: starts the short-lived Xray a scan or a key run of the Aether core dials out through (design 2.6.5), on the
+    /// configuration file <paramref name="configFileName" /> in binConfigs, without its output in the message view.
+    /// </summary>
+    public async Task<ProcessService?> RunAetherExitXrayAsync(string configFileName)
+    {
+        var coreInfo = CoreInfoManager.Instance.GetCoreInfo(ECoreType.Xray);
+        return await RunProcess(coreInfo, configFileName, displayLog: false, mayNeedSudo: false);
+    }
+
+    /// <summary>
+    /// PattN: Xray, the Aether core and the system proxy's way out run together or not at all (design 2.6.4, PattNG
+    /// ReloadOutcome): when the session core exits on its own, the cores stop, and traffic sent to the system proxy fails
+    /// rather than leave another way. A load or a stop that began since owns what runs, and is left alone (critique 15).
+    /// </summary>
+    private async Task OnAetherSessionEnded(AetherSessionEnded ended)
+    {
+        var stopped = await _turns.EndIfCurrentAsync(ended.Generation, async () =>
+        {
+            Logging.SaveLog("CoreManager: the Aether core exited while running, stopping the cores");
+            await UpdateFunc(true, ended.Message);
+            await CoreStopInTurn();
+        });
+        if (stopped && AetherCoresStopped is { } coresStopped)
+        {
+            await coresStopped(ended.Message);
+        }
+    }
+
+    #endregion PattN: Aether
 }

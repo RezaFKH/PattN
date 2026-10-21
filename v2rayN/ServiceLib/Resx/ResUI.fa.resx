@@ -1809,4 +1809,67 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgEchOutboundTagConflict" xml:space="preserve">
     <value>تگ "{0}" در EchOutbound قبلاً توسط outbound دیگری استفاده شده است</value>
   </data>
+  <data name="MsgAetherConfigSingleProfile" xml:space="preserve">
+    <value>یک پیکربندی فقط می‌تواند از یک پروفایل Aether استفاده کند</value>
+  </data>
+  <data name="MsgAetherConfigTwoExits" xml:space="preserve">
+    <value>اینجا یک هستهٔ Aether باید از دو راه به بیرون وصل شود: همان تونل هم به‌تنهایی و هم پشت یک گام زنجیرهٔ پروکسی، یا پشت دو گام متفاوت، یا با دو تنظیم متفاوت exit-node به کار رفته است</value>
+  </data>
+  <data name="MsgAetherChainOneProfile" xml:space="preserve">
+    <value>یک زنجیره پروکسی فقط می‌تواند یک پروفایل Aether داشته باشد</value>
+  </data>
+  <data name="MsgAetherChainHopMissing" xml:space="preserve">
+    <value>گامی که پروفایل Aether این زنجیرهٔ پروکسی از راه آن به بیرون وصل می‌شود ساخته نشد، و هستهٔ Aether بدون آن به اینترنت می‌رسید</value>
+  </data>
+  <data name="MsgAetherChainHopGroup" xml:space="preserve">
+    <value>پروفایل Aether زنجیرهٔ پروکسی «{0}» از راه یک گروه سیاست یا یک زنجیرهٔ پروکسی به بیرون وصل می‌شد؛ در سمت ورودی آن یک پروفایل تکی بگذارید</value>
+  </data>
+  <data name="MsgAetherInGroupHop" xml:space="preserve">
+    <value>پروفایل Aether «{1}» درون «{0}» است، که یک زنجیرهٔ پروکسی از راه آن وصل می‌شود؛ پروفایل Aether را در خود زنجیره بگذارید</value>
+  </data>
+  <data name="MsgAetherChainHopDropped" xml:space="preserve">
+    <value>زنجیرهٔ پروکسی «{0}» یک پروفایل Aether دارد و یا کامل ساخته می‌شود یا اصلاً ساخته نمی‌شود: «{1}» قابل استفاده نبود، و بدون آن زنجیره ترافیک را از راهی کوتاه‌تر از آنچه نام می‌برد می‌برد</value>
+  </data>
+  <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
+    <value>هیچ پروفایلی با نام «{0}» پیدا نشد</value>
+  </data>
+  <data name="MsgAetherExitNodeDuplicate" xml:space="preserve">
+    <value>دو پروفایل با نام «{0}» پیدا شد؛ لطفاً نام یکی را تغییر دهید</value>
+  </data>
+  <data name="MsgAetherExitNodeUnusable" xml:space="preserve">
+    <value>پروفایل exit-node «{0}» خروجی نمی‌سازد؛ پروفایل دیگری یا freedom را انتخاب کنید</value>
+  </data>
+  <data name="MsgAetherExitNodeEchUnusable" xml:space="preserve">
+    <value>echOutbound پروفایل exit-node «{0}» قابل استفاده نیست؛ آن را در همان پروفایل درست کنید، یا پروفایل دیگری یا freedom را انتخاب کنید</value>
+  </data>
+  <data name="MsgAetherListenPortTaken" xml:space="preserve">
+    <value>هسته نمی‌تواند روی پورت پروکسی محلی برنامه، یا روی پورتی که سه تا بالاتر از پورت شنود Aether است گوش دهد؛ پورت شنود Aether را در تنظیمات، یا پورت‌های فرمان را تغییر دهید</value>
+  </data>
+  <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
+    <value>یکی از inboundهای این پیکربندی همین حالا روی {0} گوش می‌دهد، که سه تا بالاتر از پورت شنود Aether است و هستهٔ Aether از راه آن به بیرون وصل می‌شود؛ پورت شنود Aether را در تنظیمات تغییر دهید</value>
+  </data>
+  <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
+    <value>گروه سیاست «{0}»، «{1}» را کنار می‌گذارد: پروفایل Aether دومی با تنظیمات دیگر است، و یک هسته فقط به یک پروفایل خدمت می‌کند</value>
+  </data>
+  <data name="MsgAetherConnecting" xml:space="preserve">
+    <value>هسته Aether هنوز در حال اتصال است</value>
+  </data>
+  <data name="MsgAetherConnected" xml:space="preserve">
+    <value>هسته Aether وصل شد</value>
+  </data>
+  <data name="MsgAetherCoreStopped" xml:space="preserve">
+    <value>هسته Aether متوقف شده است</value>
+  </data>
+  <data name="MsgAetherCoreStoppedNoEchKey" xml:space="preserve">
+    <value>هسته Aether متوقف شد: ECH روشن است ولی هیچ کلید ECH قابل استفاده‌ای پیدا نشد. بدون آن، نام سرور به‌صورت آشکار فرستاده می‌شد.</value>
+  </data>
+  <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
+    <value>هسته Aether متوقف شده است: {0}</value>
+  </data>
+  <data name="MsgAetherCoreCannotStart" xml:space="preserve">
+    <value>هسته Aether اجرا نشد. در ویندوز، aether-core قدیمی‌تر از 2.3.2 به Microsoft Visual C++ 2015-2022 Redistributable (x64) نیاز دارد؛ aether-core را در «بررسی بروزرسانی» به‌روز کنید</value>
+  </data>
+  <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
+    <value>یک balancer یا observatory در این پیکربندی outbound هایی را برمی‌گزیند که تگشان با {0} شروع می‌شود، و exit-node هم جزو آن‌هاست، همان outbound ـی که هستهٔ Aether از راه آن به بیرون وصل می‌شود؛ آن selector را تغییر دهید</value>
+  </data>
 </root>
