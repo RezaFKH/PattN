@@ -47,6 +47,22 @@ public static class AetherPorts
     }
 
     /// <summary>
+    /// PattN: how many ports from the mixed port on are the app's own: the mixed port and the six after it
+    /// (AppManager.GetLocalPort: the second and the LAN SOCKS port, the PAC port, Xray's API, and the API of sing-box or
+    /// mihomo, which is one higher under the TUN).
+    /// </summary>
+    public const int LocalPortCount = 7;
+
+    /// <summary>
+    /// PattN: the local ports of the app for the mixed port <paramref name="localPort" />, L..L+6 (critique 10), taken
+    /// whatever is switched on; the Aether listen port and the three ports after it stay clear of them.
+    /// </summary>
+    public static IEnumerable<int> LocalPortsOf(int localPort)
+    {
+        return Enumerable.Range(localPort, LocalPortCount);
+    }
+
+    /// <summary>
     /// Why <paramref name="text" /> cannot be the Aether listen port beside local ports on
     /// <paramref name="localPorts" />; null when it can. The caller decides which of its ports count.
     /// </summary>
@@ -79,16 +95,30 @@ public static class AetherPorts
     }
 
     /// <summary>
-    /// The port a scan of <paramref name="profile" /> binds: none, since nothing dials it, unless Tor around the
-    /// tunnel comes along, whose own listener follows the tunnel's and needs a real port, because the core dials the
-    /// address Tor was told to listen on. Opens a socket to find one.
+    /// <paramref name="port" />, which a speed test picked for an inbound of its own, unless the core of the Aether listen
+    /// port <paramref name="listenPort" /> may take it (<see cref="IsReserved" />): then a loopback port the system gives,
+    /// one that is not such a port (design 2.12). A latency test's core, or the session's, may need the port meanwhile.
     /// </summary>
-    public static int ScanPort(ProfileItem profile)
+    public static int Unreserved(int port, int listenPort)
     {
-        if (AetherTor.FromString(profile.GetProtocolExtra().AetherTor) != AetherTor.Reverse)
+        if (!IsReserved(port, listenPort))
         {
-            return 0;
+            return port;
         }
+        for (var attempt = 0; attempt < 16; attempt++)
+        {
+            var picked = PickLoopbackPort();
+            if (picked > 0 && !IsReserved(picked, listenPort))
+            {
+                return picked;
+            }
+        }
+        return port;
+    }
+
+    /// <summary>A loopback port free now, which the system gives. Opens a socket to find one.</summary>
+    public static int PickLoopbackPort()
+    {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         try
@@ -99,6 +129,33 @@ public static class AetherPorts
         {
             listener.Stop();
         }
+    }
+
+    /// <summary>
+    /// The port a scan of <paramref name="profile" /> binds: none, since nothing dials it, unless Tor around the
+    /// tunnel comes along, whose own listener follows the tunnel's and needs a real port, because the core dials the
+    /// address Tor was told to listen on. That port, X, comes from <paramref name="pick" /> (the system, by default:
+    /// <see cref="PickLoopbackPort" />), and neither X nor Tor's X+1 is the Aether listen port
+    /// <paramref name="listenPort" /> or one of the three after it, which a session started beside the scan needs (PattN:
+    /// as for every other port it picks, design 2.6.5); the last port picked when none other comes.
+    /// </summary>
+    public static int ScanPort(ProfileItem profile, int listenPort, Func<int>? pick = null)
+    {
+        if (AetherTor.FromString(profile.GetProtocolExtra().AetherTor) != AetherTor.Reverse)
+        {
+            return 0;
+        }
+        pick ??= PickLoopbackPort;
+        var port = 0;
+        for (var attempt = 0; attempt < 16; attempt++)
+        {
+            port = pick();
+            if (port > 0 && port < 65535 && !IsReserved(port, listenPort) && !IsReserved(port + 1, listenPort))
+            {
+                return port;
+            }
+        }
+        return port;
     }
 }
 

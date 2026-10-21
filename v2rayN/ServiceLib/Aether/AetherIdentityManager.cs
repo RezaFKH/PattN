@@ -99,6 +99,60 @@ public static partial class AetherIdentityManager
     }
 
     /// <summary>
+    /// Registers new keys of <paramref name="kind" /> by running the core on <paramref name="arguments" />, which register
+    /// them (see <see cref="AetherKeys" />), and puts them in place of the keys in use once all of them are there (PattNG
+    /// renew(context, kind, arguments, exit, onOutput)). Until then the keys in use stay where they are, untouched; the
+    /// keys of another kind are never touched. The core dials out through the exit-node <paramref name="exit" />, and its
+    /// lines go to <paramref name="onOutput" /> as they come. Returns the new keys, or null when the keys in use stay, as
+    /// they do when a stop of every core ends the run first (an update of aether-core, or PattN exits); only a
+    /// cancellation of <paramref name="ct" /> throws <see cref="OperationCanceledException" />.
+    /// </summary>
+    public static Task<List<AetherKey>?> RenewAsync(
+        AetherKeyKind kind,
+        IReadOnlyList<string> arguments,
+        AetherExit exit,
+        Action<string>? onOutput = null,
+        CancellationToken ct = default)
+    {
+        return RenewAsync(kind, Register(AetherCoreManager.Instance, arguments, exit, onOutput), ct);
+    }
+
+    /// <summary>
+    /// PattNG register: the run of the core on <paramref name="arguments" />, among the cores of <paramref name="cores" />,
+    /// that registers the keys they ask for into the folder it is given, through a carrier if they name one, and ends
+    /// without scanning or opening a tunnel. It takes its turn at the exit with scans and other key runs, at a level that
+    /// writes the core's info lines (<see cref="AetherArguments.WithInfoLines" />), and is over at the core's word that the
+    /// keys are saved (<see cref="IsRegistered" />), within <see cref="RegisterTimeout" />. True once that word came; false
+    /// without it, as when the exit did not open, the core could not start, or a stop of every core ended the run first
+    /// (<see cref="AetherRunOutcome" />, which the log tells). Only a cancellation of its token throws.
+    /// </summary>
+    public static Func<string, CancellationToken, Task<bool>> Register(
+        AetherCoreManager cores,
+        IReadOnlyList<string> arguments,
+        AetherExit exit,
+        Action<string>? onOutput = null)
+    {
+        return async (keysDir, ct) =>
+        {
+            var run = new AetherStandaloneRun(AetherArguments.WithInfoLines(arguments), AetherRole.Key)
+            {
+                Exit = exit,
+                KeysDir = keysDir,
+                OnOutput = onOutput,
+            };
+            var result = await cores.RunUntilAsync(run, RegisterTimeout(arguments), line => IsRegistered(line) ? line : null, ct)
+                .ConfigureAwait(false);
+            if (result.Outcome != AetherRunOutcome.Done)
+            {
+                Logging.SaveLog(result.Value == null
+                    ? $"AetherIdentity: the key run did not run to its end ({result.Outcome}); the keys in use stay"
+                    : $"AetherIdentity: the key run was stopped ({result.Outcome}) once its keys were saved");
+            }
+            return result.Value != null;
+        };
+    }
+
+    /// <summary>
     /// How long a key run on <paramref name="arguments" /> may take to say its keys are saved, a word it writes at the
     /// info level: longer when it reaches WARP through Tor or Psiphon.
     /// </summary>

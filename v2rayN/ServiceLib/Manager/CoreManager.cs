@@ -53,6 +53,11 @@ public class CoreManager
             }
         }
 
+        // PattN: the Psiphon server list shipped with this release goes over an older list in use (design 2.11); it is
+        // read from the program's own bin folder, which the copy above never refreshes (critique 27)
+        await Task.Run(() => PsiphonServerList.InstallBundled(
+            AetherPaths.BundledPsiphonServersFile, AetherPaths.BundledPsiphonServersStampFile, AetherPaths.ActivePsiphonServersFile));
+
         if (Utils.IsNonWindows())
         {
             var coreInfo = CoreInfoManager.Instance.GetCoreInfo();
@@ -481,8 +486,9 @@ public class CoreManager
     }
 
     /// <summary>
-    /// PattN: starts the short-lived Xray a scan or a key run of the Aether core dials out through (design 2.6.5), on the
-    /// configuration file <paramref name="configFileName" /> in binConfigs, without its output in the message view.
+    /// PattN: starts the short-lived Xray a scan or a key run of the Aether core dials out through (design 2.6.5), or the
+    /// Xray of a latency test that needs an Aether core (design 2.12.2), on the configuration file
+    /// <paramref name="configFileName" /> in binConfigs, without its output in the message view.
     /// </summary>
     public async Task<ProcessService?> RunAetherExitXrayAsync(string configFileName)
     {

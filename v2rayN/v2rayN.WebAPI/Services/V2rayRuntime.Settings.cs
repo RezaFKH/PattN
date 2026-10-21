@@ -1,4 +1,6 @@
+using System.Globalization; // PattN
 using ServiceLib;
+using ServiceLib.Aether; // PattN
 using ServiceLib.Common;
 using ServiceLib.Enums;
 using ServiceLib.Handler;
@@ -198,6 +200,11 @@ public sealed partial class V2rayRuntime
         {
             return OperationView.Fail("inbound_port_invalid", ApiMessageKeys.SettingsInvalidPort);
         }
+        // PattN (design 4, W7): the mixed port is not moved onto the ports of the Aether core
+        if (MovesMixedPortOntoAetherPorts(Config, inbound.LocalPort))
+        {
+            return AetherPortsTakenFailure();
+        }
         if (!ValidateCoreSettingsInput(core))
         {
             return OperationView.Fail("core_setting_invalid", ApiMessageKeys.SettingsInvalidCoreValue);
@@ -303,6 +310,11 @@ public sealed partial class V2rayRuntime
         if (input.LocalPort <= 0 || input.LocalPort > 65535 - highestPortOffset)
         {
             return OperationView.Fail("inbound_port_invalid", ApiMessageKeys.SettingsInvalidPort);
+        }
+        // PattN (design 4, W7): the mixed port is not moved onto the ports of the Aether core
+        if (MovesMixedPortOntoAetherPorts(Config, input.LocalPort))
+        {
+            return AetherPortsTakenFailure();
         }
         if (!AreDestOverrideProtocolsValid(input.DestOverride))
         {
@@ -1290,6 +1302,56 @@ public sealed partial class V2rayRuntime
 
     internal static bool ShouldShowIpInfoColumn(string? ipApiUrl, bool hideColumnIpInfo) =>
         !string.IsNullOrEmpty(ipApiUrl) && !hideColumnIpInfo;
+
+    /// <summary>
+    /// PattN (design 2.5.1 and 4, W7): whether <paramref name="localPort" />, a new mixed port, would put one of the local
+    /// ports of the app, the mixed port and the six after it, on the Aether listen port of <paramref name="config" /> or one
+    /// of the three ports after it, which the Aether core takes. The API does not edit the Aether listen port, so a mixed
+    /// port left as it is never counts: a settings file that has them overlap already keeps its other inbound settings
+    /// editable here.
+    /// </summary>
+    internal static bool MovesMixedPortOntoAetherPorts(Config? config, int localPort)
+    {
+        if (config?.Inbound is not { Count: > 0 } inbounds || inbounds[0].LocalPort == localPort)
+        {
+            return false;
+        }
+        return MixedPortOnAetherPorts(config, localPort);
+    }
+
+    /// <summary>
+    /// PattN (design 2.5.1, W7): whether the local ports of the app for the mixed port <paramref name="localPort" />, the
+    /// mixed port and the six after it, take the Aether listen port of <paramref name="config" /> or one of the three ports
+    /// after it, which the Aether core takes; whether the mixed port moves there or is there already.
+    /// </summary>
+    internal static bool MixedPortOnAetherPorts(Config? config, int localPort)
+    {
+        var listenPort = AetherPorts.ListenPortOf(config?.CoreBasicItem?.AetherListenPort);
+        return AetherPorts.ListenPortProblem(listenPort.ToString(CultureInfo.InvariantCulture), AetherPorts.LocalPortsOf(localPort))
+            == AetherListenPortProblem.LocalProxy;
+    }
+
+    /// <summary>
+    /// PattN (W7): what the start says of the mixed port V2RAYN_WEB_PROXY_PORT gives, <paramref name="proxyPort" />, when
+    /// its local ports take the Aether listen port of <paramref name="config" /> or one of the three after it; null when
+    /// they do not. The override comes back at every start and the API does not edit the Aether listen port, so every
+    /// Aether start would be refused with a message that points to a setting the API does not show; the start itself goes
+    /// on.
+    /// </summary>
+    internal static string? ProxyPortOverrideWarning(Config? config, int proxyPort)
+    {
+        if (!MixedPortOnAetherPorts(config, proxyPort))
+        {
+            return null;
+        }
+        var listenPort = AetherPorts.ListenPortOf(config?.CoreBasicItem?.AetherListenPort);
+        return string.Create(CultureInfo.InvariantCulture,
+            $"V2RAYN_WEB_PROXY_PORT={proxyPort} puts the local ports {proxyPort}-{proxyPort + AetherPorts.LocalPortCount - 1} on the ports of the Aether core, {listenPort}-{AetherPorts.SecondarySocksPortOf(listenPort)}: Aether profiles will not start. Choose another V2RAYN_WEB_PROXY_PORT.");
+    }
+
+    // PattN (W7): the refusal of a mixed port moved onto the ports of the Aether core
+    private static OperationView AetherPortsTakenFailure() =>
+        OperationView.Fail("inbound_port_aether_reserved", ApiMessageKeys.SettingsAetherPortsTaken);
 
     internal static void ApplyInboundSettings(InItem target, InboundSettingsInput input)
     {

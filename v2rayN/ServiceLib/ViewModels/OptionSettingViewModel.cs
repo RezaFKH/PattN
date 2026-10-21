@@ -7,6 +7,8 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
     #region Core
 
     [Reactive] public partial int LocalPort { get; set; }
+    // PattN: the Aether listen port as written, so that a value that is no port is refused on save instead of being lost
+    [Reactive] public partial string AetherListenPort { get; set; }
     [Reactive] public partial bool SecondLocalPortEnabled { get; set; }
     [Reactive] public partial bool UdpEnabled { get; set; }
     [Reactive] public partial bool SniffingEnabled { get; set; }
@@ -156,6 +158,8 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
         DefUserAgent = _config.CoreBasicItem.DefUserAgent;
         SendThrough = _config.CoreBasicItem.SendThrough ?? string.Empty;
         BindInterface = _config.CoreBasicItem.BindInterface ?? string.Empty;
+        // PattN: the port the cores use, the default one for a stored value that is no such port
+        AetherListenPort = AetherPorts.ListenPortOf(_config.CoreBasicItem.AetherListenPort).ToString();
         Mux4RayConcurrency = _config.Mux4RayItem.Concurrency;
         Mux4RayXudpConcurrency = _config.Mux4RayItem.XudpConcurrency;
         Mux4RayXudpProxyUDP443 = _config.Mux4RayItem.XudpProxyUDP443 ?? string.Empty;
@@ -301,6 +305,14 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
             NoticeManager.Instance.Enqueue(ResUI.FillLocalListeningPort);
             return;
         }
+        // PattN: the Aether listen port, checked against the mixed port of this dialog, so that moving either one onto
+        // the other's ports is refused (design 2.5.1)
+        var aetherPortsProblem = AetherPortsProblem(LocalPort, AetherListenPort);
+        if (aetherPortsProblem != null)
+        {
+            NoticeManager.Instance.Enqueue(aetherPortsProblem);
+            return;
+        }
         var fragmentLengths = Utils.String2List(FragmentLengths) ?? [];
         var fragmentDelays = Utils.String2List(FragmentDelays) ?? [];
         if (fragmentLengths.Any(item => !Utils.TryParseRange(item, 0, int.MaxValue, out _, out _))
@@ -338,6 +350,8 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
         _config.CoreBasicItem.DefUserAgent = DefUserAgent;
         _config.CoreBasicItem.SendThrough = SendThrough.TrimEx();
         _config.CoreBasicItem.BindInterface = BindInterface.TrimEx();
+        // PattN: checked above, so this is the port written
+        _config.CoreBasicItem.AetherListenPort = StoredAetherListenPort(AetherListenPort);
         _config.Mux4RayItem.Concurrency = Mux4RayConcurrency > 0 ? Mux4RayConcurrency : null;
         _config.Mux4RayItem.XudpConcurrency = Mux4RayXudpConcurrency > 0 ? Mux4RayXudpConcurrency : null;
         _config.Mux4RayItem.XudpProxyUDP443 = Mux4RayXudpProxyUDP443.NullIfEmpty();
@@ -414,6 +428,33 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
         {
             NoticeManager.Instance.Enqueue(ResUI.OperationFailed);
         }
+    }
+
+    /// <summary>
+    /// PattN (design 2.5.1, PattNG SettingsViewModel.validateAetherListenPort): why <paramref name="aetherListenPort" />
+    /// cannot be the Aether listen port beside the mixed port <paramref name="localPort" />, as the message to show; null
+    /// when it can. It has to be a port from 1024 to 65532, and neither it nor the three ports after it, which the core
+    /// takes as well, may be one of the local ports of the app, the mixed port and the six after it (critique 10). The
+    /// same check refuses a mixed port moved onto the Aether ports.
+    /// </summary>
+    public static string? AetherPortsProblem(int localPort, string? aetherListenPort)
+    {
+        return AetherPorts.ListenPortProblem(aetherListenPort ?? string.Empty, AetherPorts.LocalPortsOf(localPort)) switch
+        {
+            AetherListenPortProblem.NotAPort => ResUI.FillAetherListenPort,
+            AetherListenPortProblem.LocalProxy => ResUI.MsgAetherListenPortLocalProxy,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// PattN: the Aether listen port the dialog stores for <paramref name="aetherListenPort" />, as written, once
+    /// <see cref="AetherPortsProblem" /> found nothing wrong with it: the port it names, blanks around it and digits of
+    /// another script read as PattNG reads them (AetherDigits).
+    /// </summary>
+    public static int StoredAetherListenPort(string? aetherListenPort)
+    {
+        return AetherPorts.ListenPortOf(aetherListenPort);
     }
 
     private async Task SaveCoreType()

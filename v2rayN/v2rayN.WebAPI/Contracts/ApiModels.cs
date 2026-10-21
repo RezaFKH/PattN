@@ -482,6 +482,9 @@ public static class ApiMessageKeys
     public const string SpeedTestSettingsSaved = "speedtest.settingsSaved";
     public const string SpeedTestResult = "speedtest.result";
     public const string SettingsInvalidPort = "settings.invalidPort";
+    // PattN: "The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port
+    // and the six ports after it" (W7)
+    public const string SettingsAetherPortsTaken = "settings.aetherPortsTaken";
     public const string SettingsInvalidCoreLogLevel = "settings.invalidCoreLogLevel";
     public const string SettingsInvalidCoreValue = "settings.invalidCoreValue";
     public const string SettingsInvalidFragment = "settings.invalidFragment";

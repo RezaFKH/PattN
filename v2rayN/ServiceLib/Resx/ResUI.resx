@@ -2004,4 +2004,28 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>A balancer or an observatory of this configuration picks the outbounds whose tags start with {0}, which would include exit-node, the outbound the Aether core dials out by; change that selector</value>
   </data>
+  <data name="MsgAetherTestSkipped" xml:space="preserve">
+    <value>Untested: the running Aether profile holds the Aether listen port</value>
+  </data>
+  <data name="MsgPsiphonServersUpdated" xml:space="preserve">
+    <value>psiphon_servers updated: {0} servers, published {1}</value>
+  </data>
+  <data name="MsgPsiphonServersInvalid" xml:space="preserve">
+    <value>The downloaded psiphon_servers is not Psiphon's signed server list; the one in use stays</value>
+  </data>
+  <data name="MsgPsiphonServersCurrent" xml:space="preserve">
+    <value>psiphon_servers is already up to date ({0})</value>
+  </data>
+  <data name="TbSettingsAetherListenPort" xml:space="preserve">
+    <value>Aether listen port</value>
+  </data>
+  <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
+    <value>The core also takes the three ports after it</value>
+  </data>
+  <data name="FillAetherListenPort" xml:space="preserve">
+    <value>Use a port from 1024 to 65532 for the Aether listen port</value>
+  </data>
+  <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
+    <value>The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it</value>
+  </data>
 </root>

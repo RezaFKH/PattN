@@ -1872,4 +1872,28 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>یک balancer یا observatory در این پیکربندی outbound هایی را برمی‌گزیند که تگشان با {0} شروع می‌شود، و exit-node هم جزو آن‌هاست، همان outbound ـی که هستهٔ Aether از راه آن به بیرون وصل می‌شود؛ آن selector را تغییر دهید</value>
   </data>
+  <data name="MsgAetherTestSkipped" xml:space="preserve">
+    <value>آزمایش نشد: پروفایل Aether در حال اجرا پورت شنود Aether را در اختیار دارد</value>
+  </data>
+  <data name="MsgPsiphonServersUpdated" xml:space="preserve">
+    <value>psiphon_servers به‌روز شد: {0} سرور، منتشرشده در {1}</value>
+  </data>
+  <data name="MsgPsiphonServersInvalid" xml:space="preserve">
+    <value>psiphon_servers دانلودشده فهرست سرورهای امضاشدهٔ Psiphon نیست؛ فهرست فعلی باقی می‌ماند</value>
+  </data>
+  <data name="MsgPsiphonServersCurrent" xml:space="preserve">
+    <value>psiphon_servers از قبل به‌روز است ({0})</value>
+  </data>
+  <data name="TbSettingsAetherListenPort" xml:space="preserve">
+    <value>پورت شنود Aether</value>
+  </data>
+  <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
+    <value>هسته سه پورت پس از آن را هم می‌گیرد</value>
+  </data>
+  <data name="FillAetherListenPort" xml:space="preserve">
+    <value>برای پورت شنود Aether پورتی از 1024 تا 65532 وارد کنید</value>
+  </data>
+  <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
+    <value>پورت شنود Aether و سه پورت پس از آن نباید پورت‌های محلی PattN را در بر بگیرند: پورت Mixed و شش پورت پس از آن</value>
+  </data>
 </root>

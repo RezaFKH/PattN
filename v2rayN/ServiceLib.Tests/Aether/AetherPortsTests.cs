@@ -81,9 +81,27 @@ public class AetherPortsTests
     [Test]
     public async Task AScanBindsNoPortUnlessTorAroundTheTunnelNeedsARealOne()
     {
-        await AetherPorts.ScanPort(Profile()).Should().BeEqualTo(0);
-        await AetherPorts.ScanPort(Profile(it => it with { AetherPsiphon = "reverse" })).Should().BeEqualTo(0);
-        await AetherPorts.ScanPort(Profile(it => it with { AetherTor = "chain" })).Should().BeEqualTo(0);
-        await (AetherPorts.ScanPort(Profile(it => it with { AetherTor = "reverse" })) > 0).Should().BeTrue();
+        const int p = AetherPorts.DefaultListenPort;
+        await AetherPorts.ScanPort(Profile(), p).Should().BeEqualTo(0);
+        await AetherPorts.ScanPort(Profile(it => it with { AetherPsiphon = "reverse" }), p).Should().BeEqualTo(0);
+        await AetherPorts.ScanPort(Profile(it => it with { AetherTor = "chain" }), p).Should().BeEqualTo(0);
+        await (AetherPorts.ScanPort(Profile(it => it with { AetherTor = "reverse" }), p) > 0).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task TheScanPortAndTorsAfterItStayOffThePortsOfTheAetherCore()
+    {
+        // PattN (design 2.6.5, as for the exit port and the test ports): a session started beside the scan needs P..P+3.
+        const int p = AetherPorts.DefaultListenPort;
+        var offered = new Queue<int>([p - 1, p + 3, p, 0, 41000]);
+        var port = AetherPorts.ScanPort(Profile(it => it with { AetherTor = "reverse" }), p, () => offered.Dequeue());
+        // P-1 would put Tor's listener on P, P+3 the scan's own on the secondary-socks port.
+        await port.Should().BeEqualTo(41000);
+        await offered.Should().BeEmpty();
+        // The Aether listen port the settings name, not the default one.
+        await AetherPorts.ScanPort(Profile(it => it with { AetherTor = "reverse" }), 20808, () => p).Should().BeEqualTo(p);
+        // The last port of all has no port after it for Tor.
+        var high = new Queue<int>([65535, 41001]);
+        await AetherPorts.ScanPort(Profile(it => it with { AetherTor = "reverse" }), p, () => high.Dequeue()).Should().BeEqualTo(41001);
     }
 }

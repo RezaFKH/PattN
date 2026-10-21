@@ -195,6 +195,11 @@ public partial class CoreConfigV2rayService(CoreConfigContext context)
                     {
                         continue;
                     }
+                    // PattN: never a port the Aether core may take: the session's or a latency test's core may need it
+                    if (AetherPorts.IsReserved(k, AetherListenPort))
+                    {
+                        continue;
+                    }
                     //found
                     port = k;
                     initPort = port + 1;
@@ -229,6 +234,14 @@ public partial class CoreConfigV2rayService(CoreConfigContext context)
                 //outbound
                 var proxyOutbounds =
                     new CoreConfigV2rayService(context with { Node = item }).BuildAllProxyOutbounds(tag);
+                // PattN: a group or a chain that dials an Aether core is tested on its own, with its core (design
+                // 2.12.1); one left in the batch is not tested rather than dial a core that is not there
+                if (proxyOutbounds.Any(context.Aether.IsAetherOutbound))
+                {
+                    _coreConfig.inbounds.Remove(inbound);
+                    it.AllowTest = false;
+                    continue;
+                }
                 _coreConfig.outbounds.AddRange(proxyOutbounds);
                 if (proxyOutbounds.Count(n => n.tag.StartsWith(tag)) > 1)
                 {

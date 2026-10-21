@@ -108,14 +108,106 @@ public static partial class PsiphonServerList
     }
 
     /// <summary>
+    /// The fewest server entries a list needs to take the place of the one in use, as the release build checks the list
+    /// it ships (PattNG fetch-psiphon-servers.sh): fewer is not the list.
+    /// </summary>
+    public const int MinimumEntries = 50;
+
+    /// <summary>The server entries of <paramref name="entries" />: its lines that are not blank, as the build counts them.</summary>
+    public static int EntryCount(string entries)
+    {
+        return entries.Split('\n').Count(line => !string.IsNullOrWhiteSpace(line));
+    }
+
+    /// <summary>
+    /// Checks a downloaded list before it takes the place of the one in use (design 2.11): Psiphon's signature
+    /// (<see cref="Unpack" />), and at least <see cref="MinimumEntries" /> entries. Returns how many entries it has; throws
+    /// an <see cref="IOException" /> with the reason when it is not Psiphon's list.
+    /// </summary>
+    public static int Verify(byte[] packed, string signingKey = SigningKey)
+    {
+        var count = EntryCount(Unpack(packed, signingKey));
+        if (count < MinimumEntries)
+        {
+            throw new IOException(string.Create(CultureInfo.InvariantCulture, $"only {count} server entries in the list; that is not the list"));
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Puts the list at <paramref name="list" /> in place of the one at <paramref name="active" />, with
+    /// <paramref name="publishedAtUtc" /> as its time: a copy is written beside the active list first and then
+    /// <see cref="Replace" />s it, so that whatever reads the active list meanwhile reads one list whole. The time of the
+    /// list in use is when it was published, which the bundled list of a later release is compared with
+    /// (<see cref="BundledListGoesOver" />). Throws an <see cref="IOException" /> when it cannot be put in place; the list
+    /// in use stays then.
+    /// </summary>
+    public static void Install(string list, string active, DateTime publishedAtUtc)
+    {
+        var folder = Path.GetDirectoryName(Path.GetFullPath(active)) ?? ".";
+        var staged = Path.Combine(folder, $"{Path.GetFileName(active)}.{Stopwatch.GetTimestamp()}.new");
+        try
+        {
+            Directory.CreateDirectory(folder);
+            File.Copy(list, staged, overwrite: true);
+            Replace(staged, active);
+            File.SetLastWriteTimeUtc(active, publishedAtUtc);
+        }
+        catch (IOException)
+        {
+            TryDelete(staged);
+            throw;
+        }
+        catch (UnauthorizedAccessException e)
+        {
+            TryDelete(staged);
+            throw new IOException(e.Message, e);
+        }
+    }
+
+    /// <summary>
+    /// The copy at start (design 2.11, PattNG SettingsManager.initAssets): the list shipped with this release at
+    /// <paramref name="bundled" /> goes over the list in use at <paramref name="active" /> when there is none, or when it
+    /// was published, as <paramref name="stamp" /> says, after the list in use was (<see cref="BundledListGoesOver" />).
+    /// The copy takes the publication time, so that the next release is compared with the list, not with the copy; without
+    /// a usable stamp it takes the time of the copy, and only a missing list is filled. True when the list was put in
+    /// place; a failure keeps the list in use, with the reason in the log, and never ends the start it runs in (PattNG
+    /// initAssets catches every exception of the copy).
+    /// </summary>
+    public static bool InstallBundled(string bundled, string stamp, string active)
+    {
+        try
+        {
+            if (!File.Exists(bundled))
+            {
+                return false;
+            }
+            var publishedAt = PublishedAt(ReadTextOrNull(stamp));
+            if (!BundledListGoesOver(active, publishedAt))
+            {
+                return false;
+            }
+            Install(bundled, active, publishedAt > 0 ? DateTimeOffset.FromUnixTimeMilliseconds(publishedAt).UtcDateTime : DateTime.UtcNow);
+            Logging.SaveLog($"AetherCore: the {AetherPaths.PsiphonServersFileName} shipped with this release is the list in use now");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Logging.SaveLog($"AetherCore: the {AetherPaths.PsiphonServersFileName} shipped with this release could not be put in place; the list in use stays", e);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// When the bundled list was published, from the stamp the build writes beside it: the seconds since the epoch of
     /// the download's Last-Modified header, as milliseconds; 0 without a usable stamp.
     /// </summary>
     public static long PublishedAt(string? stamp)
     {
         var seconds = AetherDigits.ToLongOrNull(stamp?.Trim());
-        // A number of seconds too large to hold in milliseconds is no publication time either.
-        if (seconds is not > 0 || seconds.Value > long.MaxValue / 1000)
+        // A number of seconds past the last time a file can be given, the end of year 9999, is no publication time either:
+        // a stamp written in milliseconds by mistake, say. PattNG's bound is what a long holds in milliseconds.
+        if (seconds is not > 0 || seconds.Value > DateTimeOffset.MaxValue.ToUnixTimeSeconds())
         {
             return 0L;
         }

@@ -18,6 +18,50 @@ public static partial class AetherScanner
     private const string NonSpace = @"[^ \t\n\x0B\f\r]";
 
     /// <summary>
+    /// Scans for an endpoint of <paramref name="profile" /> (PattNG scan): a core of its own on the scan arguments of the
+    /// profile's settings (<see cref="AetherArguments.Build" /> with scan), dialling out through the profile's exit-node,
+    /// until its output names what <see cref="Matcher" /> looks for, for at most <see cref="ScanTimeout" />. Its lines go
+    /// to <paramref name="onOutput" /> as they come, for the log panel of a window. The value of a run that ended without
+    /// an endpoint is null; <see cref="AetherRunResult{T}.Outcome" /> tells a run whose exit did not open
+    /// (<see cref="AetherRunOutcome.NoExit" />), whose core could not start (<see cref="AetherRunOutcome.NotStarted" />),
+    /// and one that a stop of every core ended or kept from starting (<see cref="AetherRunOutcome.Stopped" />: an update
+    /// of aether-core, or PattN exits). Only a cancellation of <paramref name="ct" /> throws
+    /// <see cref="OperationCanceledException" />.
+    /// </summary>
+    public static Task<AetherRunResult<AetherScanResult>> ScanAsync(
+        ProfileItem profile,
+        Action<string>? onOutput = null,
+        CancellationToken ct = default)
+    {
+        return ScanAsync(AetherCoreManager.Instance, profile, onOutput, ScanTimeout, ct);
+    }
+
+    /// <summary>
+    /// <see cref="ScanAsync(ProfileItem, Action{string}?, CancellationToken)" /> on the cores of <paramref name="cores" />,
+    /// for at most <paramref name="timeout" />.
+    /// </summary>
+    public static async Task<AetherRunResult<AetherScanResult>> ScanAsync(
+        AetherCoreManager cores,
+        ProfileItem profile,
+        Action<string>? onOutput,
+        TimeSpan timeout,
+        CancellationToken ct = default)
+    {
+        var extra = profile.GetProtocolExtra();
+        var protocol = AetherProtocol.FromString(extra.AetherProtocol);
+        // A real port only for Tor around the tunnel, which opens a socket to find one, off the ports of a session's core.
+        var listenPort = cores.ListenPort;
+        var port = await Task.Run(() => AetherPorts.ScanPort(profile, listenPort), ct).ConfigureAwait(false);
+        var run = new AetherStandaloneRun(AetherArguments.Build(profile, port, scan: true), AetherRole.Scan)
+        {
+            Exit = AetherExit.Of(profile),
+            OnOutput = onOutput,
+        };
+        var exitRuled = !KotlinText.IsBlank(extra.AetherExitLoc);
+        return await cores.RunUntilAsync(run, timeout, Matcher(protocol, exitRuled), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// What ends a scan, line by line. Without an exit rule, the line that names the endpoint. With one, the core names
     /// its endpoint before it checks the exit behind it and looks again when the rule refuses it, so the endpoint named
     /// last counts only once the core has accepted its exit. Masque-in-masque and WireGuard over MASQUE say they are ready

@@ -62,6 +62,27 @@
                             Text="{x:Static resx:ResUI.TbSettingsSocksPortTip}"
                             TextWrapping="Wrap" />
 
+                        <!--  PattN: the port every Aether core listens on, under the mixed port, whatever the local proxy settings are  -->
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Margin="{StaticResource Margin4}"
+                            VerticalAlignment="Center"
+                            Text="{x:Static resx:ResUI.TbSettingsAetherListenPort}" />
+                        <TextBox
+                            x:Name="txtAetherListenPort"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="200"
+                            Margin="{StaticResource Margin4}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            Margin="{StaticResource Margin4}"
+                            VerticalAlignment="Center"
+                            Text="{x:Static resx:ResUI.TbSettingsAetherListenPortTip}"
+                            TextWrapping="Wrap" />
+
                         <TextBlock
                             Grid.Row="2"
                             Grid.Column="0"

@@ -2004,4 +2004,28 @@
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>Балансировщик или обсерватория этой конфигурации выбирает исходящие подключения, чьи теги начинаются с {0}, а значит и exit-node — исходящее подключение, через которое ядро Aether выходит наружу; измените этот селектор</value>
   </data>
+  <data name="MsgAetherTestSkipped" xml:space="preserve">
+    <value>Не проверено: работающий профиль Aether занимает порт прослушивания Aether</value>
+  </data>
+  <data name="MsgPsiphonServersUpdated" xml:space="preserve">
+    <value>psiphon_servers обновлён: серверов — {0}, опубликован {1}</value>
+  </data>
+  <data name="MsgPsiphonServersInvalid" xml:space="preserve">
+    <value>Загруженный psiphon_servers — не подписанный список серверов Psiphon; используемый список сохранён</value>
+  </data>
+  <data name="MsgPsiphonServersCurrent" xml:space="preserve">
+    <value>psiphon_servers уже актуален ({0})</value>
+  </data>
+  <data name="TbSettingsAetherListenPort" xml:space="preserve">
+    <value>Порт прослушивания Aether</value>
+  </data>
+  <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
+    <value>Ядро занимает и три следующих за ним порта</value>
+  </data>
+  <data name="FillAetherListenPort" xml:space="preserve">
+    <value>Укажите для порта прослушивания Aether порт от 1024 до 65532</value>
+  </data>
+  <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
+    <value>Порт прослушивания Aether и три следующих за ним порта не могут включать локальные порты PattN: смешанный порт и шесть следующих за ним портов</value>
+  </data>
 </root>

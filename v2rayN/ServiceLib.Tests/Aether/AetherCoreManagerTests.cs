@@ -368,6 +368,49 @@ public class AetherCoreManagerTests : IDisposable
         }
     }
 
+    // PattN: two probes of ports nothing listens on can be connected to each other by a simultaneous open, when each was
+    // given the other's port to dial from; each then reads the other's greeting, which is no SOCKS server's answer.
+    [Test]
+    public async Task AGreetingThatComesBackIsNoAnswer()
+    {
+        await (await AnswersWith([5, 1, 0])).Should().BeFalse();
+        await (await AnswersWith([5])).Should().BeFalse();
+        // A server that accepts no method the greeting offers is a SOCKS server all the same, as one that accepts it is.
+        await (await AnswersWith([5, 0xFF])).Should().BeTrue();
+        await (await AnswersWith([5, 0])).Should().BeTrue();
+    }
+
+    /// <summary>What the probe makes of a listener that reads the greeting and writes <paramref name="reply" />.</summary>
+    private static async Task<bool> AnswersWith(byte[] reply)
+    {
+        var server = new TcpListener(IPAddress.Loopback, 0);
+        server.Start();
+        var serving = Task.Run(async () =>
+        {
+            try
+            {
+                using var client = await server.AcceptTcpClientAsync();
+                var stream = client.GetStream();
+                await stream.ReadExactlyAsync(new byte[3]);
+                await stream.WriteAsync(reply);
+                // The connection stays open until the probe is done with it.
+                await stream.CopyToAsync(Stream.Null);
+            }
+            catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
+            {
+            }
+        });
+        try
+        {
+            return await AetherCoreManager.AnswersSocksAsync(((IPEndPoint)server.LocalEndpoint).Port);
+        }
+        finally
+        {
+            server.Stop();
+            await serving.WaitAsync(Soon);
+        }
+    }
+
     // ---- what the end of a session says (PattNG aCoreThatStoppedForWantOfAnEchKeyIsReportedSo, critique 30, design 2.4.4)
 
     [Test]
@@ -1179,13 +1222,8 @@ public class AetherCoreManagerTests : IDisposable
         await rig.Core(1).Killed.Should().BeTrue();
         await rig.Manager.IsRunning.Should().BeFalse();
         await rig.Manager.IsStandaloneRunning.Should().BeFalse();
-        try
-        {
-            await scan;
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        // No cancellation its caller asked for: the scan says it was stopped, as PattN exits, and throws nothing.
+        await (await scan.WaitAsync(Soon)).Outcome.Should().BeEqualTo(AetherRunOutcome.Stopped);
     }
 
     /// <summary>A scan that runs until it is cancelled, once it says it runs; the run as <see cref="AetherCoreManager.RunStandaloneAsync{T}" /> returns it.</summary>
@@ -1230,8 +1268,8 @@ public class AetherCoreManagerTests : IDisposable
 
         await rig.Manager.StopAllAsync().WaitAsync(Soon);
 
-        await (await keyRun.WaitAsync(Soon)).Outcome.Should().BeEqualTo(AetherRunOutcome.NotStarted);
-        await OutcomeOf(scan);
+        await (await keyRun.WaitAsync(Soon)).Outcome.Should().BeEqualTo(AetherRunOutcome.Stopped);
+        await (await OutcomeOf(scan)).Should().BeEqualTo(AetherRunOutcome.Stopped);
         await rig.Events.Contains("spawn 2").Should().BeFalse();
         await rig.Manager.IsStandaloneRunning.Should().BeFalse();
         // A run asked for afterwards runs: PattN still runs.
@@ -1257,12 +1295,13 @@ public class AetherCoreManagerTests : IDisposable
         await rig.Core(0).Killed.Should().BeTrue();
         await rig.Core(1).Killed.Should().BeTrue();
         await rig.Manager.IsRunning.Should().BeFalse();
-        await (await keyRun.WaitAsync(Soon)).Outcome.Should().BeEqualTo(AetherRunOutcome.NotStarted);
-        await OutcomeOf(scan);
+        await (await keyRun.WaitAsync(Soon)).Outcome.Should().BeEqualTo(AetherRunOutcome.Stopped);
+        await (await OutcomeOf(scan)).Should().BeEqualTo(AetherRunOutcome.Stopped);
+        // Told apart from a core that could not start: nothing is wrong with the core but its files being replaced.
         await (await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque"], AetherRole.Test), (_, _) => Task.FromResult<string?>("measured"))).Outcome
-            .Should().BeEqualTo(AetherRunOutcome.NotStarted);
+            .Should().BeEqualTo(AetherRunOutcome.Stopped);
         await (await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque"], AetherRole.Scan) { Exit = AetherExit.Plain }, (_, _) => Task.FromResult<string?>("found"))).Outcome
-            .Should().BeEqualTo(AetherRunOutcome.NotStarted);
+            .Should().BeEqualTo(AetherRunOutcome.Stopped);
         var session = rig.Manager.StartSessionAsync(Core());
         await Task.Delay(300);
         await session.IsCompleted.Should().BeFalse();
@@ -1302,6 +1341,27 @@ public class AetherCoreManagerTests : IDisposable
         rig.Manager.EndSessionStart();
         await (await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque"], AetherRole.Test), (_, _) => Task.FromResult<string?>("measured"))).Outcome
             .Should().BeEqualTo(AetherRunOutcome.Done);
+    }
+
+    [Test]
+    public async Task ALatencyTestDoesNotStartBesideASession()
+    {
+        // A test that chose a tunnel of its own before the session started finds the listen port taken: its core would
+        // listen on the session's port, and its probe would measure the session's core (PattNG cancels the tests of every
+        // start). A scan or a key run starts beside a session all the same.
+        var rig = new Rig(_root);
+        await (await rig.Manager.StartSessionAsync(Core())).Should().BeNull();
+
+        var test = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10819"], AetherRole.Test),
+            (_, _) => Task.FromResult<string?>("measured"));
+
+        await test.Outcome.Should().BeEqualTo(AetherRunOutcome.Busy);
+        await rig.Cores.Count.Should().BeEqualTo(1);
+        await (await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque"], AetherRole.Scan) { Exit = AetherExit.Plain },
+            (_, _) => Task.FromResult<string?>("found"))).Outcome.Should().BeEqualTo(AetherRunOutcome.Done);
+        await rig.Manager.StopSessionAsync();
+        await (await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque"], AetherRole.Test),
+            (_, _) => Task.FromResult<string?>("measured"))).Outcome.Should().BeEqualTo(AetherRunOutcome.Done);
     }
 
     // ---- leftover cores on Linux and macOS (design 2.6.6, PattNG reapStale)

@@ -2002,4 +2002,28 @@
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>此設定中的某個負載平衡器或觀測器會選取標籤以 {0} 開頭的出站，其中也包括 exit-node，即 Aether 核心向外連線所經的出站；請修改該選擇器</value>
   </data>
+  <data name="MsgAetherTestSkipped" xml:space="preserve">
+    <value>未測試：正在執行的 Aether 設定檔佔用了 Aether 監聽連接埠</value>
+  </data>
+  <data name="MsgPsiphonServersUpdated" xml:space="preserve">
+    <value>psiphon_servers 已更新：{0} 個伺服器，發佈於 {1}</value>
+  </data>
+  <data name="MsgPsiphonServersInvalid" xml:space="preserve">
+    <value>下載的 psiphon_servers 不是 Psiphon 簽署的伺服器清單；繼續使用目前的清單</value>
+  </data>
+  <data name="MsgPsiphonServersCurrent" xml:space="preserve">
+    <value>psiphon_servers 已是最新（{0}）</value>
+  </data>
+  <data name="TbSettingsAetherListenPort" xml:space="preserve">
+    <value>Aether 監聽連接埠</value>
+  </data>
+  <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
+    <value>核心還會佔用其後的三個連接埠</value>
+  </data>
+  <data name="FillAetherListenPort" xml:space="preserve">
+    <value>Aether 監聽連接埠請使用 1024 到 65532 之間的連接埠</value>
+  </data>
+  <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
+    <value>Aether 監聽連接埠及其後的三個連接埠不能包含 PattN 的本機連接埠：本機混合偵聽埠及其後的六個連接埠</value>
+  </data>
 </root>

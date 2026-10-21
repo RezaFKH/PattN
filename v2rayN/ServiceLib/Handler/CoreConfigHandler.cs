@@ -130,6 +130,8 @@ public static class CoreConfigHandler
         var result = new RetResult();
         var initPort = AppManager.Instance.GetLocalPort(EInboundProtocol.speedtest);
         var port = Utils.GetFreePort(initPort + testItem.QueueNum);
+        // PattN: never a port the Aether core may take: the session's or a latency test's core may need it (design 2.12)
+        port = AetherPorts.Unreserved(port, AetherPorts.ListenPortOf(config.CoreBasicItem.AetherListenPort));
         testItem.Port = port;
 
         if (context.RunCoreType == ECoreType.sing_box)

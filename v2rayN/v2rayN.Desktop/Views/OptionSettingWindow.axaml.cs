@@ -67,6 +67,8 @@ public partial class OptionSettingWindow : WindowBase<OptionSettingViewModel>
         this.WhenActivated(disposables =>
         {
             this.Bind(ViewModel, vm => vm.LocalPort, v => v.txtlocalPort.Text).DisposeWith(disposables);
+            // PattN: the Aether listen port, under the mixed port
+            this.Bind(ViewModel, vm => vm.AetherListenPort, v => v.txtAetherListenPort.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SecondLocalPortEnabled, v => v.togSecondLocalPortEnabled.IsChecked).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.UdpEnabled, v => v.togudpEnabled.IsChecked).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SniffingEnabled, v => v.togsniffingEnabled.IsChecked).DisposeWith(disposables);

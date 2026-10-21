@@ -205,6 +205,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Use a port from 1024 to 65532 for the Aether listen port 的本地化字符串。
+        /// </summary>
+        public static string FillAetherListenPort {
+            get {
+                return ResourceManager.GetString("FillAetherListenPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Please fill in the correct config template 的本地化字符串。
         /// </summary>
         public static string FillCorrectConfigTemplateText {
@@ -2167,6 +2176,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenPortLocalProxy {
+            get {
+                return ResourceManager.GetString("MsgAetherListenPortLocalProxy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The core cannot listen on the local proxy port of the app, nor on the port three above the Aether listen port; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
         /// </summary>
         public static string MsgAetherListenPortTaken {
@@ -2193,6 +2211,15 @@ namespace ServiceLib.Resx {
             }
         }
 
+        /// <summary>
+        ///   查找类似 Untested: the running Aether profile holds the Aether listen port 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherTestSkipped {
+            get {
+                return ResourceManager.GetString("MsgAetherTestSkipped", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   查找类似 The current node uses an unencrypted connection, meaning your communications could be directly monitored by network intermediaries controlled by authoritarian governments. For security reasons, nodes of this type cannot connect via Xray-core versions 26.2.6 or higher. If this is a self-built node, please enable TLS or other secure encryption, or pin the certificate using pinSHA256. If this is an airport/provider node, please contact your service provider for a technical upgrade. If the provider refuses to c [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
@@ -2451,6 +2478,33 @@ namespace ServiceLib.Resx {
         public static string MsgParsingSuccessfully {
             get {
                 return ResourceManager.GetString("MsgParsingSuccessfully", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 psiphon_servers is already up to date ({0}) 的本地化字符串。
+        /// </summary>
+        public static string MsgPsiphonServersCurrent {
+            get {
+                return ResourceManager.GetString("MsgPsiphonServersCurrent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The downloaded psiphon_servers is not Psiphon&apos;s signed server list; the one in use stays 的本地化字符串。
+        /// </summary>
+        public static string MsgPsiphonServersInvalid {
+            get {
+                return ResourceManager.GetString("MsgPsiphonServersInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 psiphon_servers updated: {0} servers, published {1} 的本地化字符串。
+        /// </summary>
+        public static string MsgPsiphonServersUpdated {
+            get {
+                return ResourceManager.GetString("MsgPsiphonServersUpdated", resourceCulture);
             }
         }
         
@@ -4299,6 +4353,24 @@ namespace ServiceLib.Resx {
         public static string TbSettingsAdvancedProtocol {
             get {
                 return ResourceManager.GetString("TbSettingsAdvancedProtocol", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Aether listen port 的本地化字符串。
+        /// </summary>
+        public static string TbSettingsAetherListenPort {
+            get {
+                return ResourceManager.GetString("TbSettingsAetherListenPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The core also takes the three ports after it 的本地化字符串。
+        /// </summary>
+        public static string TbSettingsAetherListenPortTip {
+            get {
+                return ResourceManager.GetString("TbSettingsAetherListenPortTip", resourceCulture);
             }
         }
         

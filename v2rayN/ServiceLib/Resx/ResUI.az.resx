@@ -1998,4 +1998,28 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>Bu konfiqurasiyanın balanslaşdırıcısı və ya observatory-si tag-ları {0} ilə başlayan çıxışları seçir; bura Aether nüvəsinin xaricə qoşulduğu exit-node çıxışı da daxildir; həmin seçicini dəyişin</value>
   </data>
+  <data name="MsgAetherTestSkipped" xml:space="preserve">
+    <value>Untested: the running Aether profile holds the Aether listen port</value>
+  </data>
+  <data name="MsgPsiphonServersUpdated" xml:space="preserve">
+    <value>psiphon_servers updated: {0} servers, published {1}</value>
+  </data>
+  <data name="MsgPsiphonServersInvalid" xml:space="preserve">
+    <value>The downloaded psiphon_servers is not Psiphon's signed server list; the one in use stays</value>
+  </data>
+  <data name="MsgPsiphonServersCurrent" xml:space="preserve">
+    <value>psiphon_servers is already up to date ({0})</value>
+  </data>
+  <data name="TbSettingsAetherListenPort" xml:space="preserve">
+    <value>Aether dinləmə portu</value>
+  </data>
+  <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
+    <value>The core also takes the three ports after it</value>
+  </data>
+  <data name="FillAetherListenPort" xml:space="preserve">
+    <value>Aether dinləmə portu üçün 1024-dən 65532-yə qədər port istifadə edin</value>
+  </data>
+  <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
+    <value>The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it</value>
+  </data>
 </root>

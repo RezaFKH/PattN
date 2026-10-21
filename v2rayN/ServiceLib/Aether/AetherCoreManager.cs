@@ -25,16 +25,30 @@ public enum AetherRunOutcome
     Done,
 
     /// <summary>
-    /// A latency test found a scan or a key run at the exit, or a load bringing up a session that will need the listen
-    /// port, and left without waiting (critique 9).
+    /// A latency test found a scan or a key run at the exit, a load bringing up a session that will need the listen port,
+    /// or a session that holds it already, and left without waiting (critique 9).
     /// </summary>
     Busy,
 
-    /// <summary>The exit it dials out through did not open, so no core ran: it would have reached the internet without it.</summary>
+    /// <summary>
+    /// The exit it dials out through did not open, so no core ran: it would have reached the internet without it. For a
+    /// latency test, its own Xray did not come up.
+    /// </summary>
     NoExit,
 
-    /// <summary>The core did not start: it could not, every core was stopped while it waited for its turn, or the core's files are being replaced.</summary>
+    /// <summary>
+    /// The core could not start (design 2.4.4): its program could not be run, or it ended at once, without a line or for
+    /// want of a DLL Windows did not find (<see cref="AetherCoreManager.CouldNotStart" />). What the user is told is
+    /// ResUI.MsgAetherCoreCannotStart.
+    /// </summary>
     NotStarted,
+
+    /// <summary>
+    /// Every core was stopped (<see cref="AetherCoreManager.StopAllAsync" />, when PattN exits), or held while the core's
+    /// files are replaced (<see cref="AetherCoreManager.HoldAsync" />): before this one started, while it waited for its
+    /// turn, or while it ran. The value is what the block gave before, if anything.
+    /// </summary>
+    Stopped,
 }
 
 public sealed record AetherRunResult<T>(AetherRunOutcome Outcome, T? Value = default);
@@ -51,8 +65,8 @@ public enum AetherPsiphonClear
 
 /// <summary>
 /// A core of its own: one that serves no session (PattNG withProcess). It dials out through the exit Xray opened for
-/// <see cref="Exit" /> (a scan, a key run); a latency test's core brings its own Xray, which its arguments name with
-/// --upstream already, and has no <see cref="Exit" />.
+/// <see cref="Exit" /> (a scan, a key run); a latency test's core brings its own Xray, <see cref="OwnXray" />, which its
+/// arguments name with --upstream already, and has no <see cref="Exit" />.
 /// </summary>
 /// <param name="Arguments">The arguments of the core, without the program name.</param>
 /// <param name="Role">Not <see cref="AetherRole.Session" />.</param>
@@ -66,6 +80,14 @@ public sealed record AetherStandaloneRun(IReadOnlyList<string> Arguments, Aether
 
     /// <summary>Each line the core writes, as it comes, for the log panel of a window.</summary>
     public Action<string>? OnOutput { get; init; }
+
+    /// <summary>
+    /// Starts the Xray a latency test brings, which its core dials out through, once the run's turn has come and before
+    /// the core starts, as an exit opens (PattNG withProcess with a configuration); null when it does not come up.
+    /// Disposing what it gives stops it, once the core has ended, before the run is over: a stop of every core or a hold
+    /// waits for it as it waits for an exit. Its token is the run's.
+    /// </summary>
+    public Func<CancellationToken, Task<IAsyncDisposable?>>? OwnXray { get; init; }
 }
 
 /// <summary>An exit Xray opened for a core of its own, see <see cref="AetherExitService" />; disposing it closes it.</summary>
@@ -269,6 +291,12 @@ public sealed class AetherCoreManager
     public static readonly TimeSpan StartWindow = TimeSpan.FromSeconds(1);
 
     private const byte SocksVersion = 5;
+
+    /// <summary>The SOCKS5 method "no authentication", the only one the greeting offers.</summary>
+    private const byte SocksNoAuthentication = 0;
+
+    /// <summary>The SOCKS5 answer "no acceptable method": a SOCKS server all the same.</summary>
+    private const byte SocksNoAcceptableMethod = 0xFF;
 
     /// <summary>The SOCKS5 greeting, no authentication offered.</summary>
     private static readonly byte[] SocksGreeting = [5, 1, 0];
@@ -537,12 +565,15 @@ public sealed class AetherCoreManager
 
     /// <summary>
     /// Runs a core of its own (PattNG withProcess): it takes its turn at the exit, a latency test only when the exit is
-    /// free (critique 9), the exit Xray of <see cref="AetherStandaloneRun.Exit" /> opens before the core starts and
-    /// closes once it has ended, and <paramref name="block" /> reads the core's lines while it runs. The core and what it
-    /// started are killed once <paramref name="block" /> is over, however it ends. A test's run is a probe that a session
-    /// start cancels (<see cref="CancelProbesAsync" />), and none starts while that start is under way. A run waiting for
-    /// its turn gives up when every core is stopped (<see cref="StopAllAsync" />), and none starts during a hold
-    /// (<see cref="HoldAsync" />). A cancellation of <paramref name="ct" /> throws <see cref="OperationCanceledException" />.
+    /// free (critique 9), the exit Xray of <see cref="AetherStandaloneRun.Exit" />, or the test's own
+    /// (<see cref="AetherStandaloneRun.OwnXray" />), opens before the core starts and closes once it has ended, and
+    /// <paramref name="block" /> reads the core's lines while it runs. The core and what it started are killed once
+    /// <paramref name="block" /> is over, however it ends. A test's run is a probe that a session start cancels
+    /// (<see cref="CancelProbesAsync" />: its block's token is cancelled, and <see cref="OperationCanceledException" />
+    /// comes out), and none starts while that start is under way or beside a session. A stop of every core
+    /// (<see cref="StopAllAsync" />) or a hold (<see cref="HoldAsync" />) ends a run, or keeps it from starting, with
+    /// <see cref="AetherRunOutcome.Stopped" />. Only a cancellation of <paramref name="ct" /> throws
+    /// <see cref="OperationCanceledException" /> for a scan or a key run.
     /// </summary>
     public async Task<AetherRunResult<T>> RunStandaloneAsync<T>(
         AetherStandaloneRun run,
@@ -559,7 +590,7 @@ public sealed class AetherCoreManager
             if (_holds > 0)
             {
                 // The core's files are being replaced.
-                return new AetherRunResult<T>(AetherRunOutcome.NotStarted);
+                return new AetherRunResult<T>(AetherRunOutcome.Stopped);
             }
             stopAll = _stopAll;
         }
@@ -583,7 +614,7 @@ public sealed class AetherCoreManager
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 // Every core was stopped while this one waited for its turn.
-                return new AetherRunResult<T>(AetherRunOutcome.NotStarted);
+                return new AetherRunResult<T>(AetherRunOutcome.Stopped);
             }
         }
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -593,11 +624,13 @@ public sealed class AetherCoreManager
         {
             if (_holds > 0 || _stopAll != stopAll)
             {
-                refused = AetherRunOutcome.NotStarted;
+                refused = AetherRunOutcome.Stopped;
             }
-            else if (run.Role == AetherRole.Test && _sessionStarting)
+            else if (run.Role == AetherRole.Test && (_sessionStarting || _session != null))
             {
-                // A session is about to take the listen port this test's core would hold; the row is left untested.
+                // A session is about to take the listen port this test's core would hold, or holds it already: one that
+                // started after the test chose a tunnel of its own. The row is left untested; PattNG cancels the tests
+                // of every start.
                 refused = AetherRunOutcome.Busy;
             }
             else
@@ -613,9 +646,15 @@ public sealed class AetherCoreManager
         try
         {
             IAetherExit? exit = null;
+            IAsyncDisposable? ownXray = null;
             var (opened, result) = await InExitAsync(
                 async () =>
                 {
+                    if (run.OwnXray != null)
+                    {
+                        ownXray = await run.OwnXray(cancellation.Token).ConfigureAwait(false);
+                        return ownXray == null ? null : 0;
+                    }
                     if (run.Exit == null)
                     {
                         return 0;
@@ -625,6 +664,10 @@ public sealed class AetherCoreManager
                 },
                 async () =>
                 {
+                    if (ownXray != null)
+                    {
+                        await ownXray.DisposeAsync().ConfigureAwait(false);
+                    }
                     if (exit != null)
                     {
                         await exit.DisposeAsync().ConfigureAwait(false);
@@ -637,18 +680,79 @@ public sealed class AetherCoreManager
                     block,
                     cancellation.Token),
                 cancellation.Token).ConfigureAwait(false);
+            if (state.StoppedWithAll)
+            {
+                return new AetherRunResult<T>(AetherRunOutcome.Stopped, result is { } given ? given.Value : default);
+            }
             if (!opened)
             {
-                Logging.SaveLog($"AetherCore: the exit-node {SourceOf(run.Role)} dials out through gives no outbound: no profile or several have its name, it gives none, or its ECH outbound is unusable; no core runs");
+                Logging.SaveLog(run.Exit != null
+                    ? $"AetherCore: the exit-node {SourceOf(run.Role)} dials out through gives no outbound: no profile or several have its name, it gives none, or its ECH outbound is unusable; no core runs"
+                    : $"AetherCore: the Xray {SourceOf(run.Role)} dials out through did not come up; no core runs");
                 return new AetherRunResult<T>(AetherRunOutcome.NoExit);
             }
             return result!;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && state.StoppedWithAll)
+        {
+            // Every core was stopped while this one ran: no cancellation its caller asked for.
+            Logging.SaveLog($"AetherCore: the {SourceOf(run.Role)} core was stopped with every other core");
+            return new AetherRunResult<T>(AetherRunOutcome.Stopped);
         }
         finally
         {
             Volatile.Write(ref _run, null);
             state.Ended.TrySetResult();
             _exitTurns.Release();
+        }
+    }
+
+    /// <summary>
+    /// Runs a core of its own (<see cref="RunStandaloneAsync{T}" />) until a line of its output gives what
+    /// <paramref name="match" /> looks for (PattNG runUntil): a scan until it names its endpoint, a key run until it says
+    /// its keys are saved. The value is null when the core ends first, or when <paramref name="timeout" />, counted from
+    /// the core's start, passes first; a core that ended at once gives <see cref="AetherRunOutcome.NotStarted" />, and a
+    /// stop of every core <see cref="AetherRunOutcome.Stopped" />. Only a cancellation of <paramref name="ct" /> throws
+    /// <see cref="OperationCanceledException" />.
+    /// </summary>
+    public Task<AetherRunResult<T>> RunUntilAsync<T>(
+        AetherStandaloneRun run,
+        TimeSpan timeout,
+        Func<string, T?> match,
+        CancellationToken ct = default)
+        where T : class
+    {
+        return RunStandaloneAsync(run, (lines, token) => FirstMatchAsync(lines, match, timeout, token), ct);
+    }
+
+    /// <summary>
+    /// The first of <paramref name="lines" /> that <paramref name="match" /> gives a value for; null when the lines end
+    /// (the core exited) or <paramref name="timeout" /> passes first. A cancellation of <paramref name="ct" /> throws.
+    /// </summary>
+    public static async Task<T?> FirstMatchAsync<T>(
+        ChannelReader<string> lines,
+        Func<string, T?> match,
+        TimeSpan timeout,
+        CancellationToken ct = default)
+        where T : class
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(timeout);
+        try
+        {
+            await foreach (var line in lines.ReadAllAsync(deadline.Token).ConfigureAwait(false))
+            {
+                if (match(line) is { } found)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // The time is up.
+            return null;
         }
     }
 
@@ -692,7 +796,8 @@ public sealed class AetherCoreManager
 
     /// <summary>
     /// Ends every Aether core PattN runs, the session's and a core of its own, and waits for them: when PattN exits. A
-    /// scan or a key run waiting for its turn at the exit gives up, rather than start once the others are gone.
+    /// scan or a key run waiting for its turn at the exit gives up, rather than start once the others are gone; it and the
+    /// one that ran end with <see cref="AetherRunOutcome.Stopped" />.
     /// </summary>
     public async Task StopAllAsync()
     {
@@ -703,7 +808,9 @@ public sealed class AetherCoreManager
     /// <summary>
     /// Ends every Aether core PattN runs, as <see cref="StopAllAsync" /> does, and keeps any from starting until the hold
     /// it returns is disposed: while the core's files are replaced (a running program's file is locked on Windows). A
-    /// session start meanwhile waits for the hold to end; a test, a scan or a key run does not start.
+    /// session start meanwhile waits for the hold to end; a test, a scan or a key run does not start
+    /// (<see cref="AetherRunOutcome.Stopped" />). The run that is ended closes its exit Xray, or a test's own Xray, before
+    /// it is over, and the hold waits for that as it waits for the core, so that Xray's files can be replaced under it too.
     /// </summary>
     public async Task<IAsyncDisposable> HoldAsync()
     {
@@ -792,7 +899,10 @@ public sealed class AetherCoreManager
     /// True when a SOCKS server answers on the loopback <paramref name="port" /> (PattNG answersSocks): the connection is
     /// taken and the greeting gets its reply. A listener bound before anything serves it, as Tor's is bound before Tor has
     /// bootstrapped, takes the connection into its backlog and says nothing, so it does not count until it does; one that
-    /// closes every connection, as Psiphon's does until it has a tunnel, does not count either.
+    /// closes every connection, as Psiphon's does until it has a tunnel, does not count either. The whole reply to the
+    /// greeting is read, the version and a method the greeting allows (PattNG reads the version alone): two probes of
+    /// loopback ports nothing listens on can be connected to each other by a simultaneous open when each was given the
+    /// other's port to dial from, and each then reads the other's greeting, which begins with the version as well.
     /// </summary>
     public static async Task<bool> AnswersSocksAsync(int port, CancellationToken ct = default)
     {
@@ -808,9 +918,9 @@ public sealed class AetherCoreManager
             answering.CancelAfter(ProbeTimeout);
             var stream = client.GetStream();
             await stream.WriteAsync(SocksGreeting, answering.Token).ConfigureAwait(false);
-            var reply = new byte[1];
-            var read = await stream.ReadAsync(reply, answering.Token).ConfigureAwait(false);
-            return read == 1 && reply[0] == SocksVersion;
+            var reply = new byte[2];
+            await stream.ReadExactlyAsync(reply, answering.Token).ConfigureAwait(false);
+            return reply[0] == SocksVersion && reply[1] is SocksNoAuthentication or SocksNoAcceptableMethod;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -979,6 +1089,10 @@ public sealed class AetherCoreManager
     {
         var source = SourceOf(run.Role);
         var output = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+        // Whether the core wrote a line, and how long after its spawn it exited (-1 while it runs): a core that ends at
+        // once without a line did not start (design 2.4.4), as the session's does not.
+        var hadOutput = 0;
+        var exitedAfterTicks = -1L;
         IAetherCoreProcess process;
         try
         {
@@ -987,6 +1101,7 @@ public sealed class AetherCoreManager
             ReapLeftovers();
             process = _host.Spawn(AetherProcess.StartInfo(_host.Folders, arguments, run.Role, run.KeysDir), line =>
             {
+                Volatile.Write(ref hadOutput, 1);
                 RelayLine(source, line);
                 run.OnOutput?.Invoke(line);
                 output.Writer.TryWrite(line);
@@ -997,6 +1112,7 @@ public sealed class AetherCoreManager
             Logging.SaveLog($"AetherCore: failed to launch {source}", ex);
             return new AetherRunResult<T>(AetherRunOutcome.NotStarted);
         }
+        var lifetime = Stopwatch.StartNew();
         state.Process = process;
         _host.Adopt?.Invoke(process);
         if (_host.UsesPidFiles)
@@ -1007,12 +1123,25 @@ public sealed class AetherCoreManager
         {
             // A failed wait for the exit is no failure of the run; it is read here, so that it goes unobserved nowhere.
             _ = exited.Exception;
+            Interlocked.Exchange(ref exitedAfterTicks, lifetime.Elapsed.Ticks);
             output.Writer.TryComplete();
         }, TaskScheduler.Default);
         try
         {
             ct.ThrowIfCancellationRequested();
-            return new AetherRunResult<T>(AetherRunOutcome.Done, await block(output.Reader, ct).ConfigureAwait(false));
+            var value = await block(output.Reader, ct).ConfigureAwait(false);
+            // A block that found nothing because the core is gone: a core that never really started is told apart from
+            // one that ran and gave up (a scan without an endpoint, a key run without its word).
+            if (value is null && Interlocked.Read(ref exitedAfterTicks) is >= 0 and var exitedAfter)
+            {
+                var exitCode = await ExitCodeOf(process).ConfigureAwait(false);
+                if (CouldNotStart(exitCode, TimeSpan.FromTicks(exitedAfter), Volatile.Read(ref hadOutput) != 0))
+                {
+                    Logging.SaveLog($"AetherCore: the {source} core could not start (code {exitCode})");
+                    return new AetherRunResult<T>(AetherRunOutcome.NotStarted);
+                }
+            }
+            return new AetherRunResult<T>(AetherRunOutcome.Done, value);
         }
         finally
         {
@@ -1098,7 +1227,7 @@ public sealed class AetherCoreManager
         {
             return;
         }
-        run.Cancel();
+        run.StopWithAll();
         if (run.Process is { } process)
         {
             await process.KillAsync(_host.ExitWait).ConfigureAwait(false);
@@ -1148,17 +1277,22 @@ public sealed class AetherCoreManager
         }
     }
 
-    private async Task WatchAsync(AetherSession session, IAetherCoreProcess process)
+    /// <summary>The exit code of <paramref name="process" />, once it has exited; -1 when it cannot be read.</summary>
+    private static async Task<int> ExitCodeOf(IAetherCoreProcess process)
     {
-        int exitCode;
         try
         {
-            exitCode = await process.Exited.ConfigureAwait(false);
+            return await process.Exited.ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or Win32Exception)
         {
-            exitCode = -1;
+            return -1;
         }
+    }
+
+    private async Task WatchAsync(AetherSession session, IAetherCoreProcess process)
+    {
+        var exitCode = await ExitCodeOf(process).ConfigureAwait(false);
         // The end of a core that exited on its own takes its turn with starts and stops: a start that follows comes up only
         // once what the old core started is gone too, with its listener and Psiphon's datastore lock (PattNG queues it
         // behind the old core's end on the core's executor).
@@ -1302,9 +1436,21 @@ public sealed class AetherCoreManager
     /// <summary>The core of its own that holds the exit: what it runs for, how to stop it, and when it is over.</summary>
     private sealed class Standalone(AetherRole role, CancellationTokenSource cancellation)
     {
+        private volatile bool _stoppedWithAll;
+
         public AetherRole Role { get; } = role;
         public TaskCompletionSource Ended { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public IAetherCoreProcess? Process { get; set; }
+
+        /// <summary>Whether it was ended by a stop of every core or a hold, rather than by its caller or a session start.</summary>
+        public bool StoppedWithAll => _stoppedWithAll;
+
+        /// <summary>Ends it with every other core (<see cref="StopRunsAsync" />): its run gives <see cref="AetherRunOutcome.Stopped" />.</summary>
+        public void StopWithAll()
+        {
+            _stoppedWithAll = true;
+            Cancel();
+        }
 
         public void Cancel()
         {

@@ -244,6 +244,12 @@ public sealed partial class V2rayRuntime(
             if (proxyPortOverride is int configuredProxyPort)
             {
                 Config.Inbound[0].LocalPort = configuredProxyPort;
+                // PattN (W7): the override is not refused, but an overlap with the Aether ports is told, since the API
+                // cannot move the Aether listen port and the override comes back at every start
+                if (ProxyPortOverrideWarning(Config, configuredProxyPort) is { } aetherPortsWarning)
+                {
+                    AddLog("settings", aetherPortsWarning);
+                }
             }
             if (_configuration.GetValue<bool?>("V2RAYN_WEB_PROXY_LISTEN_ALL") is bool allowProxyFromLan)
             {
