@@ -1270,6 +1270,18 @@ public class AetherFmtTests
     }
 
     [Test]
+    public async Task ACommandWhoseListenersShareAPortIsRefused()
+    {
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:20808" }))
+            .Should().BeEqualTo(AetherProblem.ListenPortShared);
+        // A command naming no listener gets one on the Aether listen port, which its HTTP proxy then shares.
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --http-proxy 127.0.0.1:20808" }), listenPort: 20808)
+            .Should().BeEqualTo(AetherProblem.ListenPortShared);
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:20809" })).Should().BeNull();
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortShared).Should().BeEqualTo(ResUI.MsgAetherListenPortShared);
+    }
+
+    [Test]
     public async Task WithoutKnownLocalPortsNoPortIsTaken()
     {
         // The local proxy port is picked at random on every start, or the caller has none to name.

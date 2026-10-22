@@ -2122,6 +2122,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Tor or Psiphon inside the Aether tunnel ended, so the connection was stopped: {0} 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherCoreStoppedChainEnded {
+            get {
+                return ResourceManager.GetString("MsgAetherCoreStoppedChainEnded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The Aether core stopped: ECH is on, but no usable ECH key was found. Without one, the server name would have gone out in the clear. 的本地化字符串。
         /// </summary>
         public static string MsgAetherCoreStoppedNoEchKey {
@@ -2496,6 +2505,15 @@ namespace ServiceLib.Resx {
         public static string MsgAetherListenPortLocalProxy {
             get {
                 return ResourceManager.GetString("MsgAetherListenPortLocalProxy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The command of the Aether profile tells the core to listen on one port with two of its listeners; give each listener a port of its own 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenPortShared {
+            get {
+                return ResourceManager.GetString("MsgAetherListenPortShared", resourceCulture);
             }
         }
         

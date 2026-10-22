@@ -61,6 +61,27 @@ public sealed record AetherCore
         .Distinct()
         .ToList();
 
+    /// <summary>
+    /// The first port two of the listeners the core is told to bind share, as a command written by hand may name; null
+    /// when each has a port of its own (PattNG AetherCore.sharedPort). The core would bind one of them and fail on the
+    /// other, once its tunnel is up and Xray dials it. Ports are told apart by number, as everywhere else in the app.
+    /// </summary>
+    public int? SharedPort
+    {
+        get
+        {
+            var seen = new HashSet<int>();
+            foreach (var port in Listeners.Select(flag => AetherArguments.PortAfter(Arguments, flag)).OfType<int>())
+            {
+                if (port != 0 && !seen.Add(port))
+                {
+                    return port;
+                }
+            }
+            return null;
+        }
+    }
+
     /// <summary>The protocol, which tells whose identity files the core uses.</summary>
     public AetherProtocol Protocol => AetherArguments.ProtocolOf(Arguments);
 

@@ -62,6 +62,38 @@ public class AetherLogLineTests
         await AetherLogLine.IsNoEchKeyWord("Error: Api(\"too many registrations\")").Should().BeFalse();
     }
 
+    [Test]
+    public async Task TheEndOfTorOrPsiphonInsideTheTunnelIsToldFromTheirOtherLines()
+    {
+        string[] tor = ["--masque", "--tor", "--tor-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"];
+        string[] psiphon = ["--masque", "--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"];
+        // The core's word when Tor cannot take its listener, which another program took meanwhile (aether lib.rs, run_chain).
+        const string torWords = "tor: the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
+                                + "another program already listens there, so stop it or choose another port with --bind";
+        const string torEnded = "[2026-10-23T10:00:00.000Z ERROR aether] [-] " + torWords;
+        await AetherLogLine.ChainEndWords(torEnded, tor).Should().BeEqualTo(torWords);
+        // Psiphon's own words start with "psiphon" again; those of the client it passes on under the same prefix do not.
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped before it was ready", psiphon)
+            .Should().BeEqualTo("psiphon: psiphon stopped before it was ready");
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped: exit status: 1", psiphon)
+            .Should().BeEqualTo("psiphon: psiphon stopped: exit status: 1");
+        await AetherLogLine.ChainEndWords(
+                "[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: error initializing local SOCKS proxy: address already in use", psiphon)
+            .Should().BeNull();
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z WARN  aether::psiphon] [-] psiphon lost its tunnel; it is reconnecting", psiphon)
+            .Should().BeNull();
+        // Not at the error level, Tor's word for a session on Psiphon's listener, a session on the core's own listener.
+        await AetherLogLine.ChainEndWords(torEnded.Replace("ERROR", "INFO "), tor).Should().BeNull();
+        await AetherLogLine.ChainEndWords(torEnded, psiphon).Should().BeNull();
+        await AetherLogLine.ChainEndWords(torEnded, ["--masque", "--bind", "127.0.0.1:10819"]).Should().BeNull();
+        // Psiphon around the tunnel ends the tunnel with it, and the core's own listener answers no more: no leak to look for.
+        string[] reverse = ["--masque", "--psiphon-reverse", "--bind", "127.0.0.1:10819"];
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped: exit status: 1", reverse)
+            .Should().BeNull();
+        // The error the core stops on is its own exit, not a chain that ended under a running core.
+        await AetherLogLine.ChainEndWords("Error: Other(\"[-] tor: ...\")", tor).Should().BeNull();
+    }
+
     // PattN only (design 2.6.1): the Tor logs of the core can carry colour codes even when piped.
     [Test]
     public async Task AnsiColourCodesAreStrippedFromCoreOutput()

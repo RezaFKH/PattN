@@ -334,6 +334,27 @@ public class AetherCoreTests
     }
 
     [Test]
+    public async Task TwoListenersOfACommandOnOnePortAreFound()
+    {
+        // An HTTP proxy on the port the core listens on, which a command naming no listener gets there.
+        await OfCommand("aether --wg --http-proxy 127.0.0.1:10819").SharedPort.Should().BeEqualTo(10819);
+        // Tor inside the tunnel on the core's own port.
+        await OfCommand("aether --masque --tor --tor-bind 127.0.0.1:10820 --bind 127.0.0.1:10820").SharedPort.Should().BeEqualTo(10820);
+        // Each with a port of its own; Psiphon's 0 around the tunnel is none.
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:8118").SharedPort.Should().BeNull();
+        await OfCommand("aether --masque --psiphon-reverse --psiphon-bind 127.0.0.1:0 --psiphon-http 127.0.0.1:0 --bind 127.0.0.1:10819")
+            .SharedPort.Should().BeNull();
+        // The settings give each listener a port of its own.
+        var most = Profile(extra => extra with
+        {
+            AetherProtocol = AetherProtocol.Masque.Type,
+            AetherPsiphon = AetherPsiphon.Chain.Type,
+            AetherTor = AetherTor.Reverse.Type,
+        });
+        await AetherCore.Of(most, ListenPort).SharedPort.Should().BeNull();
+    }
+
+    [Test]
     public async Task TheCoreOfAProfileDialsOutThroughTheExitNodeOfItsProfile()
     {
         var masked = Copy(Pinned(), set: profile =>

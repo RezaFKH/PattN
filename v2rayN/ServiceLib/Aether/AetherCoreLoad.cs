@@ -135,8 +135,8 @@ public static class AetherCoreLoad
         var secondaryPort = steps.SecondaryPort();
         var problem = PortsProblem(core, secondaryPort, steps.CanListen);
         var waited = Stopwatch.StartNew();
-        // A port no listener can have is not released by waiting (D3-1).
-        while (problem != null && InvalidPort(core) == null && waited.Elapsed + PortPoll <= steps.PortRelease)
+        // A port no listener can have, or one two of them are told to share, is not released by waiting (D3-1).
+        while (problem != null && InvalidPort(core) == null && core.SharedPort == null && waited.Elapsed + PortPoll <= steps.PortRelease)
         {
             await Task.Delay(PortPoll);
             problem = PortsProblem(core, secondaryPort, steps.CanListen);
@@ -154,13 +154,17 @@ public static class AetherCoreLoad
     /// Why the ports of <paramref name="core" />, and <paramref name="secondaryPort" /> (by TCP and UDP), cannot be listened
     /// on, as <paramref name="canListen" /> finds them (<see cref="CanListen" />), naming the first port that cannot; null
     /// when every one can. A port of the core outside 1..65535, which a command written by hand may name (D3-1), comes
-    /// first, with what it is.
+    /// first, with what it is, and then a port two listeners of such a command share, which the core would bind once.
     /// </summary>
     public static string? PortsProblem(AetherCore core, int? secondaryPort, Func<int, bool, bool> canListen)
     {
         if (InvalidPort(core) is { } invalid)
         {
             return string.Format(ResUI.MsgAetherListenPortInvalid, invalid);
+        }
+        if (core.SharedPort != null)
+        {
+            return ResUI.MsgAetherListenPortShared;
         }
         foreach (var port in core.Ports)
         {

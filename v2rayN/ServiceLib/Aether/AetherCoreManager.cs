@@ -180,6 +180,11 @@ public sealed class AetherSession
     private volatile bool _hadOutput;
     private volatile string? _lastError;
 
+    // The process and the chain's end, which its first lines may report before it is attached.
+    private readonly object _processGate = new();
+    private IAetherCoreProcess? _process;
+    private string? _chainEnd;
+
     internal AetherSession(AetherCore core, IReadOnlyList<string> arguments, long generation)
     {
         Core = core;
@@ -221,9 +226,48 @@ public sealed class AetherSession
     /// <summary>The last error line the core wrote ("Error: ..."), the one it stops on; null without one.</summary>
     public string? LastError => _lastError;
 
+    /// <summary>
+    /// The core's words that Tor or Psiphon inside the tunnel had ended, for which PattN ended it (see
+    /// <see cref="AetherLogLine.ChainEndWords" />); null otherwise.
+    /// </summary>
+    public string? ChainEnd
+    {
+        get
+        {
+            lock (_processGate)
+            {
+                return _chainEnd;
+            }
+        }
+    }
+
     internal bool HadOutput => _hadOutput;
     internal Stopwatch Lifetime { get; } = Stopwatch.StartNew();
-    internal IAetherCoreProcess? Process { get; set; }
+
+    /// <summary>The process of the session, once it is spawned and attached (<see cref="Attach" />).</summary>
+    internal IAetherCoreProcess? Process
+    {
+        get
+        {
+            lock (_processGate)
+            {
+                return _process;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Attaches the spawned <paramref name="process" />; returns it when the core has said meanwhile, among its first
+    /// lines, that Tor or Psiphon inside the tunnel ended (<see cref="Saw" />), for the caller to end it.
+    /// </summary>
+    internal IAetherCoreProcess? Attach(IAetherCoreProcess process)
+    {
+        lock (_processGate)
+        {
+            _process = process;
+            return _chainEnd != null ? process : null;
+        }
+    }
 
     /// <summary>Set when PattN stops the session; an exit then is no exit on its own.</summary>
     internal bool StopRequested { get; set; }
@@ -246,7 +290,12 @@ public sealed class AetherSession
         return AetherIdentityManager.UsesKeysOf(Protocol, kind);
     }
 
-    internal void Saw(string line)
+    /// <summary>
+    /// Reads a line of the core's output. When it says that Tor or Psiphon inside the tunnel ended, the core goes on
+    /// without the listener Xray dials, which another program may hold then: the process is returned for the caller to
+    /// end, once it is attached (<see cref="Attach" /> returns it otherwise). Null for every other line.
+    /// </summary>
+    internal IAetherCoreProcess? Saw(string line)
     {
         _hadOutput = true;
         if (!_wordSeen && AetherLogLine.IsReadyWord(line))
@@ -261,6 +310,19 @@ public sealed class AetherSession
         if (AetherLogLine.IsFatalError(text))
         {
             _lastError = text;
+        }
+        if (AetherLogLine.ChainEndWords(text, Arguments) is not { } words)
+        {
+            return null;
+        }
+        lock (_processGate)
+        {
+            if (_chainEnd != null)
+            {
+                return null;
+            }
+            _chainEnd = words;
+            return _process;
         }
     }
 }
@@ -459,8 +521,12 @@ public sealed class AetherCoreManager
                 ReapLeftovers();
                 process = _host.Spawn(AetherProcess.StartInfo(_host.Folders, arguments, AetherRole.Session), line =>
                 {
-                    session.Saw(line);
+                    var ended = session.Saw(line);
                     RelayLine(SourceOf(AetherRole.Session), line);
+                    if (ended != null)
+                    {
+                        EndForChain(ended);
+                    }
                 });
                 // A core that ends at once without a word did not start (design 2.4.4): its time counts from its spawn,
                 // not from the work before it, a leftover core killed and waited for among it.
@@ -479,19 +545,34 @@ public sealed class AetherCoreManager
                 RaiseSessionChanged();
                 return ResUI.MsgAetherCoreCannotStart;
             }
-            session.Process = process;
+            var endedEarly = session.Attach(process);
             _host.Adopt?.Invoke(process);
             if (_host.UsesPidFiles)
             {
                 AetherLeftovers.Write(_host.Folders.SessionPidFile, process);
             }
             _ = WatchAsync(session, process);
+            if (endedEarly != null)
+            {
+                EndForChain(endedEarly);
+            }
             return null;
         }
         finally
         {
             _lifecycle.Release();
         }
+    }
+
+    /// <summary>
+    /// Ends the session's core <paramref name="process" />, which goes on without the listener Xray dials once Tor or
+    /// Psiphon inside the tunnel ended (<see cref="AetherSession.ChainEnd" />). Its exit then ends the session as an exit
+    /// on its own does, Xray with it (<see cref="WatchAsync" />; PattNG AetherCoreManager.watch).
+    /// </summary>
+    private void EndForChain(IAetherCoreProcess process)
+    {
+        Logging.SaveLog("AetherCore: ending the session core, Tor or Psiphon inside the tunnel has ended");
+        _ = EndProcessAsync(process, SourceOf(AetherRole.Session));
     }
 
     /// <summary>Stops the session core and whatever it started, and waits for them; raises nothing.</summary>
@@ -960,11 +1041,16 @@ public sealed class AetherCoreManager
     }
 
     /// <summary>
-    /// What to tell the user of a session core that ended on its own (PattNG stoppedMessage), in the words it ended with:
-    /// for want of an ECH key, with the error it stopped on (critique 30), or plainly.
+    /// What to tell the user of a session core that ended on its own, or was ended as Tor or Psiphon inside the tunnel had
+    /// ended (<paramref name="chainEnd" />, the core's words), in the words it ended with (PattNG stoppedMessage): for want
+    /// of an ECH key, with the error it stopped on (critique 30), or plainly.
     /// </summary>
-    public static string StoppedMessage(bool noEchKey, string? lastError = null)
+    public static string StoppedMessage(bool noEchKey, string? lastError = null, string? chainEnd = null)
     {
+        if (chainEnd != null)
+        {
+            return string.Format(ResUI.MsgAetherCoreStoppedChainEnded, chainEnd);
+        }
         if (noEchKey)
         {
             return ResUI.MsgAetherCoreStoppedNoEchKey;
@@ -1324,7 +1410,7 @@ public sealed class AetherCoreManager
                     _session = null;
                     message = CouldNotStart(exitCode, session.Lifetime.Elapsed, session.HadOutput)
                         ? ResUI.MsgAetherCoreCannotStart
-                        : StoppedMessage(session.NoEchKey, session.LastError);
+                        : StoppedMessage(session.NoEchKey, session.LastError, session.ChainEnd);
                     _stoppedMessage = message;
                 }
             }

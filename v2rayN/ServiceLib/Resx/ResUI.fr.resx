@@ -1857,6 +1857,9 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
     <value>The Aether core stopped running: {0}</value>
   </data>
+  <data name="MsgAetherCoreStoppedChainEnded" xml:space="preserve">
+    <value>Tor or Psiphon inside the Aether tunnel ended, so the connection was stopped: {0}</value>
+  </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
     <value>The Aether core could not start. On Windows, an aether-core older than 2.3.2 needs the Microsoft Visual C++ 2015-2022 Redistributable (x64); update aether-core under Check Update</value>
   </data>
@@ -1898,6 +1901,9 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>The command of the Aether profile tells the core to listen on {0}, which is no port (1 to 65535); change the ports of the command</value>
+  </data>
+  <data name="MsgAetherListenPortShared" xml:space="preserve">
+    <value>The command of the Aether profile tells the core to listen on one port with two of its listeners; give each listener a port of its own</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>No profile named "{0}" was found</value>

@@ -121,6 +121,11 @@ public class AetherCoreManagerTests : IDisposable
                         Cores.Add(core);
                     }
                     Log($"spawn {core.Id}");
+                    if (FirstLine is { } first)
+                    {
+                        // A line the core writes before its spawn has returned.
+                        core.Write(first);
+                    }
                     return core;
                 },
                 AppLogLevel = () => AppLogLevel,
@@ -163,6 +168,9 @@ public class AetherCoreManagerTests : IDisposable
         public string? AppLogLevel { get; set; } = "warning";
         public bool CoresEndWhenKilled { get; set; } = true;
         public bool SpawnFails { get; set; }
+
+        /// <summary>A line each core writes as it is spawned, before the spawn returns.</summary>
+        public string? FirstLine { get; set; }
         public TimeSpan SpawnTakes { get; set; }
         public TimeSpan KillTakes { get; set; }
 
@@ -427,6 +435,60 @@ public class AetherCoreManagerTests : IDisposable
     {
         await AetherCoreManager.StoppedMessage(noEchKey: false, "Error: Api(\"too many registrations\")")
             .Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedWithError, "Error: Api(\"too many registrations\")"));
+        // A core ended as Tor or Psiphon inside the tunnel had ended says so, in the core's words.
+        await AetherCoreManager.StoppedMessage(noEchKey: false, null, "tor: the tor socks5 listener cannot use 127.0.0.1:10819")
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, "tor: the tor socks5 listener cannot use 127.0.0.1:10819"));
+    }
+
+    private const string TorTakenWords = "tor: the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
+                                         + "another program already listens there, so stop it or choose another port with --bind";
+
+    private static AetherCore TorInside()
+    {
+        return Core("--masque", "--tor", "--tor-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820");
+    }
+
+    [Test]
+    public async Task ACoreWhoseTorInsideTheTunnelEndedIsEndedAndEndsTheSession()
+    {
+        var rig = new Rig(_root);
+        var ends = rig.WatchEnds();
+
+        await rig.Manager.StartSessionAsync(TorInside(), generation: 7);
+        // The core goes on without the listener Xray dials, which another program holds (aether lib.rs, run_chain).
+        rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether] [-] " + TorTakenWords);
+
+        var ended = await Next(ends);
+        await rig.Core(0).Killed.Should().BeTrue();
+        await ended.Generation.Should().BeEqualTo(7);
+        await ended.Message.Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, TorTakenWords));
+        await rig.Manager.Session.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ACoreThatSaysSoBeforeItIsAttachedIsEndedOnceItIs()
+    {
+        // Tor binds its listener as the core starts, and the word may come before the spawn returns.
+        var rig = new Rig(_root) { FirstLine = "[2026-10-23T10:00:00.000Z ERROR aether] [-] " + TorTakenWords };
+        var ends = rig.WatchEnds();
+
+        await rig.Manager.StartSessionAsync(TorInside());
+
+        await (await Next(ends)).Message.Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, TorTakenWords));
+        await rig.Core(0).Killed.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task AnErrorThePsiphonClientReportsLeavesTheSessionUp()
+    {
+        var rig = new Rig(_root);
+
+        await rig.Manager.StartSessionAsync(Core("--masque", "--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"));
+        // The client's own notice, which the core passes on; the core's word that Psiphon ended would follow it.
+        rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: tunnel establishment failed: dial timeout");
+
+        await rig.Core(0).Killed.Should().BeFalse();
+        await rig.Manager.Session.Should().NotBeNull();
     }
 
     [Test]

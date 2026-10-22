@@ -223,6 +223,23 @@ public class AetherCoreLoadTests
     }
 
     [Test]
+    public async Task TwoListenersOnOnePortAreRefusedWithoutAWait()
+    {
+        // A command stored before the editor refused it: the core would bind the port once and fail on the second listener.
+        var core = AetherCore.OfCommand("aether --masque --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:10819", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(ResUI.MsgAetherListenPortShared);
+        var steps = new Steps(core) { Secondary = null, PortRelease = TimeSpan.FromSeconds(5), CanListen = (_, _) => true };
+
+        var waited = Stopwatch.StartNew();
+        await Load(steps);
+
+        await (waited.Elapsed < TimeSpan.FromSeconds(2)).Should().BeTrue();
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", $"report True {ResUI.MsgAetherListenPortShared}"],
+            CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task AnHttpProxyOfTheCoreThatIsTakenLeavesTheCoresStopped()
     {
         // A command written by hand may open an HTTP proxy beside the core's own listener; its port is the core's as well.

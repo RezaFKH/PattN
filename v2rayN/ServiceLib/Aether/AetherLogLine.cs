@@ -78,6 +78,33 @@ public static partial class AetherLogLine
     }
 
     /// <summary>
+    /// The core's words, without their "[-] ", when <paramref name="line" /> says that Tor or Psiphon inside the tunnel,
+    /// whose listener a session started with <paramref name="arguments" /> is dialled on, has ended or could not start;
+    /// null for any other line, and for a session dialled on the core's own listener (PattNG chainEndWords). The core logs
+    /// it and goes on without that listener (aether lib.rs: "[-] tor: {e}" and "[-] psiphon: {e}" of run_chain), where
+    /// another program may listen then and get what Xray sends there. Tor's words are the only ones with their prefix;
+    /// Psiphon's own start with "psiphon" again, where the notices of the Psiphon client that the core passes on under the
+    /// same prefix do not.
+    /// </summary>
+    public static string? ChainEndWords(string line, IReadOnlyList<string> arguments)
+    {
+        if (IsFatalError(line) || OutputPriority(line) != AetherLogPriority.Error)
+        {
+            return null;
+        }
+        var listener = AetherArguments.ListenerFlagOf(arguments);
+        var prefix = listener == AetherArguments.TorBind ? "[-] tor: "
+            : listener == AetherArguments.PsiphonBind ? "[-] psiphon: psiphon"
+            : null;
+        if (prefix == null)
+        {
+            return null;
+        }
+        var message = OutputMessage(line);
+        return message.StartsWith(prefix, StringComparison.Ordinal) ? message.Substring("[-] ".Length) : null;
+    }
+
+    /// <summary>
     /// <paramref name="line" /> without ANSI colour codes, which the Tor logs of the core can carry even when its output
     /// is no terminal.
     /// </summary>

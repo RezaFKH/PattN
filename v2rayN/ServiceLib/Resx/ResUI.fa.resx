@@ -1866,6 +1866,9 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
     <value>هسته Aether متوقف شده است: {0}</value>
   </data>
+  <data name="MsgAetherCoreStoppedChainEnded" xml:space="preserve">
+    <value>تور یا سایفون درون تونل Aether از کار افتاد، پس اتصال متوقف شد: {0}</value>
+  </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
     <value>هسته Aether اجرا نشد. در ویندوز، aether-core قدیمی‌تر از 2.3.2 به Microsoft Visual C++ 2015-2022 Redistributable (x64) نیاز دارد؛ aether-core را در «بررسی بروزرسانی» به‌روز کنید</value>
   </data>
@@ -1907,6 +1910,9 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>فرمان پروفایل Aether به هسته می‌گوید روی {0} گوش دهد که پورت نیست (1 تا 65535)؛ پورت‌های فرمان را تغییر دهید</value>
+  </data>
+  <data name="MsgAetherListenPortShared" xml:space="preserve">
+    <value>فرمان پروفایل Aether به هسته می‌گوید با دو شنونده روی یک پورت گوش دهد؛ به هر شنونده پورت جداگانه‌ای بدهید</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>هیچ پروفایلی با نام «{0}» پیدا نشد</value>

@@ -633,6 +633,7 @@ public partial class AddServerAetherViewModel : MyReactiveObject, ICloseable
             AetherProblem.InvalidEchDns => ResUI.MsgAetherInvalidEchDns,
             AetherProblem.InvalidEchDomain => ResUI.MsgAetherInvalidEchDomain,
             AetherProblem.ListenPortTaken => ResUI.MsgAetherListenPortTaken,
+            AetherProblem.ListenPortShared => ResUI.MsgAetherListenPortShared,
             AetherProblem.PsiphonNeedsMasque => ResUI.MsgAetherPsiphonNeedsMasque,
             AetherProblem.NextPortTaken => ResUI.MsgAetherNextPortTaken,
             AetherProblem.TorNeedsMasque => ResUI.MsgAetherTorNeedsMasque,

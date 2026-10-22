@@ -664,7 +664,10 @@ public partial class AetherFmt : BaseFmt
         return text == null ? null : EmptyAsNull(string.Join(",", CommaListSeparatorRegex().Split(text).Where(it => it.Length > 0)));
     }
 
-    /// <summary>A command written in place of the settings has to be one the app can run, on ports nothing else of the app holds.</summary>
+    /// <summary>
+    /// A command written in place of the settings has to be one the app can run, with a port of its own for each of its
+    /// listeners, on ports nothing else of the app holds.
+    /// </summary>
     private static AetherProblem? NormalizeCommand(ProfileItem config, HashSet<int> taken, int listenPort)
     {
         var extra = config.GetProtocolExtra();
@@ -678,6 +681,10 @@ public partial class AetherFmt : BaseFmt
         if (core == null)
         {
             return AetherProblem.InvalidCommand;
+        }
+        if (core.SharedPort != null)
+        {
+            return AetherProblem.ListenPortShared;
         }
         return core.Ports.Any(taken.Contains) ? AetherProblem.ListenPortTaken : null;
     }
@@ -930,6 +937,7 @@ public enum AetherProblem
     InvalidEchDns,
     InvalidEchDomain,
     ListenPortTaken,
+    ListenPortShared,
     PsiphonNeedsMasque,
     NextPortTaken,
     TorNeedsMasque,

@@ -1998,6 +1998,9 @@
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
     <value>Ядро Aether остановлено: {0}</value>
   </data>
+  <data name="MsgAetherCoreStoppedChainEnded" xml:space="preserve">
+    <value>Tor или Psiphon внутри туннеля Aether завершился, поэтому соединение остановлено: {0}</value>
+  </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
     <value>Ядро Aether не запустилось. В Windows для aether-core версий до 2.3.2 нужен Microsoft Visual C++ 2015-2022 Redistributable (x64); обновите aether-core в разделе «Проверить обновления»</value>
   </data>
@@ -2039,6 +2042,9 @@
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Команда профиля Aether велит ядру слушать {0}, но это не порт (от 1 до 65535); измените порты команды</value>
+  </data>
+  <data name="MsgAetherListenPortShared" xml:space="preserve">
+    <value>Команда профиля Aether велит ядру слушать один порт двумя своими слушателями; дайте каждому слушателю свой порт</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>Профиль с именем «{0}» не найден</value>

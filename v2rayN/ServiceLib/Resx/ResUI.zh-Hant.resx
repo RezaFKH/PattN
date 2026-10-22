@@ -1996,6 +1996,9 @@
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
     <value>Aether 核心已停止執行：{0}</value>
   </data>
+  <data name="MsgAetherCoreStoppedChainEnded" xml:space="preserve">
+    <value>Aether 通道內的 Tor 或 Psiphon 已結束，因此連線已停止：{0}</value>
+  </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
     <value>Aether 核心無法啟動。在 Windows 上，2.3.2 之前的 aether-core 需要 Microsoft Visual C++ 2015-2022 Redistributable (x64)；請在「檢查更新」中更新 aether-core</value>
   </data>
@@ -2037,6 +2040,9 @@
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Aether 設定檔的命令讓核心監聽 {0}，這不是有效的連接埠（1 到 65535）；請變更命令中的連接埠</value>
+  </data>
+  <data name="MsgAetherListenPortShared" xml:space="preserve">
+    <value>Aether 設定檔的命令讓核心以兩個監聽器監聽同一個連接埠；請為每個監聽器指定各自的連接埠</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>找不到名為「{0}」的設定檔</value>

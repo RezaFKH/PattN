@@ -1992,6 +1992,9 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
     <value>Aether nüvəsi dayandı: {0}</value>
   </data>
+  <data name="MsgAetherCoreStoppedChainEnded" xml:space="preserve">
+    <value>Aether tunelinin içindəki Tor və ya Psiphon dayandı, ona görə bağlantı dayandırıldı: {0}</value>
+  </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
     <value>Aether nüvəsini başlatmaq mümkün olmadı. Windows-da 2.3.2-dən köhnə aether-core üçün Microsoft Visual C++ 2015-2022 Redistributable (x64) lazımdır; aether-core-u "Yeniləmələri yoxla" bölməsində yeniləyin</value>
   </data>
@@ -2033,6 +2036,9 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Aether profilinin əmri nüvəyə {0} üzərində dinləməyi bildirir, lakin bu, port deyil (1-dən 65535-ə qədər); əmrin portlarını dəyişin</value>
+  </data>
+  <data name="MsgAetherListenPortShared" xml:space="preserve">
+    <value>Aether profilinin əmri nüvəyə iki dinləyicisi ilə eyni portda dinləməyi bildirir; hər dinləyiciyə ayrıca port verin</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>"{0}" adlı profil tapılmadı</value>
