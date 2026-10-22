@@ -245,7 +245,16 @@ public class CoreManager
         var fileName = string.Format(Global.CoreSpeedtestConfigFileName, Utils.GetGuid(false));
         var configPath = Utils.GetBinConfigPath(fileName);
         // PattN: a test drops the routing rules, so their targets never refuse it, nor log that they would (E2)
-        var (context, _) = await CoreConfigContextBuilder.Build(_config, node, refuseRuleTargets: false);
+        var (context, validatorResult) = await CoreConfigContextBuilder.Build(_config, node, refuseRuleTargets: false);
+        // PattN: a profile whose subscription names a previous or next profile that no profile has, or several have, is
+        // not tested, as its session is refused (N1): the context, which has no chain then, would measure it without that
+        // hop. The Aether tester takes such a profile before (AetherTestCandidates); this holds when the names change
+        // while the run goes on.
+        if (!validatorResult.Success && await CoreConfigContextBuilder.SubscriptionChainRefusalAsync(node) is { } refusal)
+        {
+            Logging.SaveLog($"Speedtest: '{node.Remarks}' is not tested: {refusal}");
+            return null;
+        }
         var result = await CoreConfigHandler.GenerateClientSpeedtestConfig(_config, context, testItem, configPath);
         if (result.Success != true)
         {

@@ -10,6 +10,7 @@ namespace v2rayN.Desktop.Views;
 public partial class AetherLogPanel : ReactiveUserControl<AetherLogViewModel>
 {
     private AetherLogViewModel? _shown;
+    private bool _scrollQueued;
 
     public AetherLogPanel()
     {
@@ -54,9 +55,19 @@ public partial class AetherLogPanel : ReactiveUserControl<AetherLogViewModel>
         var any = entries is { Count: > 0 };
         txtEmpty.IsVisible = !any;
         btnCopy.IsEnabled = any;
-        if (any)
+        // The newest line once the list has laid it out: scrolled to as it is added, the list goes by its estimate of where
+        // the line sits, and a burst of lines leaves the newest one cut off at the bottom.
+        if (any && !_scrollQueued)
         {
-            lstLog.ScrollIntoView(entries!.Count - 1);
+            _scrollQueued = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                _scrollQueued = false;
+                if (_shown?.Entries is { Count: > 0 } shown)
+                {
+                    lstLog.ScrollIntoView(shown.Count - 1);
+                }
+            }, DispatcherPriority.Background);
         }
     }
 }

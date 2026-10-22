@@ -952,6 +952,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Aether core licenses 的本地化字符串。
+        /// </summary>
+        public static string menuAetherLicenses {
+            get {
+                return ResourceManager.GetString("menuAetherLicenses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 All configurations 的本地化字符串。
         /// </summary>
         public static string menuAllServers {

@@ -182,4 +182,51 @@ public class AetherMembersTests
         await (await AetherMembers.SubscriptionProblemAsync(warp.Remarks, vless.Remarks)).Should().BeNull();
         await (await AetherMembers.SubscriptionProblemAsync(null, warp.Remarks)).Should().BeNull();
     }
+
+    // N1: the previous and the next profile are found by their names as the chain finds them, the spaces around them
+    // aside; a name several profiles have names none of them, never the first, and is refused for itself.
+    [Test]
+    [NotInParallel]
+    public async Task ASubscriptionNameIsFoundAsTheChainFindsIt()
+    {
+        SQLiteHelper.Instance.CreateTable<ProfileItem>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var shared = $"shared-{suffix}";
+        var first = Aether($"first-{suffix}", AetherProtocol.Masque);
+        first.Remarks = shared;
+        var second = Aether($"second-{suffix}", AetherProtocol.WireGuard);
+        second.Remarks = $" {shared}";
+        var wg = Aether($"wg-{suffix}", AetherProtocol.WireGuard);
+        foreach (var profile in new[] { first, second, wg })
+        {
+            await SQLiteHelper.Instance.ReplaceAsync(profile);
+        }
+
+        // Two Aether profiles, when the shared name is taken for neither.
+        await (await AetherMembers.SubscriptionProblemAsync(shared, wg.Remarks)).Should().BeNull();
+        await (await CoreConfigContextBuilder.SubscriptionNamesProblemAsync(shared, wg.Remarks)).Should()
+            .BeEqualTo(string.Format(ResUI.MsgRoutingRuleTargetDuplicate, shared));
+        await (await AetherMembers.SubscriptionProblemAsync($"  {wg.Remarks} ", wg.Remarks)).Should().BeEqualTo(ResUI.MsgAetherChainOneProfile);
+        await (await CoreConfigContextBuilder.SubscriptionNamesProblemAsync($"  {wg.Remarks} ", "  ")).Should().BeNull();
+    }
+
+    // N1: a custom configuration is no hop (PattNG takesAsHop), so beside an Aether profile of its name it makes no second
+    // profile of the name: the Aether profile is the one the name finds, as the chain finds it.
+    [Test]
+    [NotInParallel]
+    public async Task ACustomConfigurationOfTheNameLeavesTheAetherProfileTheOneItFinds()
+    {
+        SQLiteHelper.Instance.CreateTable<ProfileItem>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var warp = Aether($"warp-{suffix}", AetherProtocol.Masque);
+        var custom = new ProfileItem { IndexId = $"id-custom-{suffix}", ConfigType = EConfigType.Custom, Remarks = warp.Remarks, Address = "custom.json" };
+        var wg = Aether($"wg-{suffix}", AetherProtocol.WireGuard);
+        foreach (var profile in new[] { warp, custom, wg })
+        {
+            await SQLiteHelper.Instance.ReplaceAsync(profile);
+        }
+
+        await (await CoreConfigContextBuilder.SubscriptionNamesProblemAsync(warp.Remarks, wg.Remarks)).Should().BeNull();
+        await (await AetherMembers.SubscriptionProblemAsync(warp.Remarks, wg.Remarks)).Should().BeEqualTo(ResUI.MsgAetherChainOneProfile);
+    }
 }

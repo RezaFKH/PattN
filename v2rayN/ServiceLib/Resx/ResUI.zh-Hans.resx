@@ -2530,4 +2530,7 @@
   <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
     <value>WebSocket 和 HTTPUpgrade 仅在 alpn 为 http/1.1 或为空时才能连接。请选择 http/1.1，或留空 alpn。</value>
   </data>
+  <data name="menuAetherLicenses" xml:space="preserve">
+    <value>Aether 内核许可证</value>
+  </data>
 </root>

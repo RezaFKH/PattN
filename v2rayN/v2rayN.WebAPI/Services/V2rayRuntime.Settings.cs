@@ -4,6 +4,7 @@ using ServiceLib.Aether; // PattN
 using ServiceLib.Common;
 using ServiceLib.Enums;
 using ServiceLib.Handler;
+using ServiceLib.Handler.Builder; // PattN
 using ServiceLib.Helper;
 using ServiceLib.Manager;
 using ServiceLib.Models.Configs;
@@ -771,6 +772,18 @@ public sealed partial class V2rayRuntime
 
     public async Task<OperationView> SaveRoutingRulesAsync(string routingId, IEnumerable<RulesItem> rules)
     {
+        // PattN: refused before anything is applied, as the desktop's rule editor refuses a rule (N2); rules for a routing
+        // profile that does not exist are told that first, not what their targets name
+        rules = rules.ToArray();
+        var stored = await AppManager.Instance.GetRoutingItem(routingId);
+        if (stored is null)
+        {
+            return OperationView.Fail("routing_profile_not_found", ApiMessageKeys.RoutingProfileNotFound);
+        }
+        if (await RoutingRuleTargetRefusalAsync(rules, stored) is { } targetRefusal)
+        {
+            return targetRefusal;
+        }
         await using var applyContext = await BeginCoreSettingsApplyAsync();
         if (applyContext.Failure is { } applyFailure) return applyFailure;
         var items = rules.ToArray();
@@ -787,6 +800,41 @@ public sealed partial class V2rayRuntime
             return OperationView.Fail("routing_rules_save_failed", ApiMessageKeys.RoutingSaveFailed);
         }
         return await CompleteCoreAffectingChangeAsync("routing-rules", changed, applyContext, data: new { routingId });
+    }
+
+    /// <summary>
+    /// PattN (N2, PattNG RoutingEditViewModel): why the rules <paramref name="rules" /> cannot be saved over
+    /// <paramref name="stored" />, the routing profile as it is stored, or null: a rule the save adds or changes that sends
+    /// to a profile names it, and the name has to find that one profile, as at the start; one that no profile has, as after
+    /// a rename or a delete, or several have, is refused with code <c>routing_rule_target_invalid</c>, PattNG's words as
+    /// its detail, as the desktop's rule editor refuses it (CoreConfigContextBuilder.RuleTargetProblemAsync: an enabled rule
+    /// that sends traffic, whose target is no built-in tag and not empty). A rule the save keeps as it is stored, by its
+    /// id, enabled and target, is left alone, as the desktop's routing list saves it: the start refuses it if its name no
+    /// longer finds one profile, and a rename elsewhere does not block every other edit of the list. Imports are not
+    /// looked at, as on the desktop.
+    /// </summary>
+    internal static async Task<OperationView?> RoutingRuleTargetRefusalAsync(IEnumerable<RulesItem> rules, RoutingItem? stored)
+    {
+        var kept = JsonUtils.Deserialize<List<RulesItem>>(stored?.RuleSet ?? "[]") ?? [];
+        foreach (var rule in rules)
+        {
+            if (kept.Any(before => !before.Id.IsNullOrEmpty()
+                    && before.Id == rule.Id
+                    && before.Enabled == rule.Enabled
+                    && before.RuleType == rule.RuleType
+                    && before.OutboundTag == rule.OutboundTag))
+            {
+                continue;
+            }
+            if (await CoreConfigContextBuilder.RuleTargetProblemAsync(rule) is not { } problem)
+            {
+                continue;
+            }
+            Logging.SaveLog($"WebAPI: the routing rules were not saved: the rule \"{rule.Remarks}\": {problem}");
+            return OperationView.Fail("routing_rule_target_invalid", ApiMessageKeys.RoutingRulesInvalid,
+                new { detail = problem, ruleId = rule.Id });
+        }
+        return null;
     }
 
     private static async Task<int> SaveRoutingRulesLockedAsync(string routingId, IReadOnlyList<RulesItem> rules)

@@ -449,6 +449,14 @@ public partial class MainWindow
             item.Click += MenuItem_Click;
             menuHelp.Items.Add(item);
         }
+
+        // PattN: the licenses of the Aether programs a release ships beside the core (critique 28), where it ships them
+        if (File.Exists(ServiceLib.Aether.AetherBinaries.BundledNoticeFile))
+        {
+            var notice = new MenuItem() { Header = ResUI.menuAetherLicenses };
+            notice.Click += (_, _) => ServiceLib.Aether.AetherBinaries.OpenNotice();
+            menuHelp.Items.Add(notice);
+        }
     }
 
     private void MenuItem_Click(object sender, RoutedEventArgs e)

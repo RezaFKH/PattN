@@ -1948,13 +1948,13 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Bu proksi zəncirindəki Aether profilinin xaricə qoşulduğu halqa qurula bilmədi və Aether nüvəsi internetə onsuz çıxardı</value>
   </data>
   <data name="MsgAetherChainHopGroup" xml:space="preserve">
-    <value>The Aether profile of the proxy chain "{0}" would dial out through a policy group or a proxy chain; put a single profile on its entry side</value>
+    <value>"{0}" proksi zəncirindəki Aether profili xaricə siyasət qrupu və ya proksi zənciri vasitəsilə qoşulardı; onun giriş tərəfinə tək bir profil qoyun</value>
   </data>
   <data name="MsgAetherInGroupHop" xml:space="preserve">
-    <value>The Aether profile "{1}" is inside "{0}", which a proxy chain dials through; put the Aether profile in the chain itself</value>
+    <value>"{1}" Aether profili proksi zəncirinin üzərindən keçdiyi "{0}" daxilindədir; Aether profilini zəncirin özünə qoyun</value>
   </data>
   <data name="MsgAetherChainHopDropped" xml:space="preserve">
-    <value>The proxy chain "{0}" holds an Aether profile and is built whole or not at all: "{1}" could not be used, and without it the chain would carry the traffic a shorter way than it names</value>
+    <value>"{0}" proksi zəncirində Aether profili var, ona görə zəncir ya tam qurulur, ya da heç qurulmur: "{1}" istifadə edilə bilmədi və onsuz zəncir trafiki onda göstəriləndən daha qısa yolla ötürərdi</value>
   </data>
   <data name="MsgAetherExitNodeNotFound" xml:space="preserve">
     <value>"{0}" adlı profil tapılmadı</value>
@@ -1975,13 +1975,13 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Bu konfiqurasiyanın bir girişi artıq {0} portunda dinləyir; bu, Aether dinləmə portundan üç yuxarı olan və Aether nüvəsinin xaricə qoşulduğu portdur; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
   </data>
   <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
-    <value>Policy group "{0}" leaves out "{1}": a second Aether profile with other settings, and one core serves one profile</value>
+    <value>"{0}" siyasət qrupu "{1}" profilini xaric edir: bu, başqa tənzimləmələri olan ikinci Aether profilidir, bir nüvə isə yalnız bir profilə xidmət edir</value>
   </data>
   <data name="MsgAetherConnecting" xml:space="preserve">
     <value>Aether nüvəsi hələ qoşulur</value>
   </data>
   <data name="MsgAetherConnected" xml:space="preserve">
-    <value>The Aether core is connected</value>
+    <value>Aether nüvəsi qoşuldu</value>
   </data>
   <data name="MsgAetherCoreStopped" xml:space="preserve">
     <value>Aether nüvəsi dayandı</value>
@@ -1990,49 +1990,49 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Aether nüvəsi dayandı: ECH aktivdir, lakin istifadə edilə bilən ECH açarı tapılmadı. Açar olmadan server adı açıq şəkildə göndəriləcəkdi.</value>
   </data>
   <data name="MsgAetherCoreStoppedWithError" xml:space="preserve">
-    <value>The Aether core stopped running: {0}</value>
+    <value>Aether nüvəsi dayandı: {0}</value>
   </data>
   <data name="MsgAetherCoreCannotStart" xml:space="preserve">
-    <value>The Aether core could not start. On Windows, an aether-core older than 2.3.2 needs the Microsoft Visual C++ 2015-2022 Redistributable (x64); update aether-core under Check Update</value>
+    <value>Aether nüvəsini başlatmaq mümkün olmadı. Windows-da 2.3.2-dən köhnə aether-core üçün Microsoft Visual C++ 2015-2022 Redistributable (x64) lazımdır; aether-core-u "Yeniləmələri yoxla" bölməsində yeniləyin</value>
   </data>
   <data name="MsgAetherTemplateExitNodeSelected" xml:space="preserve">
     <value>Bu konfiqurasiyanın balanslaşdırıcısı və ya observatory-si tag-ları {0} ilə başlayan çıxışları seçir; bura Aether nüvəsinin xaricə qoşulduğu exit-node çıxışı da daxildir; həmin seçicini dəyişin</value>
   </data>
   <data name="MsgAetherTestSkipped" xml:space="preserve">
-    <value>Untested: the running Aether profile holds the Aether listen port</value>
+    <value>Yoxlanılmadı: işləyən Aether profili Aether dinləmə portunu tutur</value>
   </data>
   <data name="MsgPsiphonServersUpdated" xml:space="preserve">
-    <value>psiphon_servers updated: {0} servers, published {1}</value>
+    <value>psiphon_servers yeniləndi: {0} server, dərc tarixi {1}</value>
   </data>
   <data name="MsgPsiphonServersInvalid" xml:space="preserve">
-    <value>The downloaded psiphon_servers is not Psiphon's signed server list; the one in use stays</value>
+    <value>Endirilmiş psiphon_servers Psiphon-un imzalanmış server siyahısı deyil; istifadə olunan siyahı saxlanılır</value>
   </data>
   <data name="MsgPsiphonServersCurrent" xml:space="preserve">
-    <value>psiphon_servers is already up to date ({0})</value>
+    <value>psiphon_servers artıq yenidir ({0})</value>
   </data>
   <data name="TbSettingsAetherListenPort" xml:space="preserve">
     <value>Aether dinləmə portu</value>
   </data>
   <data name="TbSettingsAetherListenPortTip" xml:space="preserve">
-    <value>The core also takes the three ports after it</value>
+    <value>Nüvə ondan sonrakı üç portdan da istifadə edir</value>
   </data>
   <data name="FillAetherListenPort" xml:space="preserve">
     <value>Aether dinləmə portu üçün 1024-dən 65532-yə qədər port istifadə edin</value>
   </data>
   <data name="MsgAetherListenPortLocalProxy" xml:space="preserve">
-    <value>The Aether listen port and the three ports after it cannot include the local ports of PattN: the mixed port and the six ports after it</value>
+    <value>Aether dinləmə portu və ondan sonrakı üç port PattN-in yerli portlarını əhatə edə bilməz: qarışıq portu və ondan sonrakı altı portu</value>
   </data>
   <data name="MsgAetherListenPortInUse" xml:space="preserve">
-    <value>Port {0}, which the Aether core listens on, is taken by another program or reserved by the system; change the Aether listen port in the settings, or the ports of the command</value>
+    <value>Aether nüvəsinin dinlədiyi {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; tənzimləmələrdə Aether dinləmə portunu və ya əmrin portlarını dəyişin</value>
   </data>
   <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
-    <value>Port {0}, three above the Aether listen port, which Xray opens for the Aether core to dial out through, is taken by another program or reserved by the system; change the Aether listen port in the settings</value>
+    <value>Aether dinləmə portundan üç yuxarı olan və Xray-in Aether nüvəsinin xaricə qoşulması üçün açdığı {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
   </data>
   <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
-    <value>"{0}" could not be built in the chain of its subscription</value>
+    <value>"{0}" öz abunəliyinin zəncirində qurula bilmədi</value>
   </data>
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
-    <value>The command of the Aether profile tells the core to listen on {0}, which is no port (1 to 65535); change the ports of the command</value>
+    <value>Aether profilinin əmri nüvəyə {0} üzərində dinləməyi bildirir, lakin bu, port deyil (1-dən 65535-ə qədər); əmrin portlarını dəyişin</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>"{0}" adlı profil tapılmadı</value>
@@ -2531,5 +2531,8 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   </data>
   <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
     <value>WebSocket və HTTPUpgrade yalnız alpn http/1.1 ilə və ya alpn olmadan qoşulur. http/1.1 seçin və ya alpn-i boş saxlayın.</value>
+  </data>
+  <data name="menuAetherLicenses" xml:space="preserve">
+    <value>Aether nüvəsinin lisenziyaları</value>
   </data>
 </root>

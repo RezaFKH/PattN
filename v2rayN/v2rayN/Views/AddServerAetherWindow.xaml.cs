@@ -21,23 +21,34 @@ public partial class AddServerAetherWindow
             this.OneWayBind(ViewModel, vm => vm.FinalMask, v => v.presetFinalMask.ViewModel).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.Log, v => v.logPanel.ViewModel).DisposeWith(disposables);
 
-            // The lists, before the entries they show.
-            this.OneWayBind(ViewModel, vm => vm.ProtocolLabels, v => v.cmbProtocol.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.TransportLabels, v => v.cmbTransport.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.EchDnsOptions, v => v.cmbEchDns.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.EchDomainOptions, v => v.cmbEchDomain.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.ScanModeLabels, v => v.cmbScanMode.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.ObfuscationLabels, v => v.cmbObfuscation.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.FingerprintLabels, v => v.cmbFingerprint.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.PsiphonLabels, v => v.cmbPsiphon.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.PsiphonModeLabels, v => v.cmbPsiphonMode.ItemsSource).DisposeWith(disposables);
+            // The lists, before the entries they show. The lists of names are handed over as they are, not through
+            // OneWayBind: that gives a list without an ItemTemplate or DisplayMemberPath ReactiveUI's view-model template
+            // (AutoDataTemplateBindingHook), which shows a name, and the one chosen, as nothing.
+            this.WhenAnyValue(v => v.ViewModel)
+                .KeepNotNull()
+                .Subscribe(vm =>
+                {
+                    cmbProtocol.ItemsSource = vm.ProtocolLabels;
+                    cmbTransport.ItemsSource = vm.TransportLabels;
+                    cmbEchDns.ItemsSource = vm.EchDnsOptions;
+                    cmbEchDomain.ItemsSource = vm.EchDomainOptions;
+                    cmbScanMode.ItemsSource = vm.ScanModeLabels;
+                    cmbObfuscation.ItemsSource = vm.ObfuscationLabels;
+                    cmbFingerprint.ItemsSource = vm.FingerprintLabels;
+                    cmbPsiphon.ItemsSource = vm.PsiphonLabels;
+                    cmbPsiphonMode.ItemsSource = vm.PsiphonModeLabels;
+                    cmbTor.ItemsSource = vm.TorLabels;
+                    cmbTorBridges.ItemsSource = vm.TorBridgesLabels;
+                    cmbTorRelays.ItemsSource = vm.TorRelaysLabels;
+                    cmbIpVersion.ItemsSource = vm.IpVersionLabels;
+                    cmbTargetStrategy.ItemsSource = vm.TargetStrategyLabels;
+                })
+                .DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.PsiphonCdnSetOptions, v => v.lstPsiphonCdnSets.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.PsiphonRegionLabels, v => v.cmbPsiphonRegion.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.TorLabels, v => v.cmbTor.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.TorBridgesLabels, v => v.cmbTorBridges.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.TorRelaysLabels, v => v.cmbTorRelays.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.IpVersionLabels, v => v.cmbIpVersion.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.TargetStrategyLabels, v => v.cmbTargetStrategy.ItemsSource).DisposeWith(disposables);
+            // The exit countries change as the editor reads them.
+            this.WhenAnyValue(v => v.ViewModel!.PsiphonRegionLabels)
+                .Subscribe(labels => cmbPsiphonRegion.ItemsSource = labels)
+                .DisposeWith(disposables);
 
             // The fields, in PattNG's order.
             this.Bind(ViewModel, vm => vm.Remarks, v => v.txtRemarks.Text).DisposeWith(disposables);

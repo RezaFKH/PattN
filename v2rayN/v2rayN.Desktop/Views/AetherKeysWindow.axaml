@@ -17,6 +17,8 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <!--  PattN: fork-only window, the WARP keys window (design 3.4): its own settings, saved as they change, in PattNG's order, then the run, the command and the log  -->
+    <!--  A label beside a field taller than one line sits at the top, 10 px down (16 beside an expander), level with the  -->
+    <!--  field's first line; a hint beside a switch keeps 4 px above and below, apart from the hint of the next row  -->
     <DockPanel Margin="{StaticResource Margin8}">
         <StackPanel
             Margin="{StaticResource Margin4}"
@@ -39,7 +41,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Top"
-                            Text="{x:Static resx:ResUI.TbAetherKeysKind}" />
+                            Text="{x:Static resx:ResUI.TbAetherKeysKind}"
+                            TextWrapping="Wrap" />
                         <ItemsControl x:Name="lstKinds" Grid.Column="1">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vms:AetherKeyKindOption">
@@ -59,7 +62,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherKeysApiAddress}" />
+                            Text="{x:Static resx:ResUI.TbAetherKeysApiAddress}"
+                            TextWrapping="Wrap" />
                         <TextBox
                             x:Name="txtApiAddress"
                             Grid.Column="1"
@@ -74,7 +78,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherFragment}" />
+                            Text="{x:Static resx:ResUI.TbAetherFragment}"
+                            TextWrapping="Wrap" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <ToggleSwitch
                                 x:Name="togFragment"
@@ -82,7 +87,7 @@
                                 HorizontalAlignment="Left" />
                             <TextBlock
                                 Width="400"
-                                Margin="{StaticResource MarginLr8}"
+                                Margin="8,4"
                                 VerticalAlignment="Center"
                                 Text="{x:Static resx:ResUI.TbAetherKeysFragmentHint}"
                                 TextWrapping="Wrap" />
@@ -95,7 +100,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherFragmentSize}" />
+                            Text="{x:Static resx:ResUI.TbAetherFragmentSize}"
+                            TextWrapping="Wrap" />
                         <TextBox
                             x:Name="txtFragmentSize"
                             Grid.Column="1"
@@ -111,7 +117,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherFragmentDelay}" />
+                            Text="{x:Static resx:ResUI.TbAetherFragmentDelay}"
+                            TextWrapping="Wrap" />
                         <TextBox
                             x:Name="txtFragmentDelay"
                             Grid.Column="1"
@@ -127,7 +134,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherEch}" />
+                            Text="{x:Static resx:ResUI.TbAetherEch}"
+                            TextWrapping="Wrap" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <ToggleSwitch
                                 x:Name="togEch"
@@ -135,7 +143,7 @@
                                 HorizontalAlignment="Left" />
                             <TextBlock
                                 Width="400"
-                                Margin="{StaticResource MarginLr8}"
+                                Margin="8,4"
                                 VerticalAlignment="Center"
                                 Text="{x:Static resx:ResUI.TbAetherKeysEchHint}"
                                 TextWrapping="Wrap" />
@@ -148,7 +156,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherEchDns}" />
+                            Text="{x:Static resx:ResUI.TbAetherEchDns}"
+                            TextWrapping="Wrap" />
                         <ComboBox
                             x:Name="cmbEchDns"
                             Grid.Column="1"
@@ -164,7 +173,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherEchDomain}" />
+                            Text="{x:Static resx:ResUI.TbAetherEchDomain}"
+                            TextWrapping="Wrap" />
                         <ComboBox
                             x:Name="cmbEchDomain"
                             Grid.Column="1"
@@ -180,7 +190,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherFingerprint}" />
+                            Text="{x:Static resx:ResUI.TbAetherFingerprint}"
+                            TextWrapping="Wrap" />
                         <ComboBox
                             x:Name="cmbFingerprint"
                             Grid.Column="1"
@@ -193,9 +204,10 @@
                     <Grid ColumnDefinitions="300,Auto">
                         <TextBlock
                             Grid.Column="0"
-                            Margin="{StaticResource Margin4}"
+                            Margin="4,10,4,4"
                             VerticalAlignment="Top"
-                            Text="{x:Static resx:ResUI.TbAetherExitNode}" />
+                            Text="{x:Static resx:ResUI.TbAetherExitNode}"
+                            TextWrapping="Wrap" />
                         <views:ExitNodeField x:Name="exitNodeField" Grid.Column="1" />
                     </Grid>
 
@@ -203,7 +215,7 @@
                     <Grid ColumnDefinitions="300,Auto">
                         <TextBlock
                             Grid.Column="0"
-                            Margin="{StaticResource Margin4}"
+                            Margin="4,10,4,4"
                             VerticalAlignment="Top"
                             Text="{x:Static resx:ResUI.TbAetherExitFinalMask}"
                             TextWrapping="Wrap" />
@@ -219,7 +231,8 @@
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
                             VerticalAlignment="Center"
-                            Text="{x:Static resx:ResUI.TbAetherExitDialMode}" />
+                            Text="{x:Static resx:ResUI.TbAetherExitDialMode}"
+                            TextWrapping="Wrap" />
                         <TextBox
                             x:Name="txtDialMode"
                             Grid.Column="1"
@@ -277,9 +290,10 @@
                 <Grid ColumnDefinitions="300,Auto">
                     <TextBlock
                         Grid.Column="0"
-                        Margin="{StaticResource Margin4}"
+                        Margin="4,10,4,4"
                         VerticalAlignment="Top"
-                        Text="{x:Static resx:ResUI.TbAetherCommand}" />
+                        Text="{x:Static resx:ResUI.TbAetherCommand}"
+                        TextWrapping="Wrap" />
                     <StackPanel Grid.Column="1">
                         <TextBox
                             x:Name="txtCommand"

@@ -50,7 +50,10 @@ public partial class PresetField : ReactiveUserControl<PresetFieldViewModel>
         });
     }
 
-    /// <summary>Whether the text runs over several lines, as a finalMask's JSON does.</summary>
+    /// <summary>
+    /// Whether the text runs over several lines, as a finalMask's JSON does. Its long lines wrap, as PattNG's field does:
+    /// the theme's horizontal scroll bar lies over the text, and would hide the last line of a preset's JSON.
+    /// </summary>
     public bool IsMultiline
     {
         get => _isMultiline;
@@ -58,7 +61,7 @@ public partial class PresetField : ReactiveUserControl<PresetFieldViewModel>
         {
             _isMultiline = value;
             txtValue.AcceptsReturn = value;
-            txtValue.TextWrapping = TextWrapping.NoWrap;
+            txtValue.TextWrapping = value ? TextWrapping.Wrap : TextWrapping.NoWrap;
             txtValue.MinLines = value ? 3 : 1;
             txtValue.MaxLines = value ? 8 : 1;
             txtValue.Classes.Set("TextArea", value);

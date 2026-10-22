@@ -160,7 +160,7 @@ public class RuleTargetChainTests
     }
 
     /// <summary>What <paramref name="build" /> gives while the active routing has <paramref name="rules" />.</summary>
-    private static async Task<T> WithRules<T>(List<RulesItem> rules, Func<Task<T>> build)
+    internal static async Task<T> WithRules<T>(List<RulesItem> rules, Func<Task<T>> build)
     {
         SQLiteHelper.Instance.CreateTable<FullConfigTemplateItem>();
         SQLiteHelper.Instance.CreateTable<DNSItem>();
@@ -285,28 +285,34 @@ public class RuleTargetChainTests
         await (outbound.streamSettings?.sockopt?.dialerProxy).Should().BeNull();
     }
 
+    // N1: the main profile's way (BuildSubscriptionChainNodeAsync): a name of the subscription that no profile has, or
+    // several have, refuses the chain, never left out nor taken for the first of them; the session is refused for the rule
+    // (E2), and a test's context sends the rule to the proxy, nothing of the chain left in it.
     [Test]
-    public async Task ARulesSubscriptionNamingAProfileNoneHasWarnsAndLeavesItOutAsForTheMainProfile()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ARulesSubscriptionNamingAProfileNoneOrSeveralHaveRefusesTheSessionAsForTheMainProfile(bool several)
     {
-        // The main profile's way (BuildSubscriptionChainNodeAsync): a warning for the name, and the chain without it.
-        var missing = NewName("missing");
+        var named = NewName("named");
         var next = XrayHop("next", "198.51.100.3");
-        var alone = In(await Subscription(missing, null), XrayHop("alone", "198.51.100.2"));
-        var withNext = In(await Subscription(missing, next.Remarks), XrayHop("with-next", "198.51.100.4"));
-        await Store(next, alone, withNext);
+        // Two profiles of the name, the spaces around it aside, or none.
+        ProfileItem[] twins = several ? [Vless(NewName("twin"), named, "198.51.100.5"), Vless(NewName("twin"), $" {named} ", "198.51.100.6")] : [];
+        var alone = In(await Subscription(named, null), XrayHop("alone", "198.51.100.2"));
+        var withNext = In(await Subscription(named, next.Remarks), XrayHop("with-next", "198.51.100.4"));
+        await Store([next, alone, withNext, .. twins]);
         var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
-        var notFound = string.Format(ResUI.MsgSubscriptionPrevProfileNotFound, missing);
+        var problem = string.Format(several ? ResUI.MsgRoutingRuleTargetDuplicate : ResUI.MsgRoutingRuleTargetNotFound, named);
 
-        var (aloneContext, aloneResult) = await BuildWithRuleTo(NewConfig(), main, alone.Remarks);
-        await aloneResult.Success.Should().BeTrue();
-        await aloneResult.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeWarning, RuleName, alone.Remarks, notFound));
-        await (RuleNode(aloneContext, alone)?.IndexId).Should().BeEqualTo(alone.IndexId);
+        foreach (var target in new[] { alone, withNext })
+        {
+            await AssertRefused(await BuildWithRuleTo(NewConfig(), main, target.Remarks), Unbuilt(target, problem), [target, next, .. twins]);
 
-        var (nextContext, nextResult) = await BuildWithRuleTo(NewConfig(), main, withNext.Remarks);
-        await nextResult.Success.Should().BeTrue();
-        await nextResult.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeWarning, RuleName, withNext.Remarks, notFound));
-        var chain = await AssertChain(nextContext, withNext, withNext, next);
-        await AssertXrayChain(nextContext, chain, withNext, next);
+            var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks, refuseRuleTargets: false);
+            await result.Success.Should().BeTrue();
+            await result.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeError, RuleName, target.Remarks, problem));
+            await RuleNode(context, target).Should().BeNull();
+            await AssertNoneRegistered(context, [target, next, .. twins]);
+        }
     }
 
     // D1-R1: the traversal of the chain leaves out a hop that fails its checks, and without the profile the rule names the
@@ -574,14 +580,14 @@ public class RuleTargetChainTests
     [Test]
     public async Task ARuleToAnAetherProfileWhoseSubscriptionNamesAProfileNoneHasRefusesTheSession()
     {
-        // The main profile's chain is refused rather than shortened (AetherSubscriptionChainRefusal), and so is a session
-        // whose rule sends to such a profile, as for any target that cannot be built (E2); a test's context sends the rule
-        // to the proxy with the refusal as a warning.
+        // The main profile's chain is refused rather than shortened (N1, BuildSubscriptionChainNodeAsync), and so is a
+        // session whose rule sends to such a profile, as for any target that cannot be built (E2); a test's context sends
+        // the rule to the proxy with the refusal as a warning.
         var missing = NewName("missing");
         var warp = In(await Subscription(missing, null), Warp(NewName("warp"), NewName("WARP")));
         await Store(warp);
         var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
-        var refusal = string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, missing);
+        var refusal = string.Format(ResUI.MsgRoutingRuleTargetNotFound, missing);
 
         await AssertRefused(await BuildWithRuleTo(NewConfig(), main, warp.Remarks), Unbuilt(warp, refusal), warp);
 

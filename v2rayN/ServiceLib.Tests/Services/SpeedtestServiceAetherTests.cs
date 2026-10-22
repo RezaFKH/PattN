@@ -353,7 +353,7 @@ public class SpeedtestServiceAetherTests : IDisposable
         {
             AetherCandidates = () => new AetherTestCandidates(
                 _ => throw new InvalidOperationException("database is locked"),
-                _ => Task.FromResult<ProfileItem?>(null),
+                _ => Task.FromResult<ByName<ProfileItem>>(ByName<ProfileItem>.None.Instance),
                 _ => Task.FromResult<IEnumerable<ProfileItem>>([])),
         };
         var method = typeof(SpeedtestService).GetMethod("RunAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;

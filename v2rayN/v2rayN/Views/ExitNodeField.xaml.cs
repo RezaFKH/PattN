@@ -16,8 +16,12 @@ public partial class ExitNodeField
 
         this.WhenActivated(disposables =>
         {
-            // The list first: a list that is replaced picks nothing until its entry is set again.
-            this.OneWayBind(ViewModel, vm => vm.Labels, v => v.cmbNode.ItemsSource).DisposeWith(disposables);
+            // The list first: a list that is replaced picks nothing until its entry is set again. Handed over as it is, not
+            // through OneWayBind, which gives a list without an ItemTemplate or DisplayMemberPath ReactiveUI's view-model
+            // template (AutoDataTemplateBindingHook), showing every name as nothing.
+            this.WhenAnyValue(v => v.ViewModel!.Labels)
+                .Subscribe(labels => cmbNode.ItemsSource = labels)
+                .DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedIndex, v => v.cmbNode.SelectedIndex).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.SupportingText, v => v.txtSupporting.Text).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.SupportingText, v => v.txtSupporting.Visibility,

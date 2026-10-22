@@ -13,8 +13,12 @@ public partial class ExitNodeField : ReactiveUserControl<ExitNodeFieldViewModel>
 
         this.WhenActivated(disposables =>
         {
-            // The list first: a list that is replaced picks nothing until its entry is set again.
-            this.OneWayBind(ViewModel, vm => vm.Labels, v => v.cmbNode.ItemsSource).DisposeWith(disposables);
+            // The list first: a list that is replaced picks nothing until its entry is set again. Handed over as it is, not
+            // through OneWayBind, which gives a list without an ItemTemplate ReactiveUI's view-model template
+            // (AutoDataTemplateBindingHook), showing every name as nothing.
+            this.WhenAnyValue(v => v.ViewModel!.Labels)
+                .Subscribe(labels => cmbNode.ItemsSource = labels)
+                .DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedIndex, v => v.cmbNode.SelectedIndex).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.SupportingText, v => v.txtSupporting.Text).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.SupportingText, v => v.txtSupporting.IsVisible, text => !string.IsNullOrEmpty(text)).DisposeWith(disposables);

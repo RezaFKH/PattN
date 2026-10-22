@@ -34,7 +34,11 @@ public class AetherTestCandidatesTests
     private sealed class Store
     {
         public Dictionary<string, SubItem> Subscriptions { get; } = [];
-        public Dictionary<string, ProfileItem> ByName { get; } = [];
+        public Dictionary<string, ProfileItem> Named { get; } = [];
+
+        /// <summary>The names several profiles have (N1).</summary>
+        public HashSet<string> Shared { get; } = [];
+
         public Dictionary<string, List<ProfileItem>> Members { get; } = [];
         public List<string> Lookups { get; } = [];
 
@@ -52,7 +56,13 @@ public class AetherTestCandidatesTests
                 name =>
                 {
                     Lookups.Add($"name {name}");
-                    return Task.FromResult(ByName.GetValueOrDefault(name));
+                    if (Shared.Contains(name))
+                    {
+                        return Task.FromResult<ByName<ProfileItem>>(ByName<ProfileItem>.Several.Instance);
+                    }
+                    return Task.FromResult<ByName<ProfileItem>>(Named.TryGetValue(name, out var profile)
+                        ? new ByName<ProfileItem>.One(profile)
+                        : ByName<ProfileItem>.None.Instance);
                 },
                 group =>
                 {
@@ -97,12 +107,12 @@ public class AetherTestCandidatesTests
     {
         var store = new Store();
         store.Subscriptions["sub"] = new SubItem { Id = "sub", Remarks = "sub", PrevProfile = "WARP prev" };
-        store.ByName["WARP prev"] = Warp("prev");
+        store.Named["WARP prev"] = Warp("prev");
         store.Subscriptions["plain"] = new SubItem { Id = "plain", Remarks = "plain", NextProfile = "exit" };
-        store.ByName["exit"] = Vless("exit");
+        store.Named["exit"] = Vless("exit");
         // The next profile a group holding Aether.
         store.Subscriptions["grouped"] = new SubItem { Id = "grouped", Remarks = "grouped", NextProfile = "pool" };
-        store.ByName["pool"] = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.Xray, "pool", "pool", ["prev"]);
+        store.Named["pool"] = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.Xray, "pool", "pool", ["prev"]);
         store.Members["pool"] = [Warp("prev")];
         var candidates = store.Candidates();
 
@@ -117,8 +127,8 @@ public class AetherTestCandidatesTests
     {
         var store = new Store();
         store.Subscriptions["sub"] = new SubItem { Id = "sub", Remarks = "sub", PrevProfile = "WARP prev", NextProfile = "exit" };
-        store.ByName["WARP prev"] = Vless("not aether");
-        store.ByName["exit"] = Vless("exit");
+        store.Named["WARP prev"] = Vless("not aether");
+        store.Named["exit"] = Vless("exit");
         var candidates = store.Candidates();
 
         foreach (var id in new[] { "a", "b", "c", "d" })
@@ -179,7 +189,7 @@ public class AetherTestCandidatesTests
         var group = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.sing_box, "sb-group", "sb-group", ["v", "warp"]);
         store.Members["sb-group"] = [Vless("v"), Warp()];
         store.Subscriptions["sub"] = new SubItem { Id = "sub", Remarks = "sub", PrevProfile = "WARP" };
-        store.ByName["WARP"] = Warp();
+        store.Named["WARP"] = Warp();
         var subscribed = Vless("sb-sub", "sub");
         var plain = Vless("sb-plain");
         var chained = Item(chain, ECoreType.sing_box);
@@ -217,7 +227,7 @@ public class AetherTestCandidatesTests
         var grouped = Item(group);
         var chained = Item(Vless("v", "sub"));
         store.Subscriptions["sub"] = new SubItem { Id = "sub", Remarks = "sub", PrevProfile = "WARP" };
-        store.ByName["WARP"] = Warp();
+        store.Named["WARP"] = Warp();
         var batch = new List<ServerTestItem> { grouped, warp, chained };
 
         var taken = await store.Candidates().TakeAsync(ESpeedActionType.Tcping, batch);
@@ -225,5 +235,70 @@ public class AetherTestCandidatesTests
         await taken.Should().BeEquivalentTo([warp], CollectionOrdering.Matching);
         await batch.Should().BeEquivalentTo([grouped, chained], CollectionOrdering.Matching);
         await store.Lookups.Should().BeEmpty();
+    }
+
+    // N1: a name of the subscription that no profile has, or several have, refuses the chain whatever it holds; the batch,
+    // which skips that check, would measure the profile without that hop. The profile goes to the Aether tester, whose
+    // checks refuse it (-1) as its session is refused, as PattNG fails its test; whether the name holds Aether is never
+    // guessed from the first profile of it.
+    [Test]
+    public async Task AProfileWhoseSubscriptionNamesAProfileNoneOrSeveralHaveLeavesTheBatch()
+    {
+        var store = new Store { Refused = ["sb-gone"] };
+        store.Subscriptions["gone"] = new SubItem { Id = "gone", Remarks = "gone", PrevProfile = "nobody" };
+        store.Subscriptions["twice"] = new SubItem { Id = "twice", Remarks = "twice", NextProfile = "twins" };
+        store.Shared.Add("twins");
+        store.Subscriptions["fine"] = new SubItem { Id = "fine", Remarks = "fine", NextProfile = "exit" };
+        store.Named["exit"] = Vless("exit");
+        // A next profile that is found, behind a previous one that is not.
+        store.Subscriptions["half"] = new SubItem { Id = "half", Remarks = "half", PrevProfile = "nobody", NextProfile = "exit" };
+        var gone = Item(Vless("v-gone", "gone"));
+        var twice = Item(Vless("v-twice", "twice"));
+        var fine = Item(Vless("v-fine", "fine"));
+        var half = Item(Vless("v-half", "half"));
+        var singBoxGone = Item(Vless("sb-gone", "gone"), ECoreType.sing_box);
+        var batch = new List<ServerTestItem> { gone, twice, fine, half, singBoxGone };
+
+        var candidates = store.Candidates();
+        var taken = await candidates.TakeAsync(ESpeedActionType.Realping, batch);
+
+        await taken.Should().BeEquivalentTo([gone, twice, half, singBoxGone], CollectionOrdering.Matching);
+        await batch.Should().BeEquivalentTo([fine], CollectionOrdering.Matching);
+        // None of them needs an Aether core: a name none or several have holds none.
+        foreach (var item in new[] { gone, twice, half })
+        {
+            await (await candidates.NeedsAetherAsync(item.Profile)).Should().BeFalse();
+        }
+        // The profile of another core is taken as its checks refuse it.
+        await store.Lookups.Contains("checks sb-gone").Should().BeTrue();
+
+        // Without the checks, a profile of another core stays, as the batch leaves it untested (CoreConfigHandler).
+        var withoutChecks = new Store();
+        withoutChecks.Subscriptions["gone"] = new SubItem { Id = "gone", Remarks = "gone", PrevProfile = "nobody" };
+        var left = new List<ServerTestItem> { singBoxGone };
+        await (await withoutChecks.Candidates().TakeAsync(ESpeedActionType.Realping, left)).Should().BeEmpty();
+        // A TCP ping, which reaches the server alone, keeps PattN's way.
+        var pinged = new List<ServerTestItem> { gone, twice };
+        await (await store.Candidates().TakeAsync(ESpeedActionType.Tcping, pinged)).Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task TheNamesOfASubscriptionAreFoundWithoutTheSpacesAroundThemAndABlankOneNamesNone()
+    {
+        var store = new Store();
+        store.Subscriptions["spaced"] = new SubItem { Id = "spaced", Remarks = "spaced", PrevProfile = "  WARP  " };
+        store.Named["WARP"] = Warp();
+        store.Subscriptions["blank"] = new SubItem { Id = "blank", Remarks = "blank", PrevProfile = "   ", NextProfile = "" };
+        var spaced = Item(Vless("v-spaced", "spaced"));
+        var blank = Item(Vless("v-blank", "blank"));
+        var batch = new List<ServerTestItem> { spaced, blank };
+
+        var candidates = store.Candidates();
+        var taken = await candidates.TakeAsync(ESpeedActionType.Realping, batch);
+
+        await taken.Should().BeEquivalentTo([spaced], CollectionOrdering.Matching);
+        await batch.Should().BeEquivalentTo([blank], CollectionOrdering.Matching);
+        await (await candidates.NeedsAetherAsync(spaced.Profile)).Should().BeTrue();
+        await store.Lookups.Should().BeEquivalentTo(["sub spaced", "name WARP", "sub blank"], CollectionOrdering.Matching);
     }
 }

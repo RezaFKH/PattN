@@ -2538,4 +2538,7 @@
   <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
     <value>WebSocket и HTTPUpgrade подключаются только с alpn http/1.1 или без alpn. Выберите http/1.1 или оставьте alpn пустым.</value>
   </data>
+  <data name="menuAetherLicenses" xml:space="preserve">
+    <value>Лицензии ядра Aether</value>
+  </data>
 </root>

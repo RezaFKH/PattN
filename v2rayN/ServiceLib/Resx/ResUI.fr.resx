@@ -2397,4 +2397,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
     <value>WebSocket and HTTPUpgrade connect only with alpn http/1.1 or none. Choose http/1.1, or leave alpn empty.</value>
   </data>
+  <data name="menuAetherLicenses" xml:space="preserve">
+    <value>Aether core licenses</value>
+  </data>
 </root>

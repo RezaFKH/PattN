@@ -386,7 +386,7 @@ public class AetherContextBuilderTests
     }
 
     [Test]
-    public async Task ASubscriptionChainHoldingAnAetherProfileThatLacksAHopIsRefused()
+    public async Task ASubscriptionChainThatLacksAHopIsRefusedWithOrWithoutAnAetherProfile()
     {
         SQLiteHelper.Instance.CreateTable<SubItem>();
         var subId = NewName("sub");
@@ -397,17 +397,18 @@ public class AetherContextBuilderTests
         var vless = Vless(NewName("vless"), NewName("vless"));
         vless.Subid = subId;
         await Store(warp, vless);
+        var notFound = string.Format(ResUI.MsgRoutingRuleTargetNotFound, missing);
 
         var (_, refused) = await CoreConfigContextBuilder.ResolveNodeAsync(ContextOf(NewConfig(), warp), warp, true);
         await refused.Success.Should().BeFalse();
-        await refused.Errors.Should().Contain(string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, missing));
+        await refused.Errors.Should().BeEquivalentTo([notFound], CollectionOrdering.Matching);
 
-        // A profile of the same subscription without Aether keeps PattN's way: a warning, and the profile alone.
+        // N1: a profile of the same subscription without Aether is refused alike, never run alone.
         var vlessContext = ContextOf(NewConfig(), vless);
-        var (node, warned) = await CoreConfigContextBuilder.ResolveNodeAsync(vlessContext, vless, true);
-        await warned.Success.Should().BeTrue();
-        await warned.Warnings.Should().Contain(string.Format(ResUI.MsgSubscriptionPrevProfileNotFound, missing));
-        await node.IndexId.Should().BeEqualTo(vless.IndexId);
+        var (_, vlessRefused) = await CoreConfigContextBuilder.ResolveNodeAsync(vlessContext, vless, true);
+        await vlessRefused.Success.Should().BeFalse();
+        await vlessRefused.Errors.Should().BeEquivalentTo([notFound], CollectionOrdering.Matching);
+        await vlessContext.AllProxiesMap.Should().NotContainKey(vless.IndexId);
     }
 
     // ---- sing-box

@@ -10,6 +10,12 @@
     mc:Ignorable="d">
     <!--  PattN: a text field with an arrow that lists ready-made values, and the name of the one it holds under it (design 3.3);  -->
     <!--  without its text (ShowsText), the name sits beside the arrow  -->
+    <UserControl.Styles>
+        <!--  The arrow greys out with the field: the app's PathIcon style gives it a colour of its own, which a disabled button keeps  -->
+        <Style Selector="Button:disabled PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource ButtonDefaultDisabledForeground}" />
+        </Style>
+    </UserControl.Styles>
     <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto">
         <TextBox
             x:Name="txtValue"

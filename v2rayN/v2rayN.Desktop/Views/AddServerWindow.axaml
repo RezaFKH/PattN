@@ -1293,11 +1293,12 @@
                         Width="200"
                         Margin="{StaticResource Margin4}" />
 
+                    <!--  PattN: at the top, 10 px down, level with the preset field's text above the name of the preset it holds (design 3.3)  -->
                     <TextBlock
                         Grid.Row="4"
                         Grid.Column="0"
-                        Margin="{StaticResource Margin4}"
-                        VerticalAlignment="Center"
+                        Margin="4,10,4,4"
+                        VerticalAlignment="Top"
                         Text="{x:Static resx:ResUI.TbCipherSuites}" />
                     <!--  PattN: cipherSuites as a preset field (design 3.3)  -->
                     <views:PresetField

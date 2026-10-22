@@ -30,7 +30,7 @@
                 TextWrapping="Wrap" />
         </ScrollViewer>
 
-        <!--  The buttons wrap onto a second line where they are wider than the window, as in a long translation, as the WPF twin's WrapPanel does  -->
+        <!--  The buttons wrap onto a second line where they are wider than the window, as in a long translation, every line at the right, as the WPF twin's RightWrapPanel does  -->
         <WrapPanel
             x:Name="panelButtons"
             Grid.Row="1"

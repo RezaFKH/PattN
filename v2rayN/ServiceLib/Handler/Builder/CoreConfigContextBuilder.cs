@@ -119,9 +119,10 @@ public partial class CoreConfigContextBuilder
 
                 // PattN: the profile a rule sends to runs inside its subscription's previous/next chain, as the main
                 // profile does (PattNG CoreConfigContextBuilder.kt resolveOutbound), where upstream resolves it alone
-                // (includeSubChain false). A chain holding an Aether profile that lacks a hop is refused for the rule as
-                // for the main profile, as any target that cannot be built: the context is refused for it (E2), or, where
-                // rule targets do not refuse it, the rule goes to the proxy with the error as a warning.
+                // (includeSubChain false). A chain whose subscription names a hop no profile has, or several have (N1), or
+                // holding an Aether profile that lacks a hop, is refused for the rule as for the main profile, as any
+                // target that cannot be built: the context is refused for it (E2), or, where rule targets do not refuse
+                // it, the rule goes to the proxy with the error as a warning.
                 // PattN: what resolving it adds to the context is taken back when the rule cannot use it (D1-R4)
                 var stateBeforeRule = RuleTargetState.Of(context);
                 var (actRuleNode, ruleNodeValidatorResult) = await ResolveNodeAsync(context, ruleOutboundNode, true);
@@ -294,7 +295,8 @@ public partial class CoreConfigContextBuilder
         if (includeSubChain)
         {
             var (virtualChainNode, chainValidatorResult) = await BuildSubscriptionChainNodeAsync(node);
-            // PattN: a subscription chain holding an Aether profile that lacks a hop is refused rather than shortened
+            // PattN: a subscription chain that names a hop no profile has, or several have, is refused rather than
+            // shortened (N1)
             if (!chainValidatorResult.Success)
             {
                 return (node, chainValidatorResult);
@@ -324,6 +326,8 @@ public partial class CoreConfigContextBuilder
     ///     <see cref="EConfigType.ProxyChain" /> node that wraps them together.
     ///     Returns <c>null</c> as the chain item when no chain is needed.
     ///     Any warnings (e.g. missing prev/next profile) are returned in the validator result.
+    ///     PattN: a previous or next profile name that no profile has, or several have, is an error that refuses the chain
+    ///     (N1), with no chain item.
     /// </summary>
     private static async Task<(ProfileItem? ChainNode, NodeValidatorResult ValidatorResult)>
         BuildSubscriptionChainNodeAsync(ProfileItem node)
@@ -344,27 +348,16 @@ public partial class CoreConfigContextBuilder
         ProfileItem? prevNode = null;
         ProfileItem? nextNode = null;
 
-        if (!subItem.PrevProfile.IsNullOrEmpty())
+        // PattN: found by their names, the spaces around them aside, where upstream takes the first profile of the name and
+        // leaves out with a warning one it does not find; a name no profile has, or several have, refuses the chain,
+        // whatever the type of the profile it wraps, rather than build it without that hop or through a profile it may
+        // not mean (N1, PattNG resolveProxyChainProfilesFromGroup); a custom configuration is no hop, and a blank name
+        // names none (CoreConfigContextBuilder.Names.cs)
+        prevNode = await FindSubscriptionNeighbourAsync(subItem.PrevProfile, result);
+        nextNode = await FindSubscriptionNeighbourAsync(subItem.NextProfile, result);
+        if (!result.Success)
         {
-            prevNode = await AppManager.Instance.GetProfileItemViaRemarks(subItem.PrevProfile);
-            if (prevNode == null)
-            {
-                result.Warnings.Add(string.Format(ResUI.MsgSubscriptionPrevProfileNotFound, subItem.PrevProfile));
-            }
-        }
-        if (!subItem.NextProfile.IsNullOrEmpty())
-        {
-            nextNode = await AppManager.Instance.GetProfileItemViaRemarks(subItem.NextProfile);
-            if (nextNode == null)
-            {
-                result.Warnings.Add(string.Format(ResUI.MsgSubscriptionNextProfileNotFound, subItem.NextProfile));
-            }
-        }
-
-        // PattN: a chain holding an Aether profile is built whole or not at all
-        if (AetherSubscriptionChainRefusal(node, subItem, prevNode, nextNode) is { } aetherRefusal)
-        {
-            result.Errors.Add(aetherRefusal);
+            Logging.SaveLog($"Subscription '{subItem.Remarks}': the chain around '{node.Remarks}' is refused: {string.Join("; ", result.Errors)}");
             return (null, result);
         }
 

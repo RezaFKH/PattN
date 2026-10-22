@@ -71,11 +71,12 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
+                                <!--  PattN: the name column half as wide again, for psiphon_servers (design 3.6), taken from the message column  -->
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="1*" />
                                     <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition Width="1*" />
-                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="1.5*" />
+                                    <ColumnDefinition Width="2.5*" />
                                 </Grid.ColumnDefinitions>
                                 <ToggleButton
                                     x:Name="togAutoRefresh"

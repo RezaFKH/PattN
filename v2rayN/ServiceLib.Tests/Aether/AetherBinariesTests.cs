@@ -211,4 +211,25 @@ public class AetherBinariesTests : IDisposable
             await AetherBinaries.IsRunnable(Path.Combine(Folder, "run-aether.bat")).Should().BeFalse();
         }
     }
+
+    // PattN (critique 28): the notice that package-aether.sh writes beside the three programs is read from the program's
+    // own bin folder, which an upgrade refreshes, not from the copy of bin in the local application data folder.
+    [Test]
+    public async Task TheLicenseNoticeIsReadFromTheProgramsOwnBinFolder()
+    {
+        await AetherBinaries.NoticeName.Should().BeEqualTo("NOTICE.txt");
+        await AetherBinaries.BundledNoticeFile.Should()
+            .BeEqualTo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bin", "aether", "NOTICE.txt"));
+    }
+
+    // PattN: Windows hands the file to the shell, Linux to xdg-open and macOS to open, as the file location is opened.
+    [Test]
+    public async Task TheLicenseNoticeOpensWithTheSystemsProgramForText()
+    {
+        var file = Path.Combine(_root, "Program Files", "PattN", "bin", "aether", "NOTICE.txt");
+
+        await AetherBinaries.OpenCommand(file, OSPlatform.Windows).Should().BeEqualTo((file, ""));
+        await AetherBinaries.OpenCommand(file, OSPlatform.Linux).Should().BeEqualTo(("xdg-open", file));
+        await AetherBinaries.OpenCommand(file, OSPlatform.OSX).Should().BeEqualTo(("open", file));
+    }
 }

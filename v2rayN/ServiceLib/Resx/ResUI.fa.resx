@@ -2406,4 +2406,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
     <value>WebSocket و HTTPUpgrade فقط با alpn برابر http/1.1 یا بدون alpn وصل می‌شوند. http/1.1 را انتخاب کنید یا alpn را خالی بگذارید.</value>
   </data>
+  <data name="menuAetherLicenses" xml:space="preserve">
+    <value>مجوزهای هسته Aether</value>
+  </data>
 </root>

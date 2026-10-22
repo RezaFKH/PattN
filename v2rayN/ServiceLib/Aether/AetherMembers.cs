@@ -68,13 +68,22 @@ public static class AetherMembers
     /// Why a subscription cannot be saved with the previous profile <paramref name="prevProfile" /> and the next profile
     /// <paramref name="nextProfile" />, named as the subscription editor names them, as a localized message; null when it
     /// can. They chain every profile of the subscription, so either can be an Aether profile, not both: one core runs,
-    /// and a chain can have one Aether profile.
+    /// and a chain can have one Aether profile. Each is found by its name as the chain finds it
+    /// (<see cref="CoreConfigContextBuilder.FindSubscriptionNeighbourAsync(string?)" />): a name no profile has, or several
+    /// have, names none of them here, never the first of them, and is refused for itself (N1,
+    /// <see cref="CoreConfigContextBuilder.SubscriptionNamesProblemAsync" />).
     /// </summary>
     public static async Task<string?> SubscriptionProblemAsync(string? prevProfile, string? nextProfile)
     {
-        var prev = await AppManager.Instance.GetProfileItemViaRemarks(prevProfile);
-        var next = await AppManager.Instance.GetProfileItemViaRemarks(nextProfile);
-        return HasSecondAetherMember([prev?.ConfigType, next?.ConfigType]) ? ResUI.MsgAetherChainOneProfile : null;
+        var prev = await CoreConfigContextBuilder.FindSubscriptionNeighbourAsync(prevProfile);
+        var next = await CoreConfigContextBuilder.FindSubscriptionNeighbourAsync(nextProfile);
+        return HasSecondAetherMember([TypeOf(prev), TypeOf(next)]) ? ResUI.MsgAetherChainOneProfile : null;
+    }
+
+    /// <summary>The type of the one profile a name found; none for a name no profile has, or several have.</summary>
+    private static EConfigType? TypeOf(ByName<ProfileItem> found)
+    {
+        return (found as ByName<ProfileItem>.One)?.Value.ConfigType;
     }
 
     /// <summary>

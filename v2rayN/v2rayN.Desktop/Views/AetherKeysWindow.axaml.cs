@@ -22,11 +22,19 @@ public partial class AetherKeysWindow : WindowBase<AetherKeysViewModel>
             this.OneWayBind(ViewModel, vm => vm.FinalMask, v => v.presetFinalMask.ViewModel).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.Log, v => v.logPanel.ViewModel).DisposeWith(disposables);
 
-            // The lists, before the entries they show.
+            // The lists, before the entries they show. The lists of names are handed over as they are, not through
+            // OneWayBind: that gives a list without an ItemTemplate ReactiveUI's view-model template
+            // (AutoDataTemplateBindingHook), which shows a name, and the one chosen, as nothing.
             this.OneWayBind(ViewModel, vm => vm.KindOptions, v => v.lstKinds.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.EchDnsOptions, v => v.cmbEchDns.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.EchDomainOptions, v => v.cmbEchDomain.ItemsSource).DisposeWith(disposables);
-            this.OneWayBind(ViewModel, vm => vm.FingerprintLabels, v => v.cmbFingerprint.ItemsSource).DisposeWith(disposables);
+            this.WhenAnyValue(v => v.ViewModel)
+                .KeepNotNull()
+                .Subscribe(vm =>
+                {
+                    cmbEchDns.ItemsSource = vm.EchDnsOptions;
+                    cmbEchDomain.ItemsSource = vm.EchDomainOptions;
+                    cmbFingerprint.ItemsSource = vm.FingerprintLabels;
+                })
+                .DisposeWith(disposables);
 
             // The fields, in PattNG's order.
             this.Bind(ViewModel, vm => vm.ApiAddress, v => v.txtApiAddress.Text).DisposeWith(disposables);

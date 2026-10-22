@@ -148,24 +148,4 @@ public partial class CoreConfigContextBuilder
         }
         return null;
     }
-
-    /// <summary>
-    /// Why the chain a subscription puts around its profile <paramref name="node" /> cannot be built, as a localized
-    /// message, or null: it holds an Aether profile (the profile itself, or its previous or next profile) and a previous
-    /// or next profile it names is not there; the chain is built whole or not at all (critique 4). It is asked for the
-    /// main profile, which is refused for it, and for the profile a routing rule sends to, which refuses the session as
-    /// well (E2); only a context whose rule targets do not refuse it, as a latency test's, sends that rule to the proxy,
-    /// with it as a warning (CoreConfigContextBuilder.Build).
-    /// </summary>
-    private static string? AetherSubscriptionChainRefusal(ProfileItem node, SubItem subItem, ProfileItem? prevNode, ProfileItem? nextNode)
-    {
-        var missing = !subItem.PrevProfile.IsNullOrEmpty() && prevNode == null ? subItem.PrevProfile
-            : !subItem.NextProfile.IsNullOrEmpty() && nextNode == null ? subItem.NextProfile
-            : null;
-        if (missing == null || !new[] { node, prevNode, nextNode }.Any(profile => profile?.ConfigType == EConfigType.Aether))
-        {
-            return null;
-        }
-        return string.Format(ResUI.MsgAetherChainHopDropped, node.Remarks, missing);
-    }
 }

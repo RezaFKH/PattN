@@ -35,6 +35,42 @@ public static class AetherBinaries
     /// <summary>bin/aether/lyrebird[.exe].</summary>
     public static string LyrebirdFile => FileIn(Folder, LyrebirdName);
 
+    /// <summary>
+    /// The notice PattN's release archives and packages put beside the three programs (package-aether.sh, critique 28):
+    /// their names, their licenses (AGPL-3.0 for aether, GPL-3.0 for psiphon-tunnel-core, BSD-3-Clause for lyrebird) and
+    /// where their source code is. The Help menu opens it.
+    /// </summary>
+    public const string NoticeName = "NOTICE.txt";
+
+    /// <summary>
+    /// bin/aether/NOTICE.txt in the program's own folder, where a release put it. It is read there rather than in
+    /// <see cref="Folder" />: where PattN keeps its data in the local application data folder, the copy of bin made at
+    /// the first start is never refreshed by an upgrade (as AetherPaths.BundledPsiphonServersFile).
+    /// </summary>
+    public static string BundledNoticeFile => Path.Combine(Utils.GetBaseDirectory("bin"), nameof(ECoreType.aether), NoticeName);
+
+    /// <summary>Opens <see cref="BundledNoticeFile" /> with the system's program for text files.</summary>
+    public static void OpenNotice()
+    {
+        var os = Utils.IsWindows() ? OSPlatform.Windows : Utils.IsMacOS() ? OSPlatform.OSX : OSPlatform.Linux;
+        var (fileName, arguments) = OpenCommand(BundledNoticeFile, os);
+        ProcUtils.ProcessStart(fileName, arguments);
+    }
+
+    /// <summary>
+    /// How <paramref name="file" /> is handed to the system's program for it, as MainWindowViewModel.OpenTheFileLocation
+    /// hands over a folder: Windows opens the file itself through the shell, Linux through xdg-open and macOS through
+    /// open, with the path as an argument, so that a path with a space in it still opens.
+    /// </summary>
+    public static (string FileName, string Arguments) OpenCommand(string file, OSPlatform os)
+    {
+        if (os == OSPlatform.Windows)
+        {
+            return (file, "");
+        }
+        return (os == OSPlatform.OSX ? "open" : "xdg-open", file);
+    }
+
     /// <summary>Whether the core is there to run (PattNG isSupported).</summary>
     public static bool IsCoreAvailable() => IsRunnable(CoreFile);
 

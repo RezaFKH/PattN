@@ -20,6 +20,8 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <!--  PattN: fork-only window, the Aether editor (design 3.2): one row per setting, in PattNG's order, each shown as its settings call for  -->
+    <!--  The label beside the CDN edge lists sits 16 px down, level with the expander's header; a hint beside a switch keeps 4 px  -->
+    <!--  above and below, apart from the hint of the next row  -->
     <DockPanel Margin="{StaticResource Margin8}">
         <StackPanel
             Margin="{StaticResource Margin4}"
@@ -56,7 +58,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ModuleTitle}"
-                        Text="{x:Static resx:ResUI.menuServers}" />
+                        Text="{x:Static resx:ResUI.menuServers}"
+                        TextWrapping="Wrap" />
                     <Button
                         x:Name="btnRenewKey"
                         Grid.Column="1"
@@ -77,7 +80,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbRemarks}" />
+                        Text="{x:Static resx:ResUI.TbRemarks}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtRemarks"
                         Grid.Column="1"
@@ -97,7 +101,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherProtocol}" />
+                        Text="{x:Static resx:ResUI.TbAetherProtocol}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbProtocol"
                         Grid.Column="1"
@@ -117,7 +122,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherTransport}" />
+                        Text="{x:Static resx:ResUI.TbAetherTransport}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbTransport"
                         Grid.Column="1"
@@ -137,7 +143,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherMasqueSni}" />
+                        Text="{x:Static resx:ResUI.TbAetherMasqueSni}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtMasqueSni"
                         Grid.Column="1"
@@ -157,7 +164,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherFragment}" />
+                        Text="{x:Static resx:ResUI.TbAetherFragment}"
+                        TextWrapping="Wrap" />
                     <ToggleButton
                         x:Name="togFragment"
                         Grid.Column="1"
@@ -176,7 +184,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherFragmentSize}" />
+                        Text="{x:Static resx:ResUI.TbAetherFragmentSize}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtFragmentSize"
                         Grid.Column="1"
@@ -198,7 +207,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherFragmentDelay}" />
+                        Text="{x:Static resx:ResUI.TbAetherFragmentDelay}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtFragmentDelay"
                         Grid.Column="1"
@@ -220,7 +230,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherEch}" />
+                        Text="{x:Static resx:ResUI.TbAetherEch}"
+                        TextWrapping="Wrap" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <ToggleButton
                             x:Name="togEch"
@@ -228,7 +239,7 @@
                             HorizontalAlignment="Left" />
                         <TextBlock
                             Width="400"
-                            Margin="{StaticResource MarginLeftRight8}"
+                            Margin="8,4,8,4"
                             VerticalAlignment="Center"
                             Style="{StaticResource ToolbarTextBlock}"
                             Text="{x:Static resx:ResUI.TbAetherEchHint}"
@@ -247,7 +258,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherEchDns}" />
+                        Text="{x:Static resx:ResUI.TbAetherEchDns}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbEchDns"
                         Grid.Column="1"
@@ -269,7 +281,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherEchDomain}" />
+                        Text="{x:Static resx:ResUI.TbAetherEchDomain}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbEchDomain"
                         Grid.Column="1"
@@ -291,7 +304,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherScanMode}" />
+                        Text="{x:Static resx:ResUI.TbAetherScanMode}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbScanMode"
                         Grid.Column="1"
@@ -311,7 +325,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherObfuscation}" />
+                        Text="{x:Static resx:ResUI.TbAetherObfuscation}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbObfuscation"
                         Grid.Column="1"
@@ -331,7 +346,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherFingerprint}" />
+                        Text="{x:Static resx:ResUI.TbAetherFingerprint}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbFingerprint"
                         Grid.Column="1"
@@ -351,7 +367,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Top"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherExitNode}" />
+                        Text="{x:Static resx:ResUI.TbAetherExitNode}"
+                        TextWrapping="Wrap" />
                     <views:ExitNodeField x:Name="exitNodeField" Grid.Column="1" />
                 </Grid>
 
@@ -385,7 +402,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherExitDialMode}" />
+                        Text="{x:Static resx:ResUI.TbAetherExitDialMode}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtDialMode"
                         Grid.Column="1"
@@ -405,7 +423,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphon}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphon}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbPsiphon"
                         Grid.Column="1"
@@ -441,7 +460,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonMode}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonMode}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbPsiphonMode"
                         Grid.Column="1"
@@ -461,7 +481,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnIps}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnIps}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtPsiphonCdnIps"
                         Grid.Column="1"
@@ -482,7 +503,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnSni}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnSni}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtPsiphonCdnSni"
                         Grid.Column="1"
@@ -500,10 +522,11 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock
                         Grid.Column="0"
-                        Margin="{StaticResource Margin4}"
+                        Margin="4,16,4,4"
                         VerticalAlignment="Top"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnSets}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonCdnSets}"
+                        TextWrapping="Wrap" />
                     <Expander
                         x:Name="expPsiphonCdnSets"
                         Grid.Column="1"
@@ -548,7 +571,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonRegion}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonRegion}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbPsiphonRegion"
                         Grid.Column="1"
@@ -569,7 +593,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherPsiphonBundledList}" />
+                        Text="{x:Static resx:ResUI.TbAetherPsiphonBundledList}"
+                        TextWrapping="Wrap" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <ToggleButton
                             x:Name="togPsiphonBundledList"
@@ -577,7 +602,7 @@
                             HorizontalAlignment="Left" />
                         <TextBlock
                             Width="400"
-                            Margin="{StaticResource MarginLeftRight8}"
+                            Margin="8,4,8,4"
                             VerticalAlignment="Center"
                             Style="{StaticResource ToolbarTextBlock}"
                             Text="{x:Static resx:ResUI.TbAetherPsiphonBundledListHint}"
@@ -620,7 +645,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherTor}" />
+                        Text="{x:Static resx:ResUI.TbAetherTor}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbTor"
                         Grid.Column="1"
@@ -656,7 +682,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherTorBridges}" />
+                        Text="{x:Static resx:ResUI.TbAetherTorBridges}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbTorBridges"
                         Grid.Column="1"
@@ -676,7 +703,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherTorRelays}" />
+                        Text="{x:Static resx:ResUI.TbAetherTorRelays}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbTorRelays"
                         Grid.Column="1"
@@ -696,7 +724,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Top"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherTorBridgeLines}" />
+                        Text="{x:Static resx:ResUI.TbAetherTorBridgeLines}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtTorBridgeLines"
                         Grid.Column="1"
@@ -723,7 +752,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherOuterHop}" />
+                        Text="{x:Static resx:ResUI.TbAetherOuterHop}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtWiwOuter"
                         Grid.Column="1"
@@ -742,7 +772,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherInnerHop}" />
+                        Text="{x:Static resx:ResUI.TbAetherInnerHop}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtWiwInner"
                         Grid.Column="1"
@@ -762,7 +793,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAddress}" />
+                        Text="{x:Static resx:ResUI.TbAddress}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtAddress"
                         Grid.Column="1"
@@ -781,7 +813,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbPort}" />
+                        Text="{x:Static resx:ResUI.TbPort}"
+                        TextWrapping="Wrap" />
                     <TextBox
                         x:Name="txtPort"
                         Grid.Column="1"
@@ -802,7 +835,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherIpVersion}" />
+                        Text="{x:Static resx:ResUI.TbAetherIpVersion}"
+                        TextWrapping="Wrap" />
                     <ComboBox
                         x:Name="cmbIpVersion"
                         Grid.Column="1"
@@ -816,10 +850,11 @@
                     x:Name="expOtherSettings"
                     Margin="{StaticResource Margin4}"
                     Header="{x:Static resx:ResUI.TbAetherOtherSettings}">
+                    <!--  296: the rows sit 4 px in, by the expander's Margin4 alone, so their fields start where every other field does (300)  -->
                     <StackPanel>
                         <Grid x:Name="rowDns">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="292" />
+                                <ColumnDefinition Width="296" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
@@ -827,7 +862,8 @@
                                 Margin="{StaticResource Margin4}"
                                 VerticalAlignment="Center"
                                 Style="{StaticResource ToolbarTextBlock}"
-                                Text="{x:Static resx:ResUI.TbAetherDns}" />
+                                Text="{x:Static resx:ResUI.TbAetherDns}"
+                                TextWrapping="Wrap" />
                             <TextBox
                                 x:Name="txtDns"
                                 Grid.Column="1"
@@ -838,7 +874,7 @@
                         </Grid>
                         <Grid x:Name="rowExitLoc">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="292" />
+                                <ColumnDefinition Width="296" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
@@ -846,7 +882,8 @@
                                 Margin="{StaticResource Margin4}"
                                 VerticalAlignment="Center"
                                 Style="{StaticResource ToolbarTextBlock}"
-                                Text="{x:Static resx:ResUI.TbAetherExitLoc}" />
+                                Text="{x:Static resx:ResUI.TbAetherExitLoc}"
+                                TextWrapping="Wrap" />
                             <TextBox
                                 x:Name="txtExitLoc"
                                 Grid.Column="1"
@@ -857,7 +894,7 @@
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="292" />
+                                <ColumnDefinition Width="296" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
@@ -865,7 +902,8 @@
                                 Margin="{StaticResource Margin4}"
                                 VerticalAlignment="Center"
                                 Style="{StaticResource ToolbarTextBlock}"
-                                Text="{x:Static resx:ResUI.TbTargetStrategy}" />
+                                Text="{x:Static resx:ResUI.TbTargetStrategy}"
+                                TextWrapping="Wrap" />
                             <ComboBox
                                 x:Name="cmbTargetStrategy"
                                 Grid.Column="1"
@@ -945,7 +983,8 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Top"
                         Style="{StaticResource ToolbarTextBlock}"
-                        Text="{x:Static resx:ResUI.TbAetherCommand}" />
+                        Text="{x:Static resx:ResUI.TbAetherCommand}"
+                        TextWrapping="Wrap" />
                     <StackPanel Grid.Column="1">
                         <TextBox
                             x:Name="txtCommand"
