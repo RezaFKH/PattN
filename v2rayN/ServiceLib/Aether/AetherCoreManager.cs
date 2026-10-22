@@ -1191,9 +1191,10 @@ public sealed class AetherCoreManager
     /// <summary>
     /// Kills the cores an earlier PattN left behind, whatever they ran for (PattNG reapStale): a test's core holds the
     /// listen port a session needs as a session's core does, and either may be the one that survived. A core this
-    /// manager runs now, the session's or one of its own, keeps running and keeps its file.
+    /// manager runs now, the session's or one of its own, keeps running and keeps its file. A load calls it as well, before
+    /// it checks the ports (AetherCoreLoad.BeforeXrayAsync).
     /// </summary>
-    private void ReapLeftovers()
+    internal void ReapLeftovers()
     {
         if (!_host.UsesPidFiles)
         {

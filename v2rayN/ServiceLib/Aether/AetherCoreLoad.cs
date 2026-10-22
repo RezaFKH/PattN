@@ -19,6 +19,12 @@ public sealed class AetherCoreLoadSteps
     public required Func<Task> CancelProbes { get; init; }
 
     /// <summary>
+    /// Kills the cores an earlier PattN left behind and waits for them (AetherCoreManager.ReapLeftovers): one may hold a
+    /// port the check before Xray starts looks at, which nothing else would free (PattNG reapStale before its check).
+    /// </summary>
+    public required Action ReapLeftovers { get; init; }
+
+    /// <summary>
     /// The port of the secondary-socks inbound Xray opens for the core to dial out through
     /// (<see cref="AetherBuild.SecondaryInboundPort" />), read once the configuration was generated; null when it has none.
     /// </summary>
@@ -110,13 +116,14 @@ public static class AetherCoreLoad
     }
 
     /// <summary>
-    /// What follows the stop of the old cores, before Xray starts (D3): every loopback port the Aether core the
-    /// configuration needs listens on, and the port of the secondary-socks inbound Xray opens for it, by UDP as well, which
-    /// that inbound serves, can be listened on now. A port another program holds would have the core or Xray fail to
-    /// listen, or an Aether outbound dial that program; one the system keeps from programs (a Windows excluded port range)
-    /// would have them fail. A port that is not free is looked at again for <see cref="AetherCoreLoadSteps.PortRelease" />
-    /// at most, while the old cores' hold of it ends. False, after telling which port, when one cannot: the load ends
-    /// there, and the cores it stopped stay stopped. True otherwise, and for a configuration that needs no core.
+    /// What follows the stop of the old cores, before Xray starts (D3): once the cores an earlier PattN left behind are
+    /// killed, every loopback port the Aether core the configuration needs listens on, and the port of the secondary-socks
+    /// inbound Xray opens for it, by UDP as well, which that inbound serves, can be listened on now. A port another
+    /// program holds would have the core or Xray fail to listen, or an Aether outbound dial that program; one the system
+    /// keeps from programs (a Windows excluded port range) would have them fail. A port that is not free is looked at
+    /// again for <see cref="AetherCoreLoadSteps.PortRelease" /> at most, while the old cores' hold of it ends. False, after
+    /// telling which port, when one cannot: the load ends there, and the cores it stopped stay stopped. True otherwise,
+    /// and for a configuration that needs no core.
     /// </summary>
     public static async Task<bool> BeforeXrayAsync(AetherCoreLoadSteps steps)
     {
@@ -124,6 +131,7 @@ public static class AetherCoreLoad
         {
             return true;
         }
+        steps.ReapLeftovers();
         var secondaryPort = steps.SecondaryPort();
         var problem = PortsProblem(core, secondaryPort, steps.CanListen);
         var waited = Stopwatch.StartNew();

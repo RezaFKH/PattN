@@ -53,7 +53,7 @@ public sealed record AetherCore
     /// </summary>
     public int Port => AetherArguments.ListenerPortOf(Arguments) ?? AetherPorts.DefaultListenPort;
 
-    /// <summary>Every loopback port the core is told to listen on, its HTTP proxies' too; an inbound of the configuration cannot share one.</summary>
+    /// <summary>Every port the core is told to listen on, its HTTP proxies' too; an inbound of the configuration cannot share one.</summary>
     public List<int> Ports => Listeners
         .Select(flag => AetherArguments.PortAfter(Arguments, flag))
         .OfType<int>()
@@ -88,7 +88,7 @@ public sealed record AetherCore
         return string.Join(" → ", AetherArguments.PathOf(Arguments, label));
     }
 
-    /// <summary>True when a process started with <paramref name="processArguments" /> runs this core, on whatever ports and at whatever log level.</summary>
+    /// <summary>True when a process started with <paramref name="processArguments" /> runs this core, on whatever SOCKS ports and at whatever log level.</summary>
     public bool RunsAs(IReadOnlyList<string> processArguments)
     {
         return AetherArguments.TunnelArguments(processArguments).SequenceEqual(AetherArguments.TunnelArguments(Arguments));

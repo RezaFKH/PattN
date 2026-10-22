@@ -443,7 +443,7 @@ public static class AetherArguments
     }
 
     /// <summary>
-    /// <paramref name="arguments" /> without the listeners, the log level and the upstream proxy: what tells one tunnel
+    /// <paramref name="arguments" /> without the SOCKS listeners, the log level and the upstream proxy: what tells one tunnel
     /// from another. The session's core dials out through Xray and its profile does not say so.
     /// </summary>
     public static List<string> TunnelArguments(IReadOnlyList<string> arguments)

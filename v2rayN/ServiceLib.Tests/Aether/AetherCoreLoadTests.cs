@@ -36,6 +36,9 @@ public class AetherCoreLoadTests
         /// <summary>Whether a port can be listened on: PattN's own probe unless a test says otherwise.</summary>
         public Func<int, bool, bool> CanListen { get; init; } = AetherCoreLoad.CanListen;
 
+        /// <summary>What killing the cores an earlier PattN left behind does: nothing unless a test says otherwise.</summary>
+        public Action? Reap { get; init; }
+
         public AetherCoreLoadSteps Build()
         {
             return new AetherCoreLoadSteps
@@ -48,6 +51,7 @@ public class AetherCoreLoadTests
                     return ++Generation;
                 },
                 CancelProbes = () => Log("cancel probes"),
+                ReapLeftovers = () => Reap?.Invoke(),
                 SecondaryPort = () => Secondary,
                 CanListen = CanListen,
                 PortRelease = PortRelease,
@@ -192,6 +196,30 @@ public class AetherCoreLoadTests
                 ["new generation", "cancel probes", "stop the old cores", $"report True {string.Format(ResUI.MsgAetherListenPortInUse, p + offset)}"],
                 CollectionOrdering.Matching).Because($"P+{offset} taken, inside: {inside ?? "nothing"}");
         }
+    }
+
+    [Test]
+    public async Task ACoreAnEarlierPattNLeftOnTheListenPortIsKilledBeforeThePortsAreChecked()
+    {
+        // Nothing else would free the port: the load gives a taken port no time to be released here.
+        var p = FreePorts();
+        using var leftover = new TcpHolder(p);
+        var steps = new Steps(SessionCore(p)) { Secondary = p + 3, PortRelease = TimeSpan.Zero, Reap = leftover.Dispose };
+
+        await Load(steps);
+
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", "start xray", $"wait for {p + 3}", "start aether 42"],
+            CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task AnHttpProxyOnNoPortIsRefusedAsAListenerOnNoPortIs()
+    {
+        // D3-1 holds for the HTTP proxies of a command as well; the core would leave such a proxy out without a word.
+        var core = AetherCore.OfCommand("aether --masque --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:70000", AetherPorts.DefaultListenPort)!;
+
+        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 70000));
     }
 
     [Test]

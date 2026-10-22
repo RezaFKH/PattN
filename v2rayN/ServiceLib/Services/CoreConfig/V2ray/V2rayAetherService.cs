@@ -637,8 +637,8 @@ public partial class CoreConfigV2rayService
     /// Why the configuration <paramref name="content" />, as it is handed to Xray, cannot run beside its Aether core:
     /// the full-configuration template refused it (<see cref="ApplyAetherToTemplate" />), or an inbound of its own, a
     /// template's among them, listens on a port the core listens on (PattNG CoreServiceManager): Xray would take the port
-    /// first, and the Aether outbound would dial the configuration's own inbound. The core is none then. Null when it can,
-    /// or when no core runs.
+    /// first, and the Aether outbound would dial the configuration's own inbound, or the core could not open the HTTP proxy
+    /// a command names there. The core is none then. Null when it can, or when no core runs.
     /// </summary>
     private string? CheckAetherConfig(string content)
     {

@@ -543,6 +543,7 @@ public class CoreManager
             MissingCore = AetherCoreLoad.MissingCoreMessage,
             NewGeneration = _turns.NewGeneration,
             CancelProbes = () => AetherCoreManager.Instance.CancelProbesAsync(),
+            ReapLeftovers = AetherCoreManager.Instance.ReapLeftovers,
             SecondaryPort = () => mainContext.Aether.SecondaryInboundPort,
             XrayUp = () => _processService is { HasExited: false },
             WaitForPort = AetherCoreLoad.WaitForPortAsync,
