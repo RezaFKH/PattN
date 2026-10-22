@@ -180,9 +180,16 @@ public static class AetherCoreLoad
         return null;
     }
 
-    /// <summary>The first port <paramref name="core" /> is told to listen on that is no port, outside 1..65535; null when there is none.</summary>
+    /// <summary>
+    /// The first port <paramref name="core" /> is told to listen on that is no port, outside 1..65535; null when there is
+    /// none. The listener the app dials cannot take 0 either, which has the core listen on a port the app does not know.
+    /// </summary>
     private static int? InvalidPort(AetherCore core)
     {
+        if (core.Port is < 1 or > IPEndPoint.MaxPort)
+        {
+            return core.Port;
+        }
         return core.Ports.Where(port => port is < 1 or > IPEndPoint.MaxPort).Select(port => (int?)port).FirstOrDefault();
     }
 

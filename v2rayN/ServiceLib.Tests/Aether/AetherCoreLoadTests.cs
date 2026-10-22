@@ -223,6 +223,18 @@ public class AetherCoreLoadTests
     }
 
     [Test]
+    public async Task TheListenerTheAppDialsOnPortZeroIsRefused()
+    {
+        // 0 has the core listen on a port the app does not know; another listener may take it.
+        var bind = AetherCore.OfCommand("aether --masque --bind 127.0.0.1:0", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(bind, null, (_, _) => true).Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 0));
+        var tor = AetherCore.OfCommand("aether --masque --tor --tor-bind 127.0.0.1:0 --bind 127.0.0.1:10820", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(tor, null, (_, _) => true).Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 0));
+        var around = AetherCore.OfCommand("aether --masque --psiphon-reverse --psiphon-bind 127.0.0.1:0 --bind 127.0.0.1:10819", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(around, null, (_, _) => true).Should().BeNull();
+    }
+
+    [Test]
     public async Task TwoListenersOnOnePortAreRefusedWithoutAWait()
     {
         // A command stored before the editor refused it: the core would bind the port once and fail on the second listener.

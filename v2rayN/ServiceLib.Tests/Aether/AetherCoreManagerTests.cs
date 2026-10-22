@@ -41,6 +41,11 @@ public class AetherCoreManagerTests : IDisposable
         public bool HasExited => _exited.Task.IsCompleted;
         public Task<int> Exited => _exited.Task;
         public bool Killed { get; private set; }
+
+        /// <summary>How often it was killed, a kill of a core that is gone already among them.</summary>
+        public int Kills => Volatile.Read(ref _kills);
+
+        private int _kills;
         public bool Disposed { get; private set; }
 
         public void Write(string line)
@@ -55,6 +60,7 @@ public class AetherCoreManagerTests : IDisposable
 
         public async Task<bool> KillAsync(TimeSpan wait)
         {
+            Interlocked.Increment(ref _kills);
             if (!Killed)
             {
                 Killed = true;
@@ -440,8 +446,14 @@ public class AetherCoreManagerTests : IDisposable
             .Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, "tor: the tor socks5 listener cannot use 127.0.0.1:10819"));
     }
 
-    private const string TorTakenWords = "tor: the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
-                                         + "another program already listens there, so stop it or choose another port with --bind";
+    private const string TorTakenText = "the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
+                                        + "another program already listens there, so stop it or choose another port with --bind";
+
+    /// <summary>The core's line when Tor cannot take its listener (aether lib.rs, run_chain), as it writes it.</summary>
+    private const string TorTakenLine = "[2026-10-23T10:00:00.000Z ERROR aether] [-] tor: other: " + TorTakenText;
+
+    /// <summary>The words of <see cref="TorTakenLine" /> the stop message gives.</summary>
+    private const string TorTakenWords = "tor: " + TorTakenText;
 
     private static AetherCore TorInside()
     {
@@ -456,7 +468,7 @@ public class AetherCoreManagerTests : IDisposable
 
         await rig.Manager.StartSessionAsync(TorInside(), generation: 7);
         // The core goes on without the listener Xray dials, which another program holds (aether lib.rs, run_chain).
-        rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether] [-] " + TorTakenWords);
+        rig.Core(0).Write(TorTakenLine);
 
         var ended = await Next(ends);
         await rig.Core(0).Killed.Should().BeTrue();
@@ -469,7 +481,7 @@ public class AetherCoreManagerTests : IDisposable
     public async Task ACoreThatSaysSoBeforeItIsAttachedIsEndedOnceItIs()
     {
         // Tor binds its listener as the core starts, and the word may come before the spawn returns.
-        var rig = new Rig(_root) { FirstLine = "[2026-10-23T10:00:00.000Z ERROR aether] [-] " + TorTakenWords };
+        var rig = new Rig(_root) { FirstLine = TorTakenLine };
         var ends = rig.WatchEnds();
 
         await rig.Manager.StartSessionAsync(TorInside());
@@ -484,11 +496,43 @@ public class AetherCoreManagerTests : IDisposable
         var rig = new Rig(_root);
 
         await rig.Manager.StartSessionAsync(Core("--masque", "--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"));
-        // The client's own notice, which the core passes on; the core's word that Psiphon ended would follow it.
+        // The client's own notices, which the core passes on from its psiphon module; the core's word that Psiphon ended
+        // would follow them.
         rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: tunnel establishment failed: dial timeout");
+        rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: psiphon.(*Controller).Run#412: tunnel failed");
 
         await rig.Core(0).Killed.Should().BeFalse();
         await rig.Manager.Session.Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task TheCoreSayingThatPsiphonInsideTheTunnelEndedEndsTheSession()
+    {
+        var rig = new Rig(_root);
+        var ends = rig.WatchEnds();
+
+        await rig.Manager.StartSessionAsync(Core("--masque", "--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"));
+        // As a PattNG device logged it on 2026-09-24.
+        rig.Core(0).Write("[2026-09-24T16:12:36.142Z ERROR aether] [-] psiphon: other: psiphon did not come up in time; it may be blocked on this network");
+
+        await (await Next(ends)).Message.Should().BeEqualTo(
+            string.Format(ResUI.MsgAetherCoreStoppedChainEnded, "psiphon: psiphon did not come up in time; it may be blocked on this network"));
+        await rig.Core(0).Killed.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task AWordOfAStoppedSessionEndsNothingMore()
+    {
+        var rig = new Rig(_root) { CoresEndWhenKilled = false };
+
+        await rig.Manager.StartSessionAsync(TorInside());
+        await rig.Manager.StopSessionAsync();
+        var killsAtTheStop = rig.Core(0).Kills;
+        // A line still in the pipe once the session was stopped.
+        rig.Core(0).Write(TorTakenLine);
+
+        await rig.Manager.StoppedMessage().Should().BeEqualTo(ResUI.MsgAetherCoreStopped);
+        await rig.Core(0).Kills.Should().BeEqualTo(killsAtTheStop);
     }
 
     [Test]

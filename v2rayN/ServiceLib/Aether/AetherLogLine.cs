@@ -78,30 +78,37 @@ public static partial class AetherLogLine
     }
 
     /// <summary>
-    /// The core's words, without their "[-] ", when <paramref name="line" /> says that Tor or Psiphon inside the tunnel,
-    /// whose listener a session started with <paramref name="arguments" /> is dialled on, has ended or could not start;
-    /// null for any other line, and for a session dialled on the core's own listener (PattNG chainEndWords). The core logs
-    /// it and goes on without that listener (aether lib.rs: "[-] tor: {e}" and "[-] psiphon: {e}" of run_chain), where
-    /// another program may listen then and get what Xray sends there. Tor's words are the only ones with their prefix;
-    /// Psiphon's own start with "psiphon" again, where the notices of the Psiphon client that the core passes on under the
-    /// same prefix do not.
+    /// The core's words, as "tor: ..." or "psiphon: ...", when <paramref name="line" /> says that Tor or Psiphon inside
+    /// the tunnel, whose listener a session started with <paramref name="arguments" /> is dialled on, has ended or could
+    /// not start; null for any other line, and for a session dialled on the core's own listener (PattNG chainEndWords).
+    /// The core logs it and goes on without that listener (aether lib.rs, run_chain: "[-] tor: {e}" and
+    /// "[-] psiphon: {e}" at the error level, from the crate's root, the target "aether"), where another program may
+    /// listen then and get what Xray sends there. The notices of the Psiphon client that the core passes on, under the
+    /// same "[-] psiphon: ", come from its psiphon module, "aether::psiphon". The label of the error's kind, "other: " or
+    /// "io: ", is left out of the words.
     /// </summary>
     public static string? ChainEndWords(string line, IReadOnlyList<string> arguments)
     {
-        if (IsFatalError(line) || OutputPriority(line) != AetherLogPriority.Error)
+        var header = LogHeader(line.Trim());
+        if (header == null || header[1] != "ERROR" || header[2] != "aether")
         {
             return null;
         }
         var listener = AetherArguments.ListenerFlagOf(arguments);
-        var prefix = listener == AetherArguments.TorBind ? "[-] tor: "
-            : listener == AetherArguments.PsiphonBind ? "[-] psiphon: psiphon"
+        var carrier = listener == AetherArguments.TorBind ? "tor"
+            : listener == AetherArguments.PsiphonBind ? "psiphon"
             : null;
-        if (prefix == null)
+        if (carrier == null)
         {
             return null;
         }
         var message = OutputMessage(line);
-        return message.StartsWith(prefix, StringComparison.Ordinal) ? message.Substring("[-] ".Length) : null;
+        var prefix = $"[-] {carrier}: ";
+        if (!message.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+        return $"{carrier}: " + ErrorLabelRegex().Replace(message.Substring(prefix.Length), string.Empty, 1);
     }
 
     /// <summary>
@@ -140,4 +147,8 @@ public static partial class AetherLogLine
 
     [GeneratedRegex("\\x1b\\[[0-9;]*m", RegexOptions.CultureInvariant)]
     private static partial Regex AnsiColorRegex();
+
+    /// <summary>The label an error of the core starts its words with, the kind it is of (aether error.rs, AetherError).</summary>
+    [GeneratedRegex("^(?:io|quic|h3|tls|ech|masque|capsule|api|other|identity refused): ", RegexOptions.CultureInvariant)]
+    private static partial Regex ErrorLabelRegex();
 }

@@ -340,6 +340,10 @@ public class AetherCoreTests
         await OfCommand("aether --wg --http-proxy 127.0.0.1:10819").SharedPort.Should().BeEqualTo(10819);
         // Tor inside the tunnel on the core's own port.
         await OfCommand("aether --masque --tor --tor-bind 127.0.0.1:10820 --bind 127.0.0.1:10820").SharedPort.Should().BeEqualTo(10820);
+        // Tor's listener of a command that runs no Tor binds nothing: the command names one listener, not two.
+        var torOff = OfCommand("aether --masque --tor-bind 127.0.0.1:10819 --tor-http 127.0.0.1:10820");
+        await torOff.SharedPort.Should().BeNull();
+        await ShouldBe(torOff.Ports, 10819);
         // Each with a port of its own; Psiphon's 0 around the tunnel is none.
         await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:8118").SharedPort.Should().BeNull();
         await OfCommand("aether --masque --psiphon-reverse --psiphon-bind 127.0.0.1:0 --psiphon-http 127.0.0.1:0 --bind 127.0.0.1:10819")

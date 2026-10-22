@@ -525,7 +525,7 @@ public sealed class AetherCoreManager
                     RelayLine(SourceOf(AetherRole.Session), line);
                     if (ended != null)
                     {
-                        EndForChain(ended);
+                        EndForChain(session, ended);
                     }
                 });
                 // A core that ends at once without a word did not start (design 2.4.4): its time counts from its spawn,
@@ -554,7 +554,7 @@ public sealed class AetherCoreManager
             _ = WatchAsync(session, process);
             if (endedEarly != null)
             {
-                EndForChain(endedEarly);
+                EndForChain(session, endedEarly);
             }
             return null;
         }
@@ -565,12 +565,17 @@ public sealed class AetherCoreManager
     }
 
     /// <summary>
-    /// Ends the session's core <paramref name="process" />, which goes on without the listener Xray dials once Tor or
-    /// Psiphon inside the tunnel ended (<see cref="AetherSession.ChainEnd" />). Its exit then ends the session as an exit
-    /// on its own does, Xray with it (<see cref="WatchAsync" />; PattNG AetherCoreManager.watch).
+    /// Ends the core <paramref name="process" /> of <paramref name="session" />, which goes on without the listener Xray
+    /// dials once Tor or Psiphon inside the tunnel ended (<see cref="AetherSession.ChainEnd" />). Its exit then ends the
+    /// session as an exit on its own does, Xray with it (<see cref="WatchAsync" />; PattNG AetherCoreManager.watch). A
+    /// session PattN stopped, or one a new start replaced, has had its core ended already.
     /// </summary>
-    private void EndForChain(IAetherCoreProcess process)
+    private void EndForChain(AetherSession session, IAetherCoreProcess process)
     {
+        if (session.StopRequested)
+        {
+            return;
+        }
         Logging.SaveLog("AetherCore: ending the session core, Tor or Psiphon inside the tunnel has ended");
         _ = EndProcessAsync(process, SourceOf(AetherRole.Session));
     }

@@ -67,18 +67,25 @@ public class AetherLogLineTests
     {
         string[] tor = ["--masque", "--tor", "--tor-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"];
         string[] psiphon = ["--masque", "--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"];
-        // The core's word when Tor cannot take its listener, which another program took meanwhile (aether lib.rs, run_chain).
-        const string torWords = "tor: the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
-                                + "another program already listens there, so stop it or choose another port with --bind";
-        const string torEnded = "[2026-10-23T10:00:00.000Z ERROR aether] [-] " + torWords;
-        await AetherLogLine.ChainEndWords(torEnded, tor).Should().BeEqualTo(torWords);
-        // Psiphon's own words start with "psiphon" again; those of the client it passes on under the same prefix do not.
-        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped before it was ready", psiphon)
-            .Should().BeEqualTo("psiphon: psiphon stopped before it was ready");
-        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped: exit status: 1", psiphon)
+        // The core's lines as it writes them (aether lib.rs, run_chain): an error's words start with the label of its kind,
+        // as AetherError::Other shows it.
+        const string torText = "the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
+                               + "another program already listens there, so stop it or choose another port with --bind";
+        const string torEnded = "[2026-10-23T10:00:00.000Z ERROR aether] [-] tor: other: " + torText;
+        await AetherLogLine.ChainEndWords(torEnded, tor).Should().BeEqualTo("tor: " + torText);
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] tor: io: Connection reset by peer (os error 104)", tor)
+            .Should().BeEqualTo("tor: Connection reset by peer (os error 104)");
+        // As a PattNG device logged it on 2026-09-24.
+        await AetherLogLine.ChainEndWords(
+                "[2026-09-24T16:12:36.142Z ERROR aether] [-] psiphon: other: psiphon did not come up in time; it may be blocked on this network", psiphon)
+            .Should().BeEqualTo("psiphon: psiphon did not come up in time; it may be blocked on this network");
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: other: psiphon stopped: exit status: 1", psiphon)
             .Should().BeEqualTo("psiphon: psiphon stopped: exit status: 1");
+        // The notices of the Psiphon client come from the core's psiphon module, under the same prefix, at any level.
         await AetherLogLine.ChainEndWords(
                 "[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: error initializing local SOCKS proxy: address already in use", psiphon)
+            .Should().BeNull();
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: psiphon.(*Controller).Run#412: tunnel failed", psiphon)
             .Should().BeNull();
         await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z WARN  aether::psiphon] [-] psiphon lost its tunnel; it is reconnecting", psiphon)
             .Should().BeNull();
@@ -88,7 +95,7 @@ public class AetherLogLineTests
         await AetherLogLine.ChainEndWords(torEnded, ["--masque", "--bind", "127.0.0.1:10819"]).Should().BeNull();
         // Psiphon around the tunnel ends the tunnel with it, and the core's own listener answers no more: no leak to look for.
         string[] reverse = ["--masque", "--psiphon-reverse", "--bind", "127.0.0.1:10819"];
-        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether] [-] psiphon: psiphon stopped: exit status: 1", reverse)
+        await AetherLogLine.ChainEndWords("[2026-10-23T10:00:00.000Z ERROR aether::psiphon] [-] psiphon: other: psiphon stopped: exit status: 1", reverse)
             .Should().BeNull();
         // The error the core stops on is its own exit, not a chain that ended under a running core.
         await AetherLogLine.ChainEndWords("Error: Other(\"[-] tor: ...\")", tor).Should().BeNull();
