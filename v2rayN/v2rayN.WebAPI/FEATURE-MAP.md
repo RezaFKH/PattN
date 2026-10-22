@@ -41,7 +41,9 @@ Core selection/startup remain delegated to ServiceLib's `CoreInfoManager` and `C
 and require the selected Core executable. Generated speed-test configurations support Xray
 and sing-box; TCPing is available for any profile with a port. Release/container artifacts
 copy the complete architecture-matched official `2dust/v2rayN-core-bin` payload, with
-patterniha/Xray-core and Chocolate4U's geo files in place of its Xray-core and geo files.
+patterniha/Xray-core and Chocolate4U's geo files in place of its Xray-core and geo files, and,
+where patterniha/Aether publishes a build (x64 and ARM64), the Aether core with its license texts in
+`bin/aether` and Psiphon's server list in `bin` (`package-aether.sh`).
 
 ## Unsupported desktop capabilities
 

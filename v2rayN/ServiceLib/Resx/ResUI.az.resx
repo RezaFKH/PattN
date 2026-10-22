@@ -1969,10 +1969,10 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>"{0}" exit-node profilinin echOutbound-u istifadə edilə bilmir; onu həmin profildə düzəldin, başqasını və ya freedom seçin</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>Nüvə tətbiqin yerli proksi portunda və Aether dinləmə portundan üç yuxarı olan portda dinləyə bilməz; tənzimləmələrdə Aether dinləmə portunu və ya əmrin portlarını dəyişin</value>
+    <value>Nüvə tətbiqin yerli proksi portunda və Aether dinləmə portundan üç yuxarı olan portda dinləyə bilməz; Parametrlərdə Aether dinləmə portunu dəyişin və ya Aether profilinin əmrindəki portları dəyişin</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
-    <value>Bu konfiqurasiyanın bir girişi artıq {0} portunda dinləyir; bu, Aether dinləmə portundan üç yuxarı olan və Aether nüvəsinin xaricə qoşulduğu portdur; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
+    <value>Bu konfiqurasiyanın bir girişi artıq {0} portunda dinləyir; bu, Aether dinləmə portundan üç yuxarı olan və Aether nüvəsinin xaricə qoşulduğu portdur; Parametrlərdə Aether dinləmə portunu dəyişin</value>
   </data>
   <data name="MsgAetherGroupLeavesOut" xml:space="preserve">
     <value>"{0}" siyasət qrupu "{1}" profilini xaric edir: bu, başqa tənzimləmələri olan ikinci Aether profilidir, bir nüvə isə yalnız bir profilə xidmət edir</value>
@@ -2023,10 +2023,10 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Aether dinləmə portu və ondan sonrakı üç port PattN-in yerli portlarını əhatə edə bilməz: qarışıq portu və ondan sonrakı altı portu</value>
   </data>
   <data name="MsgAetherListenPortInUse" xml:space="preserve">
-    <value>Aether nüvəsinin dinlədiyi {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; tənzimləmələrdə Aether dinləmə portunu və ya əmrin portlarını dəyişin</value>
+    <value>Aether nüvəsinin dinlədiyi {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; Parametrlərdə Aether dinləmə portunu dəyişin və ya Aether profilinin əmrindəki portları dəyişin</value>
   </data>
   <data name="MsgAetherSecondaryPortInUse" xml:space="preserve">
-    <value>Aether dinləmə portundan üç yuxarı olan və Xray-in Aether nüvəsinin xaricə qoşulması üçün açdığı {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
+    <value>Aether dinləmə portundan üç yuxarı olan və Xray-in Aether nüvəsinin xaricə qoşulması üçün açdığı {0} portu başqa proqram tərəfindən tutulub və ya sistem tərəfindən ehtiyatda saxlanılıb; Parametrlərdə Aether dinləmə portunu dəyişin</value>
   </data>
   <data name="MsgRoutingRuleChainHopNotBuilt" xml:space="preserve">
     <value>"{0}" öz abunəliyinin zəncirində qurula bilmədi</value>
@@ -2383,7 +2383,7 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Ən azı bir körpü sətri yazın və ya başqa körpü tənzimləməsi seçin</value>
   </data>
   <data name="MsgAetherNextPortTaken" xml:space="preserve">
-    <value>Yolda Tor və ya Psiphon olduqda nüvə Aether dinləmə portundan sonrakı portlardan da istifadə edir və onların heç biri tətbiqin yerli proksi portu ola bilməz; tənzimləmələrdə Aether dinləmə portunu dəyişin</value>
+    <value>Yolda Tor və ya Psiphon olduqda nüvə Aether dinləmə portundan sonrakı portlardan da istifadə edir və onların heç biri tətbiqin yerli proksi portu ola bilməz; Parametrlərdə Aether dinləmə portunu dəyişin</value>
   </data>
   <data name="MsgAetherInvalidCommand" xml:space="preserve">
     <value>Əmr Aether nüvəsi üçün arqumentləri göstərməli, dinlədiyi port isə --bind-dan sonra gəlməlidir</value>

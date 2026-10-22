@@ -60,6 +60,23 @@ PY
   for asset in "${assets[@]}"; do
     printf 'asset\n' > "$publish/$asset"
   done
+  # PattN: the Aether core and its two programs, their license texts, the archive's LICENSES folder and the notice in
+  # bin/aether, and Psiphon's server list in bin (package-aether.sh), where patterniha/Aether publishes an archive
+  case "$rid" in
+    linux-x64|linux-arm64|win-x64|win-arm64)
+      local exe="" program
+      if [[ -n "$pe_machine" ]]; then exe=".exe"; fi
+      mkdir -p "$publish/bin/aether/LICENSES"
+      for program in aether lyrebird psiphon-tunnel-core; do
+        printf '#!/bin/sh\nexit 0\n' > "$publish/bin/aether/$program$exe"
+        chmod 755 "$publish/bin/aether/$program$exe"
+      done
+      for asset in bin/aether/NOTICE.txt bin/aether/AGPL-3.0.txt bin/aether/GPL-3.0.txt bin/aether/lyrebird-LICENSE.txt \
+        bin/aether/LICENSES/THIRD-PARTY-NOTICES.txt bin/psiphon_servers.dat bin/psiphon_servers.stamp; do
+        printf 'asset\n' > "$publish/$asset"
+      done
+      ;;
+  esac
   # User data that must never leak into the app-only self-update package.
   mkdir -p "$publish/guiConfigs" "$publish/guiLogs" "$publish/WebAPIData"
   printf 'config\n' > "$publish/guiConfigs/guiNConfig.json"
@@ -158,6 +175,77 @@ assert ".env" in web_ignore, web_ignore
 assert ".env" in container_ignore and "**/.env" in container_ignore, container_ignore
 print("ZIP boundary assertions passed")
 PY
+
+# PattN: the full packages carry the Aether core (executable outside Windows), its license texts and notice, the
+# archive's LICENSES folder and Psiphon's server list; riscv64 and loongarch64 have no Aether archive to carry
+python3 - "$temporary/dist/$full_x64" "$temporary/dist/$full_arm64" "$temporary/dist/$full_windows" \
+  "$temporary/dist/$full_windows_arm64" "$temporary/dist/$full_riscv64" "$temporary/dist/$full_loong64" <<'PY'
+import os
+import stat
+import sys
+import zipfile
+
+linux = sys.argv[1:3]
+windows = sys.argv[3:5]
+exotic = sys.argv[5:7]
+texts = ("bin/aether/NOTICE.txt", "bin/aether/AGPL-3.0.txt", "bin/aether/GPL-3.0.txt",
+         "bin/aether/lyrebird-LICENSE.txt", "bin/aether/LICENSES/THIRD-PARTY-NOTICES.txt",
+         "bin/psiphon_servers.dat", "bin/psiphon_servers.stamp")
+for path in linux + windows:
+    exe = ".exe" if path in windows else ""
+    with zipfile.ZipFile(path) as archive:
+        infos = {info.filename: info for info in archive.infolist()}
+    for name in texts:
+        assert name in infos, (path, name)
+    for program in ("aether", "lyrebird", "psiphon-tunnel-core"):
+        info = infos.get("bin/aether/" + program + exe)
+        assert info is not None, (path, program)
+        # The packager keeps the file's mode; only a POSIX file system has the execute bits to keep (CI runs on Linux).
+        if not exe and os.name == "posix":
+            assert (info.external_attr >> 16) & stat.S_IXUSR, (path, program, oct(info.external_attr >> 16))
+for path in exotic:
+    with zipfile.ZipFile(path) as archive:
+        names = archive.namelist()
+    assert not any(name.startswith("bin/aether/") or name.startswith("bin/psiphon_servers.") for name in names), names
+print("Aether bundle assertions passed")
+PY
+
+# PattN: a full package without one of the Aether files, or with a core that cannot run, is refused
+refuse_without() {
+  local rid="$1" missing="$2" message="$3"
+  local case_root="$temporary/without-${rid}-${missing//\//_}"
+  cp -a "$temporary/publish-$rid" "$case_root"
+  rm -f "$case_root/$missing"
+  if python3 "$asset_tool" package --rid "$rid" --publish "$case_root" --dist "$case_root-dist" 2>"$case_root.log"; then
+    echo "Expected a $rid package without $missing to be rejected" >&2
+    exit 1
+  fi
+  if ! grep -qF "$message: $missing" "$case_root.log"; then
+    echo "The $rid package without $missing was rejected for another reason" >&2
+    cat "$case_root.log" >&2
+    exit 1
+  fi
+}
+for missing in bin/aether/aether bin/aether/lyrebird bin/aether/psiphon-tunnel-core bin/aether/NOTICE.txt \
+  bin/aether/AGPL-3.0.txt bin/aether/GPL-3.0.txt bin/aether/lyrebird-LICENSE.txt bin/psiphon_servers.dat \
+  bin/psiphon_servers.stamp; do
+  refuse_without linux-x64 "$missing" "full package is missing required file"
+done
+for missing in bin/aether/aether.exe bin/aether/psiphon-tunnel-core.exe bin/aether/lyrebird-LICENSE.txt; do
+  refuse_without win-arm64 "$missing" "full package is missing required file"
+done
+cp -a "$temporary/publish-linux-arm64" "$temporary/aether-not-executable"
+chmod 644 "$temporary/aether-not-executable/bin/aether/psiphon-tunnel-core"
+# Where the file system has no execute bits (Git Bash on Windows), os.access cannot tell; CI runs on Linux.
+if ! python3 -c 'import os, sys; sys.exit(0 if os.access(sys.argv[1], os.X_OK) else 1)' \
+  "$temporary/aether-not-executable/bin/aether/psiphon-tunnel-core"; then
+  if python3 "$asset_tool" package --rid linux-arm64 --publish "$temporary/aether-not-executable" \
+    --dist "$temporary/aether-not-executable-dist" 2>"$temporary/aether-not-executable.log"; then
+    echo "Expected a linux-arm64 package whose psiphon-tunnel-core cannot run to be rejected" >&2
+    exit 1
+  fi
+  grep -qF "full package is missing required executable: bin/aether/psiphon-tunnel-core" "$temporary/aether-not-executable.log"
+fi
 
 python3 "$web_root/Scripts/web-update-manifest.py" write \
   --version 7.25.3 \

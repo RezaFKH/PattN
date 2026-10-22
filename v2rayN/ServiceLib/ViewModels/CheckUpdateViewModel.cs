@@ -523,8 +523,9 @@ public partial class CheckUpdateViewModel : MyReactiveObject
     }
 
     /// <summary>
-    /// PattN: puts the programs of a downloaded Aether archive into bin/aether, flat, and gives them their execute bits
-    /// outside Windows. A failure is shown on the row of the core alone, and the other rows are installed as usual. Every
+    /// PattN: puts the programs of a downloaded Aether archive into bin/aether, flat, with the archive's LICENSES folder
+    /// when it has one (AetherBinaries.Extract), and gives the programs their execute bits outside Windows. A failure is
+    /// shown on the row of the core alone, and the other rows are installed as usual. Every
     /// Aether process (the session's core, and those of scans, latency tests and WARP-key runs) is gone by then and none
     /// starts until the files are in place: UpgradeCore holds the cores around every row (critique 17).
     /// </summary>

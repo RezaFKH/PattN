@@ -452,6 +452,11 @@ public sealed partial class V2rayRuntime(
         }
 
         var item = ToSubItem(input, null);
+        // PattN: the previous and the next profile each name one profile, as the desktop's editor says (N1)
+        if (await SubscriptionNamesRefusalAsync(item) is { } namesRefusal)
+        {
+            return namesRefusal;
+        }
         // PattN: the previous and the next profile can be one Aether profile, not two, as the desktop's editor says
         if (await AetherSubscriptionRefusalAsync(item) is { } aetherRefusal)
         {
@@ -486,6 +491,11 @@ public sealed partial class V2rayRuntime(
 
             var item = ToSubItem(input, existing);
             item.Id = id;
+            // PattN: the previous and the next profile each name one profile, as the desktop's editor says (N1)
+            if (await SubscriptionNamesRefusalAsync(item) is { } namesRefusal)
+            {
+                return namesRefusal;
+            }
             // PattN: the previous and the next profile can be one Aether profile, not two, as the desktop's editor says
             if (await AetherSubscriptionRefusalAsync(item) is { } aetherRefusal)
             {
@@ -1231,6 +1241,28 @@ public sealed partial class V2rayRuntime(
         }
         Logging.SaveLog($"WebAPI: the subscription \"{item.Remarks}\" was not saved: {problem}");
         return new SubscriptionMutationResult(false, "subscription_aether_chain_invalid", ApiMessageKeys.CommonInvalidInput, null);
+    }
+
+    /// <summary>
+    /// PattN (N1, PattNG SubEditViewModel): why <paramref name="item" /> cannot be saved for the previous or the next profile
+    /// it names, or null. Each name has to find its one profile, as the chain the subscription puts around each of its
+    /// profiles finds it when it runs: one that no profile has, as after a rename or a delete, or several have, is refused
+    /// with code <c>subscription_chain_profile_invalid</c> and the desktop subscription editor's words as its detail
+    /// (CoreConfigContextBuilder.SubscriptionNamesProblemAsync, which that editor runs on its save). A blank name chains
+    /// nothing. The names are looked at as the save would store them, a name the request leaves out and the stored
+    /// subscription keeps among them, as the desktop's editor shows and saves the stored names.
+    /// </summary>
+    internal static async Task<SubscriptionMutationResult?> SubscriptionNamesRefusalAsync(SubItem item)
+    {
+        if (await CoreConfigContextBuilder.SubscriptionNamesProblemAsync(item.PrevProfile, item.NextProfile) is not { } problem)
+        {
+            return null;
+        }
+        Logging.SaveLog($"WebAPI: the subscription \"{item.Remarks}\" was not saved: {problem}");
+        return new SubscriptionMutationResult(false, "subscription_chain_profile_invalid", ApiMessageKeys.CommonInvalidInput, null)
+        {
+            Detail = problem,
+        };
     }
 
     /// <summary>

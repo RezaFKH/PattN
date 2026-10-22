@@ -41,15 +41,30 @@ EXECUTABLE_NAMES = {
     "win-x64": "v2rayN.WebAPI.exe",
     "win-arm64": "v2rayN.WebAPI.exe",
 }
+# PattN: the Aether core and the two programs it runs, with their license texts and notice, in bin/aether, and
+# Psiphon's signed server list in bin, as PattN's desktop packages bundle them (package-aether.sh). Only where
+# patterniha/Aether publishes an archive: linux-riscv64 and linux-loongarch64 have none.
+AETHER_TEXT_FILES = (
+    "bin/aether/NOTICE.txt", "bin/aether/AGPL-3.0.txt", "bin/aether/GPL-3.0.txt", "bin/aether/lyrebird-LICENSE.txt",
+    "bin/psiphon_servers.dat", "bin/psiphon_servers.stamp",
+)
+LINUX_AETHER_EXECUTABLES = ("bin/aether/aether", "bin/aether/lyrebird", "bin/aether/psiphon-tunnel-core")
+WINDOWS_AETHER_EXECUTABLES = ("bin/aether/aether.exe", "bin/aether/lyrebird.exe", "bin/aether/psiphon-tunnel-core.exe")
+AETHER_REQUIRED_EXECUTABLES = {
+    "linux-x64": LINUX_AETHER_EXECUTABLES,
+    "linux-arm64": LINUX_AETHER_EXECUTABLES,
+    "win-x64": WINDOWS_AETHER_EXECUTABLES,
+    "win-arm64": WINDOWS_AETHER_EXECUTABLES,
+}
 REQUIRED_FILES = {
     "linux-x64": (
         "v2rayN.WebAPI", BUILD_IDENTITY_NAME, "bin/sing_box/libcronet.so", "bin/geosite.dat",
         "bin/geoip.dat", "bin/geoip.metadb", "bin/Country.mmdb", "bin/srss/geosite-category-ads-all.srs",
-    ),
+    ) + LINUX_AETHER_EXECUTABLES + AETHER_TEXT_FILES,
     "linux-arm64": (
         "v2rayN.WebAPI", BUILD_IDENTITY_NAME, "bin/sing_box/libcronet.so", "bin/geosite.dat",
         "bin/geoip.dat", "bin/geoip.metadb", "bin/Country.mmdb", "bin/srss/geosite-category-ads-all.srs",
-    ),
+    ) + LINUX_AETHER_EXECUTABLES + AETHER_TEXT_FILES,
     "linux-riscv64": (
         "v2rayN.WebAPI", BUILD_IDENTITY_NAME, "bin/geosite.dat",
         "bin/geoip.dat", "bin/geoip.metadb", "bin/Country.mmdb", "bin/srss/geosite-category-ads-all.srs",
@@ -61,11 +76,11 @@ REQUIRED_FILES = {
     "win-x64": (
         "v2rayN.WebAPI.exe", BUILD_IDENTITY_NAME, "bin/xray/xray.exe", "bin/sing_box/sing-box.exe",
         "bin/mihomo/mihomo.exe", "bin/geosite.dat", "bin/geoip.dat", "bin/geoip.metadb", "bin/Country.mmdb",
-    ),
+    ) + WINDOWS_AETHER_EXECUTABLES + AETHER_TEXT_FILES,
     "win-arm64": (
         "v2rayN.WebAPI.exe", BUILD_IDENTITY_NAME, "bin/xray/xray.exe", "bin/sing_box/sing-box.exe",
         "bin/mihomo/mihomo.exe", "bin/geosite.dat", "bin/geoip.dat", "bin/geoip.metadb", "bin/Country.mmdb",
-    ),
+    ) + WINDOWS_AETHER_EXECUTABLES + AETHER_TEXT_FILES,
 }
 LINUX_REQUIRED_EXECUTABLES = ("bin/xray/xray", "bin/sing_box/sing-box", "bin/mihomo/mihomo")
 WINDOWS_REQUIRED_EXECUTABLES = (
@@ -167,6 +182,8 @@ def create_full_zip(publish: Path, output: Path, rid: str) -> None:
         if required not in names:
             fail(f"full package is missing required file: {required}")
     required_executables = WINDOWS_REQUIRED_EXECUTABLES if is_windows_rid(rid) else LINUX_REQUIRED_EXECUTABLES
+    # PattN: and the Aether core with its two programs, which must run outside Windows as the other Cores
+    required_executables += AETHER_REQUIRED_EXECUTABLES.get(rid, ())
     for required in required_executables:
         if required not in names or (not is_windows_rid(rid) and not os.access(publish / required, os.X_OK)):
             fail(f"full package is missing required executable: {required}")

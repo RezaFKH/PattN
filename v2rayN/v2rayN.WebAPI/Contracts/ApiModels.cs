@@ -44,7 +44,22 @@ public sealed record SubscriptionView(
     string? OverrideAddress,
     int? OverridePort);
 
-public sealed record SubscriptionMutationResult(bool Success, string Code, string MessageKey, SubscriptionView? Data);
+// PattN: the reply's data is the subscription saved, or the words of a refusal that has them as its detail, as the other
+// refusals carry them (OperationView with { detail })
+public sealed record SubscriptionMutationResult(
+    bool Success,
+    string Code,
+    string MessageKey,
+    [property: System.Text.Json.Serialization.JsonIgnore] SubscriptionView? Data)
+{
+    /// <summary>PattN: why the save was refused, in the words the desktop app shows for it; null when it has none.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Detail { get; init; }
+
+    /// <summary>PattN: what the reply carries as <c>data</c>: <see cref="Data" />, or <see cref="Detail" /> as <c>{ detail }</c>.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("data")]
+    public object? ReplyData => Data is not null ? Data : Detail is null ? null : new { detail = Detail };
+}
 
 public sealed record ProfileView(
     string IndexId,

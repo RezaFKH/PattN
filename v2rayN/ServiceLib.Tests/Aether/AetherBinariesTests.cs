@@ -151,6 +151,118 @@ public class AetherBinariesTests : IDisposable
             CollectionOrdering.Matching);
     }
 
+    // PattN (U4 c): a release archive with a LICENSES folder beside aether keeps it as a folder in bin/aether, with the
+    // folders in it, while the programs come out of pt/ flat; PattN's notice and license texts beside them stay, and the
+    // LICENSES folder of the build installed before goes.
+    [Test]
+    public async Task TheWindowsZipsLicensesFolderIsKeptBesideTheFlatPrograms()
+    {
+        Directory.CreateDirectory(Path.Combine(Folder, "LICENSES", "crates", "gone"));
+        File.WriteAllText(Path.Combine(Folder, "NOTICE.txt"), "PattN's notice");
+        File.WriteAllText(Path.Combine(Folder, "AGPL-3.0.txt"), "AGPL text");
+        File.WriteAllText(Path.Combine(Folder, "LICENSES", "old-crate.txt"), "an earlier build's");
+        File.WriteAllText(Path.Combine(Folder, "LICENSES", "crates", "gone", "LICENSE"), "an earlier build's");
+        var archive = Zip(
+            ("aether.exe", "core"),
+            ("pt/", null),
+            ("pt/lyrebird.exe", "lyrebird"),
+            ("pt\\psiphon-tunnel-core.exe", "psiphon"),
+            ("run-aether.bat", "bat"),
+            ("LICENSES/", null),
+            ("LICENSES/aether-LICENSE.txt", "AGPL"),
+            // Windows PowerShell's Compress-Archive separates the parts of a name with '\'.
+            ("LICENSES\\psiphon-tunnel-core-LICENSE.txt", "GPL"),
+            ("LICENSES/THIRD-PARTY-NOTICES.txt", "crates"),
+            ("LICENSES/crates/", null),
+            ("LICENSES/crates/boring-sys/LICENSE", "BoringSSL"),
+            ("LICENSES/._aether-LICENSE.txt", "apple double"),
+            ("__MACOSX/LICENSES/._THIRD-PARTY-NOTICES.txt", "apple double"));
+
+        var written = AetherBinaries.Extract(archive, Folder);
+
+        await written.Should().BeEquivalentTo(
+            [
+                "aether.exe", "lyrebird.exe", "psiphon-tunnel-core.exe", "run-aether.bat", "LICENSES/aether-LICENSE.txt",
+                "LICENSES/psiphon-tunnel-core-LICENSE.txt", "LICENSES/THIRD-PARTY-NOTICES.txt",
+                "LICENSES/crates/boring-sys/LICENSE",
+            ],
+            CollectionOrdering.Matching);
+        await Read("lyrebird.exe").Should().BeEqualTo("lyrebird");
+        await Read("psiphon-tunnel-core.exe").Should().BeEqualTo("psiphon");
+        await Read(Path.Combine("LICENSES", "psiphon-tunnel-core-LICENSE.txt")).Should().BeEqualTo("GPL");
+        await Read(Path.Combine("LICENSES", "crates", "boring-sys", "LICENSE")).Should().BeEqualTo("BoringSSL");
+        await Read("NOTICE.txt").Should().BeEqualTo("PattN's notice");
+        await Read("AGPL-3.0.txt").Should().BeEqualTo("AGPL text");
+        await Tree().Should().BeEquivalentTo(
+            [
+                "aether-windows-x86_64.zip", "bin", "bin/aether", "bin/aether/AGPL-3.0.txt", "bin/aether/LICENSES",
+                "bin/aether/LICENSES/THIRD-PARTY-NOTICES.txt", "bin/aether/LICENSES/aether-LICENSE.txt",
+                "bin/aether/LICENSES/crates", "bin/aether/LICENSES/crates/boring-sys",
+                "bin/aether/LICENSES/crates/boring-sys/LICENSE", "bin/aether/LICENSES/psiphon-tunnel-core-LICENSE.txt",
+                "bin/aether/NOTICE.txt", "bin/aether/aether.exe", "bin/aether/lyrebird.exe",
+                "bin/aether/psiphon-tunnel-core.exe", "bin/aether/run-aether.bat",
+            ],
+            CollectionOrdering.Matching);
+    }
+
+    // PattN (U4 c): in a tarball, a license file named like a program stays a license in LICENSES and never replaces
+    // the program; a link and a name that would climb out of LICENSES are left out.
+    [Test]
+    public async Task TheTarballsLicensesFolderIsKeptAndNothingClimbsOutOfIt()
+    {
+        var archive = TarGz(
+            TarFile("._aether", "apple double"),
+            TarFile("aether", "core"),
+            new PaxTarEntry(TarEntryType.Directory, "pt/"),
+            TarFile("pt/lyrebird", "lyrebird"),
+            TarFile("pt/psiphon-tunnel-core", "psiphon"),
+            new PaxTarEntry(TarEntryType.Directory, "LICENSES/"),
+            TarFile("LICENSES/lyrebird", "lyrebird's license"),
+            TarFile("./LICENSES/THIRD-PARTY-NOTICES.txt", "crates"),
+            TarFile("LICENSES/crates/ring/LICENSE", "ring"),
+            TarFile("LICENSES/../../escaped", "escaped"),
+            new PaxTarEntry(TarEntryType.SymbolicLink, "LICENSES/link") { LinkName = "../../outside" });
+
+        var written = AetherBinaries.Extract(archive, Folder);
+
+        await written.Should().BeEquivalentTo(
+            [
+                "aether", "lyrebird", "psiphon-tunnel-core", "LICENSES/lyrebird", "LICENSES/THIRD-PARTY-NOTICES.txt",
+                "LICENSES/crates/ring/LICENSE",
+            ],
+            CollectionOrdering.Matching);
+        await Read("lyrebird").Should().BeEqualTo("lyrebird");
+        await Read(Path.Combine("LICENSES", "lyrebird")).Should().BeEqualTo("lyrebird's license");
+        await Tree().Should().BeEquivalentTo(
+            [
+                "aether-linux-x86_64-musl.tar.gz", "bin", "bin/aether", "bin/aether/LICENSES",
+                "bin/aether/LICENSES/THIRD-PARTY-NOTICES.txt", "bin/aether/LICENSES/crates",
+                "bin/aether/LICENSES/crates/ring", "bin/aether/LICENSES/crates/ring/LICENSE", "bin/aether/LICENSES/lyrebird",
+                "bin/aether/aether", "bin/aether/lyrebird", "bin/aether/psiphon-tunnel-core",
+            ],
+            CollectionOrdering.Matching);
+    }
+
+    // PattN (U4 c): an archive without LICENSES (Aether 2.3.2 and older) installs as before and leaves the licenses
+    // already in the folder alone.
+    [Test]
+    public async Task AnArchiveWithoutLicensesLeavesTheLicensesInTheFolder()
+    {
+        Directory.CreateDirectory(Path.Combine(Folder, "LICENSES"));
+        File.WriteAllText(Path.Combine(Folder, "NOTICE.txt"), "PattN's notice");
+        File.WriteAllText(Path.Combine(Folder, "LICENSES", "aether-LICENSE.txt"), "an earlier build's");
+        var archive = TarGz(
+            TarFile("aether", "core"),
+            TarFile("pt/lyrebird", "lyrebird"),
+            TarFile("pt/psiphon-tunnel-core", "psiphon"));
+
+        var written = AetherBinaries.Extract(archive, Folder);
+
+        await written.Should().BeEquivalentTo(["aether", "lyrebird", "psiphon-tunnel-core"], CollectionOrdering.Matching);
+        await Read("NOTICE.txt").Should().BeEqualTo("PattN's notice");
+        await Read(Path.Combine("LICENSES", "aether-LICENSE.txt")).Should().BeEqualTo("an earlier build's");
+    }
+
     [Test]
     public async Task ADownloadThatIsNoArchiveIsRefused()
     {

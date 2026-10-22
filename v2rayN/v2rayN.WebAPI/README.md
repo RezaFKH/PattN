@@ -222,7 +222,11 @@ containers are not built.
 The API release provides architecture-specific full-install and app-only update ZIPs plus
 `WebAPI-update.json`. Their Core bundle is the architecture-matched `2dust/v2rayN-core-bin` payload
 with patterniha/Xray-core and Chocolate4U's geo files in place of its Xray-core and geo files, as in
-PattN's desktop packages:
+PattN's desktop packages. As those packages, the linux-64, linux-arm64, windows-64 and windows-arm64
+ZIPs (and the container) also carry the Aether core from the latest patterniha/Aether release in
+`bin/aether` (aether, lyrebird and psiphon-tunnel-core; the x64 build on Windows ARM64) with its
+license texts and `NOTICE.txt`, and Psiphon's signed server list in `bin` (`package-aether.sh`);
+patterniha/Aether publishes no riscv64 or loong64 build. The release assets:
 
 - `PattN-linux-64-WebAPI.zip` / `PattN-linux-arm64-WebAPI.zip` / `PattN-linux-riscv64-WebAPI.zip`
   / `PattN-linux-loong64-WebAPI.zip` — API, runtime files, `.env.example`, and Core bundle.
