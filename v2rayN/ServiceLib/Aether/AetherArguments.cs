@@ -14,6 +14,18 @@ public static class AetherArguments
     /// <summary>The option that names Tor's own listener.</summary>
     public const string TorBind = "--tor-bind";
 
+    /// <summary>
+    /// The option that names the core's own HTTP proxy, which a command written by hand may open beside its SOCKS
+    /// listener. The app names none, but the port it names is the core's as well (PattNG AetherCoreManager.kt).
+    /// </summary>
+    public const string HttpProxy = "--http-proxy";
+
+    /// <summary>The option that names Tor's HTTP proxy, which a command written by hand may open; see <see cref="HttpProxy" />.</summary>
+    public const string TorHttp = "--tor-http";
+
+    /// <summary>The option that names Psiphon's HTTP proxy, which a command written by hand may open; see <see cref="HttpProxy" />.</summary>
+    public const string PsiphonHttp = "--psiphon-http";
+
     /// <summary>The option that names the proxy the core dials out through.</summary>
     public const string Upstream = "--upstream";
 

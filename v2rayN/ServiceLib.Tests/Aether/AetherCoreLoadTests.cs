@@ -195,6 +195,22 @@ public class AetherCoreLoadTests
     }
 
     [Test]
+    public async Task AnHttpProxyOfTheCoreThatIsTakenLeavesTheCoresStopped()
+    {
+        // A command written by hand may open an HTTP proxy beside the core's own listener; its port is the core's as well.
+        var p = FreePorts();
+        using var holder = new TcpHolder(p + 1);
+        var core = new AetherCore(["--masque", "--bind", $"127.0.0.1:{p}", "--http-proxy", $"127.0.0.1:{p + 1}"]).Through(p + 3);
+        var steps = new Steps(core) { Secondary = p + 3 };
+
+        await Load(steps);
+
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", $"report True {string.Format(ResUI.MsgAetherListenPortInUse, p + 1)}"],
+            CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task XraysInboundForTheCoreTakenByTcpOrUdpLeavesTheCoresStopped()
     {
         // The secondary-socks inbound serves UDP as well, on the same port.

@@ -1264,6 +1264,9 @@ public class AetherFmtTests
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808" }), movedOntoIt).Should().BeNull();
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:10819" }), movedOntoIt)
             .Should().BeEqualTo(AetherProblem.ListenPortTaken);
+        // So does an HTTP proxy it opens.
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:10819" }), movedOntoIt)
+            .Should().BeEqualTo(AetherProblem.ListenPortTaken);
     }
 
     [Test]

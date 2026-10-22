@@ -14,8 +14,19 @@ public sealed record AetherCore
     /// <summary>The name a command line starts with; the app runs its own copy of the core whatever the name says.</summary>
     public const string CommandName = "aether";
 
-    /// <summary>The listeners a core may be told to bind: the core's own, Tor's, Psiphon's.</summary>
-    private static readonly string[] Listeners = ["--bind", AetherArguments.TorBind, AetherArguments.PsiphonBind];
+    /// <summary>
+    /// The listeners a core may be told to bind: the core's own, Tor's, Psiphon's, and the HTTP proxies a command written
+    /// by hand may open beside them.
+    /// </summary>
+    private static readonly string[] Listeners =
+    [
+        "--bind",
+        AetherArguments.TorBind,
+        AetherArguments.PsiphonBind,
+        AetherArguments.HttpProxy,
+        AetherArguments.TorHttp,
+        AetherArguments.PsiphonHttp,
+    ];
 
     private readonly IReadOnlyList<string> _arguments = [];
 
@@ -42,7 +53,7 @@ public sealed record AetherCore
     /// </summary>
     public int Port => AetherArguments.ListenerPortOf(Arguments) ?? AetherPorts.DefaultListenPort;
 
-    /// <summary>Every loopback port the core is told to listen on; an inbound of the configuration cannot share one.</summary>
+    /// <summary>Every loopback port the core is told to listen on, its HTTP proxies' too; an inbound of the configuration cannot share one.</summary>
     public List<int> Ports => Listeners
         .Select(flag => AetherArguments.PortAfter(Arguments, flag))
         .OfType<int>()

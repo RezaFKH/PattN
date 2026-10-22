@@ -324,6 +324,16 @@ public class AetherCoreTests
     }
 
     [Test]
+    public async Task TheHttpProxiesACommandWrittenByHandOpensAreItsPortsToo()
+    {
+        var tor = OfCommand("aether --wg --tor --bind 127.0.0.1:10819 --tor-bind 127.0.0.1:10820 "
+            + "--http-proxy 127.0.0.1:8118 --tor-http 127.0.0.1:8119");
+        await ShouldBe(tor.Ports, 10819, 10820, 8118, 8119);
+        var psiphon = OfCommand("aether --wg --psiphon --bind 127.0.0.1:10819 --psiphon-bind 127.0.0.1:10821 --psiphon-http 127.0.0.1:8120");
+        await ShouldBe(psiphon.Ports, 10819, 10821, 8120);
+    }
+
+    [Test]
     public async Task TheCoreOfAProfileDialsOutThroughTheExitNodeOfItsProfile()
     {
         var masked = Copy(Pinned(), set: profile =>
