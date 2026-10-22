@@ -401,8 +401,26 @@ public static class AetherArguments
     /// </summary>
     public static bool ReadyNeedsWord(IReadOnlyList<string> arguments)
     {
-        var psiphon = PsiphonModeOf(arguments);
-        return psiphon == AetherPsiphon.Chain || psiphon == AetherPsiphon.Only;
+        return AloneOf(arguments) switch
+        {
+            PsiphonName => true,
+            TorName => false,
+            _ => PsiphonModeOf(arguments) == AetherPsiphon.Chain,
+        };
+    }
+
+    /// <summary>
+    /// The carrier <paramref name="argv" /> runs alone, with no tunnel: Tor, before Psiphon when both are asked to, as the
+    /// core starts them and <see cref="PathOf" /> names them; null when neither runs alone (PattNG aloneOf). The core then
+    /// starts nothing else.
+    /// </summary>
+    public static string? AloneOf(IReadOnlyList<string> argv)
+    {
+        if (TorModeOf(argv) == AetherTor.Only)
+        {
+            return TorName;
+        }
+        return PsiphonModeOf(argv) == AetherPsiphon.Only ? PsiphonName : null;
     }
 
     /// <summary>
@@ -493,6 +511,11 @@ public static class AetherArguments
     /// </summary>
     public static string ListenerFlagOf(IReadOnlyList<string> arguments)
     {
+        // Alone, Tor or Psiphon serves the core's own listener, and the core starts nothing else (aether lib.rs).
+        if (AloneOf(arguments) != null)
+        {
+            return "--bind";
+        }
         if (PsiphonModeOf(arguments) == AetherPsiphon.Chain)
         {
             return PsiphonBind;

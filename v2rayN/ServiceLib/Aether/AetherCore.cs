@@ -93,12 +93,18 @@ public sealed record AetherCore
     /// The listener options the core binds as its arguments run it (PattNG AetherCore.boundListeners): its own and its
     /// HTTP proxy always, Tor's listener with Tor inside or around the tunnel and Tor's HTTP proxy with Tor run in any
     /// way, and the same for Psiphon. An option of a mode that does not run binds nothing (aether lib.rs, tor.rs and
-    /// psiphon.rs).
+    /// psiphon.rs). Tor or Psiphon alone serves the core's own listener and its own HTTP proxy, and the core runs nothing
+    /// else, not even its HTTP proxy, see <see cref="AetherArguments.AloneOf" />.
     /// </summary>
     private IEnumerable<string> BoundListeners()
     {
         var tor = AetherArguments.TorModeOf(Arguments);
         var psiphon = AetherArguments.PsiphonModeOf(Arguments);
+        if (AetherArguments.AloneOf(Arguments) != null)
+        {
+            var aloneHttp = tor == AetherTor.Only ? AetherArguments.TorHttp : AetherArguments.PsiphonHttp;
+            return Listeners.Where(flag => flag == "--bind" || flag == aloneHttp);
+        }
         return Listeners.Where(flag => flag switch
         {
             AetherArguments.TorBind => tor == AetherTor.Chain || tor == AetherTor.Reverse,

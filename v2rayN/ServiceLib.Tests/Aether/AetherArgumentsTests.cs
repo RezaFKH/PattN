@@ -933,6 +933,12 @@ public class AetherArgumentsTests
         await AetherArguments.TorModeOf(["--tor", "--tor-only"]).Should().BeEqualTo(AetherTor.Only);
         await AetherArguments.PsiphonModeOf(["--psiphon-reverse", "--psiphon"]).Should().BeEqualTo(AetherPsiphon.Chain);
         await AetherArguments.ListenerFlagOf(["--psiphon", "--psiphon-only"]).Should().BeEqualTo("--bind");
+        // A carrier alone is dialled on the core's own listener, whatever the other is told: the core starts only it.
+        await AetherArguments.ListenerFlagOf(["--tor-only", "--psiphon"]).Should().BeEqualTo("--bind");
+        await AetherArguments.ListenerFlagOf(["--psiphon-only", "--tor"]).Should().BeEqualTo("--bind");
+        await AetherArguments.AloneOf(["--tor-only", "--psiphon-only"]).Should().BeEqualTo("TOR");
+        await AetherArguments.AloneOf(["--psiphon-only", "--tor"]).Should().BeEqualTo("PSIPHON");
+        await AetherArguments.AloneOf(["--tor", "--psiphon-reverse"]).Should().BeNull();
     }
 
     // The ready word itself is checked in AetherLogLineTests, which ports the rest of PattNG's test.
@@ -945,6 +951,9 @@ public class AetherArgumentsTests
         await AetherArguments.ReadyNeedsWord(["--masque", "--psiphon-reverse"]).Should().BeFalse();
         await AetherArguments.ReadyNeedsWord(["--wg", "--tor"]).Should().BeFalse();
         await AetherArguments.ReadyNeedsWord(["--wg"]).Should().BeFalse();
+        // Tor alone runs no Psiphon, whatever Psiphon is told; Psiphon alone does say it.
+        await AetherArguments.ReadyNeedsWord(["--tor-only", "--psiphon"]).Should().BeFalse();
+        await AetherArguments.ReadyNeedsWord(["--psiphon-only", "--tor"]).Should().BeTrue();
 
         // The word is an info line: a quieter core never writes it, and the listener alone decides then.
         await AetherArguments.ShowsInfo(["--psiphon"]).Should().BeTrue();
