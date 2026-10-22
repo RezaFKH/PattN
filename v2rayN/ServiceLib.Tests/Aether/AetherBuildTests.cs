@@ -55,7 +55,7 @@ public class AetherBuildTests
         build.Refuse("refused");
         build.ExitNodeTagTaken = true;
         build.Core = Use().Core;
-        build.SecondaryInboundPort = 10832;
+        build.SecondaryInboundPort = 10822;
         build.ExitNodes["germany"] = ExitNodeLookup.NotFound.Instance;
         build.SecondaryPort = 40000;
         var firstChain = build.NewChainTag(Global.ProxyTag);

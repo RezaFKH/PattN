@@ -514,4 +514,120 @@ public class AetherUplinkTests
             ],
             CollectionOrdering.Matching);
     }
+
+    // ---- E5: Linux before 5.7, where only a process with CAP_NET_RAW may bind to an interface
+
+    [Test]
+    public async Task TheReleaseOfALinuxKernelIsReadUpToItsMinorVersion()
+    {
+        await AetherUplink.ParseKernelRelease("5.4.0-150-generic").Should().BeEqualTo(new Version(5, 4));
+        await AetherUplink.ParseKernelRelease("6.8.0").Should().BeEqualTo(new Version(6, 8));
+        await AetherUplink.ParseKernelRelease("4.19.113+").Should().BeEqualTo(new Version(4, 19));
+        await AetherUplink.ParseKernelRelease("5.10.0-rc1").Should().BeEqualTo(new Version(5, 10));
+        await AetherUplink.ParseKernelRelease("5.7").Should().BeEqualTo(new Version(5, 7));
+        await AetherUplink.ParseKernelRelease("6.6.87.2-microsoft-standard-WSL2").Should().BeEqualTo(new Version(6, 6));
+        await AetherUplink.ParseKernelRelease("3.10.0-1160.el7.x86_64\n").Should().BeEqualTo(new Version(3, 10));
+        await AetherUplink.ParseKernelRelease(" 5.15.0-1-amd64 ").Should().BeEqualTo(new Version(5, 15));
+        foreach (var text in new[] { null, "", " ", "linux", "5", "5.", ".7", "v5.4", "99999999999.1", "5.x" })
+        {
+            await AetherUplink.ParseKernelRelease(text).Should().BeNull().Because($"\"{text}\"");
+        }
+    }
+
+    [Test]
+    public async Task AKernelBefore57BindsNothingAndOneThatCannotBeReadDoes()
+    {
+        foreach (var release in new[] { "5.4.0-150-generic", "4.19.113+", "5.6.19", "3.10.0-1160.el7.x86_64", "2.6.32" })
+        {
+            await AetherUplink.KernelBindsToInterface(release).Should().BeFalse().Because(release);
+        }
+        foreach (var release in new[] { "5.7.0", "5.7", "5.10.0-rc1", "6.8.0", "6.6.87.2-microsoft-standard-WSL2", "10.0" })
+        {
+            await AetherUplink.KernelBindsToInterface(release).Should().BeTrue().Because(release);
+        }
+        // A release that cannot be read binds, as every kernel since 2020 can.
+        await AetherUplink.KernelBindsToInterface(null).Should().BeTrue();
+        await AetherUplink.KernelBindsToInterface("unknown").Should().BeTrue();
+        // Only Linux has such a kernel; this system's answer, whatever it is, is the same at every call, and PattN's own
+        // binding asks it.
+        if (!OperatingSystem.IsLinux())
+        {
+            await AetherUplink.SystemBindsToInterface().Should().BeTrue();
+        }
+        await AetherUplink.SystemBindsToInterface().Should().BeEqualTo(AetherUplink.SystemBindsToInterface());
+        await AetherUplinkBinding.Default.CanBind().Should().BeEqualTo(AetherUplink.SystemBindsToInterface());
+        // E5-1: and asks it through the system's own answer, which the line above cannot tell from "always" off an old
+        // Linux kernel, where every runner of these tests is.
+        await AetherUplinkBinding.Default.CanBind.Method.Should().BeEqualTo(typeof(AetherUplink).GetMethod(nameof(AetherUplink.SystemBindsToInterface)));
+    }
+
+    [Test]
+    public async Task WhereTheKernelCannotBindTheXrayRunsUnboundAndALineSaysSoOnceForEachRole()
+    {
+        var finds = 0;
+        var log = new List<string>();
+        var binding = new AetherUplinkBinding
+        {
+            TunRunning = () => true,
+            FindUplink = () =>
+            {
+                finds++;
+                return "eth0";
+            },
+            CanBind = () => false,
+            Log = log.Add,
+        };
+        var contexts = new[] { Context(), Context(), Context() };
+
+        await binding.Apply(contexts[0], AetherUplinkBinding.ExitRole).Should().BeNull();
+        await binding.Apply(contexts[1], AetherUplinkBinding.ExitRole).Should().BeNull();
+        await binding.Apply(contexts[2], AetherUplinkBinding.TestRole).Should().BeNull();
+
+        foreach (var context in contexts)
+        {
+            await context.Aether.Uplink.Should().BeNull();
+        }
+        // No uplink looked for, and one line for each role.
+        await finds.Should().BeEqualTo(0);
+        await log.Should().BeEquivalentTo(
+            [
+                "AetherCore: this kernel needs CAP_NET_RAW to bind to an interface; the exit Xray runs unbound",
+                "AetherCore: this kernel needs CAP_NET_RAW to bind to an interface; the test Xray runs unbound",
+            ],
+            CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task TheKernelIsAskedOnlyWhereTheUplinkWouldBeBound()
+    {
+        // The bind interface of the settings, or no TUN: nothing to bind, so nothing about the kernel either.
+        var asked = 0;
+        var log = new List<string>();
+        AetherUplinkBinding Binding(bool tun)
+        {
+            return new AetherUplinkBinding
+            {
+                TunRunning = () => tun,
+                FindUplink = () => "eth0",
+                CanBind = () =>
+                {
+                    asked++;
+                    return false;
+                },
+                Log = log.Add,
+            };
+        }
+
+        await Binding(tun: true).Apply(Context(bindInterface: "eth1"), AetherUplinkBinding.ExitRole).Should().BeNull();
+        await Binding(tun: false).Apply(Context(), AetherUplinkBinding.TestRole).Should().BeNull();
+        await asked.Should().BeEqualTo(0);
+        await log.Should().BeEmpty();
+
+        // A kernel that can bind changes nothing.
+        var bound = Context();
+        await new AetherUplinkBinding { TunRunning = () => true, FindUplink = () => "eth0", CanBind = () => true, Log = log.Add }
+            .Apply(bound, AetherUplinkBinding.TestRole).Should().BeEqualTo("eth0");
+        await bound.Aether.Uplink.Should().BeEqualTo("eth0");
+        await log.Should().BeEmpty();
+    }
 }

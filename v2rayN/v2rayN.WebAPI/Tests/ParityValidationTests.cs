@@ -1,8 +1,11 @@
 using ServiceLib;
 using ServiceLib.Enums;
 using ServiceLib.Handler;
+using ServiceLib.Helper;
+using ServiceLib.Manager;
 using ServiceLib.Models.Configs;
 using ServiceLib.Models.Entities;
+using ServiceLib.Resx;
 using v2rayN.WebAPI.Contracts;
 using v2rayN.WebAPI.Services;
 
@@ -120,6 +123,119 @@ public class ParityValidationTests
         await code.Should().BeEqualTo("profile_ech_outbound_invalid");
         await V2rayRuntime.TryValidateProfile(proxyTag, out _, out _).Should().BeFalse();
         await V2rayRuntime.TryValidateProfile(notAnObject, out _, out _).Should().BeFalse();
+    }
+
+    // PattN (X2): the TLS settings the server editor refuses (TlsSettingsCheck): cipherSuites without the unsafe
+    // fingerprint on a profile Xray runs, and an alpn other than http/1.1 for WebSocket or HTTPUpgrade, whatever the core.
+    [Test]
+    public async Task TlsSettingsAreCheckedLikeTheServerEditor()
+    {
+        foreach (var type in new[] { EConfigType.VMess, EConfigType.VLESS, EConfigType.Shadowsocks, EConfigType.Trojan, EConfigType.SOCKS, EConfigType.HTTP })
+        {
+            // cipherSuites with chrome, or with an empty fingerprint that the settings make chrome's, under Xray.
+            await AssertTlsRefused(V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(type, fingerprint: "chrome", cipherSuites: CipherSuites), "chrome", ECoreType.Xray),
+                "profile_cipher_suites_need_unsafe", ResUI.MsgCipherSuitesNeedUnsafe, $"{type} chrome");
+            await AssertTlsRefused(V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(type, cipherSuites: CipherSuites), "chrome", ECoreType.Xray),
+                "profile_cipher_suites_need_unsafe", ResUI.MsgCipherSuitesNeedUnsafe, $"{type} empty");
+            foreach (var network in new[] { "ws", "httpupgrade" })
+            {
+                foreach (var alpn in new[] { "h2", "h3", "h2,http/1.1" })
+                {
+                    foreach (var core in new[] { ECoreType.Xray, ECoreType.sing_box })
+                    {
+                        await AssertTlsRefused(V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(type, network, "chrome", alpn), "chrome", core),
+                            "profile_websocket_alpn_http1_only", ResUI.MsgWebsocketAlpnHttp1Only, $"{type} {network} {alpn} {core}");
+                    }
+                }
+            }
+        }
+
+        // What the editor saves passes: unsafe, an unsafe default, no cipherSuites, sing-box, http/1.1 or no alpn, grpc with h2.
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, fingerprint: "unsafe", cipherSuites: CipherSuites), "chrome", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, cipherSuites: CipherSuites), "unsafe", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, fingerprint: "chrome"), "chrome", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, cipherSuites: CipherSuites), "chrome", ECoreType.sing_box).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, fingerprint: "chrome", cipherSuites: CipherSuites), "chrome", ECoreType.sing_box).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, "ws", "chrome", "http/1.1"), "chrome", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, "ws", "chrome"), "chrome", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.VLESS, "grpc", "chrome", "h2"), "chrome", ECoreType.Xray).Should().BeNull();
+        // Outside TLS, and on Hysteria2, whose editor shows neither, nothing is refused.
+        var noTls = CreateTlsProfile(EConfigType.VLESS, "ws", "chrome", "h2", CipherSuites);
+        noTls.StreamSecurity = string.Empty;
+        await V2rayRuntime.TlsSettingsRefusal(noTls, "chrome", ECoreType.Xray).Should().BeNull();
+        await V2rayRuntime.TlsSettingsRefusal(CreateTlsProfile(EConfigType.Hysteria2, "ws", "chrome", "h2", CipherSuites), "chrome", ECoreType.Xray).Should().BeNull();
+    }
+
+    // PattN (X2): a save through the API runs the TLS checks with the default fingerprint of the settings and the core
+    // that runs the profile, the one it names or the one the settings give its type; a refused save writes nothing.
+    [Test]
+    [NotInParallel]
+    public async Task TheApiRefusesToSaveTheTlsSettingsTheServerEditorRefuses()
+    {
+        var manager = AppManager.Instance;
+        var configField = typeof(AppManager).GetField("_config", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(AppManager).FullName, "_config");
+        var previousConfig = configField.GetValue(manager);
+        var remarks = $"tls-{Guid.NewGuid():N}";
+        static Config Settings(ECoreType vlessCore) => new()
+        {
+            SubIndexId = string.Empty,
+            CoreBasicItem = new CoreBasicItem { DefFingerprint = "chrome" },
+            CoreTypeItem = [new CoreTypeItem { ConfigType = EConfigType.VLESS, CoreType = vlessCore }],
+        };
+        ProfileItem Tls(string network, string fingerprint, string alpn, string cipherSuites, ECoreType? core = null)
+        {
+            var profile = CreateTlsProfile(EConfigType.VLESS, network, fingerprint, alpn, cipherSuites);
+            profile.Remarks = remarks;
+            profile.Password = "5783a3e7-e373-51cd-8642-c83782b807c5";
+            profile.CoreType = core;
+            return profile;
+        }
+        try
+        {
+            configField.SetValue(manager, Settings(ECoreType.Xray));
+            SQLiteHelper.Instance.CreateTable<ProfileItem>();
+            var runtime = new V2rayRuntime(null!, null!, null!, null!, null!);
+
+            // An empty fingerprint is the default one of the settings, chrome's.
+            var cipherSuites = await runtime.SaveProfileAsync(Tls("raw", string.Empty, string.Empty, CipherSuites));
+            await AssertTlsRefused(cipherSuites, "profile_cipher_suites_need_unsafe", ResUI.MsgCipherSuitesNeedUnsafe, "settings Xray");
+
+            // The settings give VLESS sing-box: a profile that names Xray is refused all the same, and the alpn rule holds.
+            configField.SetValue(manager, Settings(ECoreType.sing_box));
+            var namedXray = await runtime.SaveProfileAsync(Tls("raw", "chrome", string.Empty, CipherSuites, ECoreType.Xray));
+            await AssertTlsRefused(namedXray, "profile_cipher_suites_need_unsafe", ResUI.MsgCipherSuitesNeedUnsafe, "named Xray");
+            var alpn = await runtime.SaveProfileAsync(Tls("ws", "chrome", "h2,http/1.1", CipherSuites));
+            await AssertTlsRefused(alpn, "profile_websocket_alpn_http1_only", ResUI.MsgWebsocketAlpnHttp1Only, "settings sing-box");
+
+            await (await manager.GetProfileItemViaRemarks(remarks)).Should().BeNull();
+        }
+        finally
+        {
+            configField.SetValue(manager, previousConfig);
+        }
+    }
+
+    private const string CipherSuites = "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384";
+
+    private static ProfileItem CreateTlsProfile(EConfigType type, string network = "raw", string fingerprint = "", string alpn = "", string cipherSuites = "")
+    {
+        var profile = CreateProfile(type);
+        profile.Password = "id";
+        profile.StreamSecurity = Global.StreamSecurity;
+        profile.Network = network;
+        profile.Fingerprint = fingerprint;
+        profile.Alpn = alpn;
+        profile.CipherSuites = cipherSuites;
+        return profile;
+    }
+
+    private static async Task AssertTlsRefused(OperationView? refusal, string code, string detail, string because)
+    {
+        await (refusal?.Success).Should().BeEqualTo(false).Because(because);
+        await refusal!.Code.Should().BeEqualTo(code).Because(because);
+        await refusal.MessageKey.Should().BeEqualTo(ApiMessageKeys.ProfileInvalid).Because(because);
+        await System.Text.Json.JsonSerializer.Serialize(refusal.Data).Should().Contain(System.Text.Json.JsonSerializer.Serialize(new { detail })).Because(because);
     }
 
     [Test]

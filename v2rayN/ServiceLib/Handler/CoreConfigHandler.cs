@@ -97,7 +97,8 @@ public static class CoreConfigHandler
         {
             CoreType = coreType
         };
-        var builderResult = await CoreConfigContextBuilder.Build(config, dummyNode);
+        // PattN: a test drops the routing rules, so their targets never refuse it, nor log that they would (E2)
+        var builderResult = await CoreConfigContextBuilder.Build(config, dummyNode, refuseRuleTargets: false);
         var context = builderResult.Context;
         foreach (var testItem in selecteds)
         {

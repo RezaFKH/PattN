@@ -208,7 +208,7 @@ public class AetherCoreManagerTests : IDisposable
 
     private static AetherCore Core(params string[] arguments)
     {
-        return new AetherCore(arguments.Length == 0 ? ["--masque", "--bind", "127.0.0.1:10829"] : arguments);
+        return new AetherCore(arguments.Length == 0 ? ["--masque", "--bind", "127.0.0.1:10819"] : arguments);
     }
 
     private static async Task<T> Within<T>(Task<T> task)
@@ -451,7 +451,7 @@ public class AetherCoreManagerTests : IDisposable
 
         await (await rig.Manager.StartSessionAsync(Core())).Should().BeNull();
         var first = rig.Manager.Session;
-        await (await rig.Manager.StartSessionAsync(Core("--wg", "--bind", "127.0.0.1:10829"))).Should().BeNull();
+        await (await rig.Manager.StartSessionAsync(Core("--wg", "--bind", "127.0.0.1:10819"))).Should().BeNull();
 
         // The old core and what it started are gone before the new one comes up, with their listeners.
         await rig.Events.Should().BeEquivalentTo(["spawn 1", "kill 1", "spawn 2"], CollectionOrdering.Matching);
@@ -469,12 +469,12 @@ public class AetherCoreManagerTests : IDisposable
         await rig.Core(0).Arguments.TakeLast(2).Should().BeEquivalentTo(["--log-level", "warn"], CollectionOrdering.Matching);
 
         // The ready word is an info line; a quieter setting must not leave a Psiphon session waiting for it.
-        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", "127.0.0.1:10829", "--bind", "127.0.0.1:10830"));
+        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820"));
         await rig.Core(1).Arguments.TakeLast(2).Should().BeEquivalentTo(["--log-level", "info"], CollectionOrdering.Matching);
         await rig.Manager.Session!.NeedsWord.Should().BeTrue();
         await rig.Manager.Session!.WordSeen.Should().BeFalse();
 
-        await rig.Manager.StartSessionAsync(Core("--masque", "--bind", "127.0.0.1:10829", "--log-level", "debug"));
+        await rig.Manager.StartSessionAsync(Core("--masque", "--bind", "127.0.0.1:10819", "--log-level", "debug"));
         await rig.Core(2).Arguments.Count(argument => argument == "--log-level").Should().BeEqualTo(1);
         await rig.Core(2).Arguments.TakeLast(2).Should().BeEquivalentTo(["--log-level", "debug"], CollectionOrdering.Matching);
     }
@@ -487,7 +487,7 @@ public class AetherCoreManagerTests : IDisposable
         var inside = Directory.CreateDirectory(Path.Combine(rig.Folders.WorkDir, "aether.toml-psiphon")).FullName;
         File.WriteAllText(Path.Combine(inside, "datastore"), "servers");
 
-        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", "127.0.0.1:10829", "--bind", "127.0.0.1:10830",
+        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", "127.0.0.1:10819", "--bind", "127.0.0.1:10820",
             "--psiphon-server-entries", "shipped-list"));
 
         var core = rig.Core(0);
@@ -638,6 +638,42 @@ public class AetherCoreManagerTests : IDisposable
     }
 
     [Test]
+    public async Task EveryChangeOfTheSessionIsTold()
+    {
+        // Design 3.2.5: the Aether editor follows the session as it starts and ends; nothing polls for it. Each change is
+        // told once the session it leaves is the one Session gives.
+        var rig = new Rig(_root);
+        var ends = rig.WatchEnds();
+        var told = new ConcurrentQueue<bool>();
+        rig.Manager.SessionChanged += () => told.Enqueue(rig.Manager.Session != null);
+
+        await rig.Manager.StartSessionAsync(Core());
+        await rig.Manager.StopSessionAsync();
+        await told.ToList().Should().BeEquivalentTo([true, false], CollectionOrdering.Matching);
+        // A stop with no session tells nothing.
+        await rig.Manager.StopSessionAsync();
+        await told.Count.Should().BeEqualTo(2);
+
+        // A start that replaces a session tells its end, then the new one.
+        await rig.Manager.StartSessionAsync(Core());
+        await rig.Manager.StartSessionAsync(Core());
+        await told.ToList().Should().BeEquivalentTo([true, false, true, false, true], CollectionOrdering.Matching);
+
+        // A core that exits on its own.
+        rig.Core(2).Write("[2026-10-21T10:00:00.000Z INFO  aether] [+] scanning");
+        rig.Core(2).Exit(1);
+        await Next(ends);
+        await told.ToList().Should().BeEquivalentTo([true, false, true, false, true, false], CollectionOrdering.Matching);
+
+        // A core that does not start is a session for a moment only.
+        var failing = new Rig(_root) { SpawnFails = true };
+        var toldFailing = new ConcurrentQueue<bool>();
+        failing.Manager.SessionChanged += () => toldFailing.Enqueue(failing.Manager.Session != null);
+        await failing.Manager.StartSessionAsync(Core());
+        await toldFailing.ToList().Should().BeEquivalentTo([true, false], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task ACoreThatDoesNotStartLeavesNoSessionAndSaysWhy()
     {
         var rig = new Rig(_root) { SpawnFails = true };
@@ -666,7 +702,7 @@ public class AetherCoreManagerTests : IDisposable
     {
         var rig = new Rig(_root);
         using var greeter = new SocksGreeter();
-        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", $"127.0.0.1:{greeter.Port}", "--bind", "127.0.0.1:10830"));
+        await rig.Manager.StartSessionAsync(Core("--psiphon", "--psiphon-bind", $"127.0.0.1:{greeter.Port}", "--bind", "127.0.0.1:10820"));
 
         // Psiphon's listener answers the greeting as soon as it is bound, before it carries anything.
         await (await rig.Manager.AwaitListeningAsync(TimeSpan.FromMilliseconds(700))).Should().BeFalse();
@@ -786,7 +822,7 @@ public class AetherCoreManagerTests : IDisposable
     public async Task ASessionIsToldWhichScansAndKeyRunsWouldDisturbIt()
     {
         var rig = new Rig(_root);
-        await rig.Manager.StartSessionAsync(Core("--masque", "--bind", "127.0.0.1:10829"));
+        await rig.Manager.StartSessionAsync(Core("--masque", "--bind", "127.0.0.1:10819"));
         var session = rig.Manager.Session!;
 
         // A scan opens a second tunnel on the key of its protocol; MASQUE and the protocols over it share one.
@@ -1005,7 +1041,7 @@ public class AetherCoreManagerTests : IDisposable
         var exit = new AetherExit(DialMode: "code-1");
 
         var result = await rig.Manager.RunStandaloneAsync(
-            new AetherStandaloneRun(["--masque", "--no-quick-reconnect", "--upstream", "socks5://127.0.0.1:10832"], AetherRole.Scan) { Exit = exit },
+            new AetherStandaloneRun(["--masque", "--no-quick-reconnect", "--upstream", "socks5://127.0.0.1:10822"], AetherRole.Scan) { Exit = exit },
             async (lines, ct) =>
             {
                 rig.Core(0).Write("[2026-10-21T10:00:00.000Z INFO  aether::prober] selected MASQUE gateway 162.159.198.1:443");
@@ -1029,7 +1065,7 @@ public class AetherCoreManagerTests : IDisposable
     public async Task ALatencyTestBringsItsOwnXrayAndOpensNoExit()
     {
         var rig = new Rig(_root);
-        string[] arguments = ["--masque", "--bind", "127.0.0.1:10829", "--upstream", "socks5://127.0.0.1:52001"];
+        string[] arguments = ["--masque", "--bind", "127.0.0.1:10819", "--upstream", "socks5://127.0.0.1:52001"];
 
         var result = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(arguments, AetherRole.Test),
             (_, _) => Task.FromResult<string?>("measured"));
@@ -1140,7 +1176,7 @@ public class AetherCoreManagerTests : IDisposable
     {
         var rig = new Rig(_root);
         var testRuns = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var test = rig.Manager.RunStandaloneAsync<string>(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10829"], AetherRole.Test),
+        var test = rig.Manager.RunStandaloneAsync<string>(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10819"], AetherRole.Test),
             async (_, ct) =>
             {
                 testRuns.SetResult();
@@ -1326,7 +1362,7 @@ public class AetherCoreManagerTests : IDisposable
 
         await rig.Manager.CancelProbesAsync();
         await rig.Manager.SessionStarting.Should().BeTrue();
-        var test = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10829"], AetherRole.Test),
+        var test = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10819"], AetherRole.Test),
             (_, _) => Task.FromResult<string?>("measured"));
         await test.Outcome.Should().BeEqualTo(AetherRunOutcome.Busy);
         await rig.Cores.Count.Should().BeEqualTo(0);
@@ -1352,7 +1388,7 @@ public class AetherCoreManagerTests : IDisposable
         var rig = new Rig(_root);
         await (await rig.Manager.StartSessionAsync(Core())).Should().BeNull();
 
-        var test = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10829"], AetherRole.Test),
+        var test = await rig.Manager.RunStandaloneAsync(new AetherStandaloneRun(["--masque", "--bind", "127.0.0.1:10819"], AetherRole.Test),
             (_, _) => Task.FromResult<string?>("measured"));
 
         await test.Outcome.Should().BeEqualTo(AetherRunOutcome.Busy);

@@ -306,8 +306,10 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
             return;
         }
         // PattN: the Aether listen port, checked against the mixed port of this dialog, so that moving either one onto
-        // the other's ports is refused (design 2.5.1)
-        var aetherPortsProblem = AetherPortsProblem(LocalPort, AetherListenPort);
+        // the other's ports is refused (design 2.5.1); an overlap stored before, which this save leaves as it is, is not
+        // (E3)
+        var aetherPortsProblem = AetherPortsSaveProblem(LocalPort, AetherListenPort, _config.Inbound.First().LocalPort,
+            AetherPorts.ListenPortOf(_config.CoreBasicItem.AetherListenPort));
         if (aetherPortsProblem != null)
         {
             NoticeManager.Instance.Enqueue(aetherPortsProblem);
@@ -445,6 +447,25 @@ public partial class OptionSettingViewModel : MyReactiveObject, ICloseable
             AetherListenPortProblem.LocalProxy => ResUI.MsgAetherListenPortLocalProxy,
             _ => null,
         };
+    }
+
+    /// <summary>
+    /// PattN (E3): <see cref="AetherPortsProblem" /> for a save of the dialog over the settings that store the mixed port
+    /// <paramref name="storedLocalPort" /> and the Aether listen port <paramref name="storedAetherListenPort" /> (the port the
+    /// cores use). An overlap of the Aether ports with the app's local ports is refused only when the save moves one of the
+    /// two ports, into an overlap; one stored earlier does not block a save that leaves both as they are, and the start of
+    /// an Aether session refuses it. A value that is no port is refused whatever is stored. The WebAPI goes by the same
+    /// rule for the mixed port (V2rayRuntime.MovesMixedPortOntoAetherPorts).
+    /// </summary>
+    public static string? AetherPortsSaveProblem(int localPort, string? aetherListenPort, int storedLocalPort, int storedAetherListenPort)
+    {
+        if (AetherPorts.ListenPortProblem(aetherListenPort ?? string.Empty, AetherPorts.LocalPortsOf(localPort)) == AetherListenPortProblem.LocalProxy
+            && localPort == storedLocalPort
+            && StoredAetherListenPort(aetherListenPort) == storedAetherListenPort)
+        {
+            return null;
+        }
+        return AetherPortsProblem(localPort, aetherListenPort);
     }
 
     /// <summary>

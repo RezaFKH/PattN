@@ -56,7 +56,10 @@ public sealed class AetherTestHost
     /// <summary>The Aether cores: the live session, and the core of the test's own.</summary>
     public required AetherCoreManager Cores { get; init; }
 
-    /// <summary>The context of a profile, with the checks a session start makes on it (CoreConfigContextBuilder.Build).</summary>
+    /// <summary>
+    /// The context of a profile, with the checks a session start makes on it (CoreConfigContextBuilder.Build), but for the
+    /// targets of the routing rules, which a test drops (E2).
+    /// </summary>
     public required Func<ProfileItem, Task<CoreConfigContextBuilderResult>> Build { get; init; }
 
     /// <summary>The test configuration of a context with its mixed inbound on a port (CoreConfigV2rayService.GenerateClientSpeedtestConfig).</summary>
@@ -98,7 +101,8 @@ public sealed class AetherTestHost
         return new AetherTestHost
         {
             Cores = AetherCoreManager.Instance,
-            Build = profile => CoreConfigContextBuilder.Build(AppManager.Instance.Config, profile),
+            // A test measures the profile alone and drops the routing rules: a rule's target never refuses it (E2).
+            Build = profile => CoreConfigContextBuilder.Build(AppManager.Instance.Config, profile, refuseRuleTargets: false),
             Generate = (context, port) => new CoreConfigV2rayService(context).GenerateClientSpeedtestConfig(port),
             StartXray = StartTestXrayAsync,
             Uplink = AetherUplinkBinding.Default,

@@ -64,7 +64,8 @@ public sealed class AetherExitHost
     public static async Task<RetResult> GenerateAsync(AetherExit exit, int port, AetherUplinkBinding uplink)
     {
         var config = AppManager.Instance.Config;
-        var (context, _) = await CoreConfigContextBuilder.Build(config, ContextProfile());
+        // Its routing rules are never used: a rule's target never refuses it, nor logs that it would (E2).
+        var (context, _) = await CoreConfigContextBuilder.Build(config, ContextProfile(), refuseRuleTargets: false);
         if (exit.Node is { } node)
         {
             context.Aether.ExitNodes[node] = await CoreConfigContextBuilder.LookUpAetherExitNodeAsync(context, node);

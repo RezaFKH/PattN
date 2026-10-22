@@ -51,7 +51,7 @@ public class AetherOutboundTests
 
         // A command of its own runs in place of the settings, so it says where the traffic leaves.
         await Default(Aether(command: "aether --masque --tor")).Should().BeEqualTo(asIs);
-        await Default(Aether(command: "aether --psiphon-only --psiphon-bind 127.0.0.1:10829")).Should().BeEqualTo(asIs);
+        await Default(Aether(command: "aether --psiphon-only --psiphon-bind 127.0.0.1:10819")).Should().BeEqualTo(asIs);
         await Default(Aether(tor: AetherTor.Chain, command: "aether --masque --tor-reverse")).Should().BeEqualTo(force);
         // One the app cannot read does not run, and the settings do.
         await Default(Aether(tor: AetherTor.Chain, command: "aether")).Should().BeEqualTo(asIs);

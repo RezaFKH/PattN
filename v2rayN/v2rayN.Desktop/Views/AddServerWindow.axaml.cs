@@ -182,7 +182,8 @@ public partial class AddServerWindow : WindowBase<AddServerViewModel>
             this.Bind(ViewModel, vm => vm.AllowInsecure, v => v.togAllowInsecure.IsChecked).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedSource.Fingerprint, v => v.cmbFingerprint.SelectedValue).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedSource.Alpn, v => v.cmbAlpn.SelectedValue).DisposeWith(disposables);
-            this.Bind(ViewModel, vm => vm.SelectedSource.CipherSuites, v => v.txtCipherSuites.Text).DisposeWith(disposables);
+            // PattN: cipherSuites as a preset field (design 3.3)
+            this.OneWayBind(ViewModel, vm => vm.CipherSuitesPreset, v => v.presetCipherSuites.ViewModel).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.CertSha, v => v.txtCertSha256Pinning.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.CertTip, v => v.labCertPinning.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.Cert, v => v.txtCert.Text).DisposeWith(disposables);
@@ -198,7 +199,9 @@ public partial class AddServerWindow : WindowBase<AddServerViewModel>
             this.Bind(ViewModel, vm => vm.SelectedSource.SpiderX, v => v.txtSpiderX.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedSource.Mldsa65Verify, v => v.txtMldsa65Verify.Text).DisposeWith(disposables);
 
-            this.Bind(ViewModel, vm => vm.SelectedSource.Finalmask, v => v.txtFinalmask.Text).DisposeWith(disposables);
+            // PattN: the flyout's finalMask text is the preset field's, whose arrow and name sit beside the flyout's button (design 3.3)
+            this.Bind(ViewModel, vm => vm.FinalmaskPreset.Text, v => v.txtFinalmask.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.FinalmaskPreset, v => v.presetFinalmask.ViewModel).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.SelectedSource.DialMode, v => v.txtDialMode.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.TargetStrategy, v => v.cmbTargetStrategy.SelectedValue).DisposeWith(disposables);
 
@@ -252,7 +255,8 @@ public partial class AddServerWindow : WindowBase<AddServerViewModel>
                 gridTransport.IsVisible = false;
                 cmbFingerprint.IsEnabled = false;
                 cmbAlpn.IsEnabled = false;
-                txtCipherSuites.IsEnabled = false;
+                // PattN: cipherSuites is a preset field (design 3.3)
+                presetCipherSuites.IsEnabled = false;
                 break;
 
             case EConfigType.TUIC:
@@ -298,7 +302,8 @@ public partial class AddServerWindow : WindowBase<AddServerViewModel>
                 btnEchOutbound.IsVisible = false;
                 cmbFingerprint.IsEnabled = false;
                 cmbAlpn.IsEnabled = false;
-                txtCipherSuites.IsEnabled = false;
+                // PattN: cipherSuites is a preset field (design 3.3)
+                presetCipherSuites.IsEnabled = false;
                 togAllowInsecure.IsEnabled = false;
 
                 cmbCongestionControl12.ItemsSource = Global.NaiveCongestionControls;
@@ -310,7 +315,8 @@ public partial class AddServerWindow : WindowBase<AddServerViewModel>
                 gridTransport.IsVisible = false;
                 cmbFingerprint.IsEnabled = false;
                 cmbAlpn.IsEnabled = false;
-                txtCipherSuites.IsEnabled = false;
+                // PattN: cipherSuites is a preset field (design 3.3)
+                presetCipherSuites.IsEnabled = false;
                 togAllowInsecure.IsEnabled = false;
                 break;
         }

@@ -1767,6 +1767,8 @@ public static class ConfigHandler
             profileItem.Subid = subid;
             profileItem.IsSub = isSub;
             ApplySubOverrides(profileItem, subItem);
+            // PattN: WebSocket and HTTPUpgrade connect only with alpn http/1.1 or none, which shared links often lack (PattNG)
+            TlsSettingsCheck.FixImportedAlpn(profileItem);
 
             var addStatus = profileItem.ConfigType switch
             {
@@ -2100,6 +2102,8 @@ public static class ConfigHandler
                 {
                     ApplySubOverrides(profileItem, subItem);
                 }
+                // PattN: WebSocket and HTTPUpgrade connect only with alpn http/1.1 or none, which shared links often lack (PattNG)
+                TlsSettingsCheck.FixImportedAlpn(profileItem);
 
                 var addStatus = profileItem.ConfigType switch
                 {

@@ -167,7 +167,7 @@ public class AetherDelayTesterTests : IDisposable
         // Without the need, the answering listener is enough.
         await (await AetherDelayTester.AwaitTunnelAsync(socks.Port, output.Reader, Budget(2_000), false, AetherCoreManager.AnswersSocksAsync, poll)).Should().BeTrue();
 
-        output.Writer.TryWrite("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10830");
+        output.Writer.TryWrite("[2026-09-24T10:00:00.000Z INFO  aether] [*] starting psiphon through the tunnel at 127.0.0.1:10820");
         output.Writer.TryWrite($"[2026-09-24T10:00:00.000Z INFO  aether] [+] psiphon is ready; 127.0.0.1:{socks.Port} leaves through psiphon, carried by the tunnel");
         await (await AetherDelayTester.AwaitTunnelAsync(socks.Port, output.Reader, Budget(2_000), true, AetherCoreManager.AnswersSocksAsync, poll)).Should().BeTrue();
 

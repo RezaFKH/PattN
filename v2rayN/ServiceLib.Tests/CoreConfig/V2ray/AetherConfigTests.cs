@@ -468,7 +468,7 @@ public class AetherConfigTests
         var own = Warp(extra: extra => extra with
         {
             AetherExitNode = "gone",
-            AetherCommand = "aether --bind 127.0.0.1:10829 --protocol masque --upstream socks5://127.0.0.1:1080",
+            AetherCommand = "aether --bind 127.0.0.1:10819 --protocol masque --upstream socks5://127.0.0.1:1080",
         });
         var ownContext = AetherContext(NewConfig(), own);
         ownContext.Aether.ExitNodes["gone"] = ExitNodeLookup.NotFound.Instance;
@@ -479,7 +479,7 @@ public class AetherConfigTests
     [Test]
     public async Task aCoreWithAnUpstreamOfItsOwnLeavesTheConfigurationAlone()
     {
-        const string command = "aether --bind 127.0.0.1:10829 --protocol masque --upstream socks5://127.0.0.1:1080";
+        const string command = "aether --bind 127.0.0.1:10819 --protocol masque --upstream socks5://127.0.0.1:1080";
         var own = Warp(extra: extra => extra with { AetherCommand = command });
 
         var g = await Succeeds(AetherContext(NewConfig(), own));
@@ -608,7 +608,7 @@ public class AetherConfigTests
     }
 
     // The PAC server of the system proxy's PAC mode on Windows listens three above the local proxy port, outside Xray:
-    // with the local proxy port at 10826 that is the default Aether listen port, and the core could not listen there.
+    // with the local proxy port at 10816 that is the default Aether listen port, and the core could not listen there.
     [Test]
     [NotInParallel("AppManager.StatePort")]
     public async Task ThePacPortOfTheAppOnAPortOfTheCoreRefusesTheConfiguration()
@@ -812,7 +812,7 @@ public class AetherConfigTests
             string.Format(ResUI.MsgAetherSecondaryPortTaken, Secondary));
 
         // A range, as Xray reads a port, over the listen port.
-        var onRange = TemplateConfig.Replace("10808", "\"10800-10830\"");
+        var onRange = TemplateConfig.Replace("10808", "\"10800-10820\"");
         await Refused(CoreConfigTestFactory.CreateContext(NewConfig(), Warp(), ECoreType.Xray, fullConfigTemplate: Template(onRange)),
             ResUI.MsgAetherListenPortTaken);
     }

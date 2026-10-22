@@ -61,6 +61,11 @@
                         <MenuItem x:Name="menuAddTuicServer" Header="{x:Static resx:ResUI.menuAddTuicServer}" />
                         <MenuItem x:Name="menuAddAnytlsServer" Header="{x:Static resx:ResUI.menuAddAnytlsServer}" />
                         <MenuItem x:Name="menuAddNaiveServer" Header="{x:Static resx:ResUI.menuAddNaiveServer}" />
+                        <!--  PattN: "Add Aether config manually", last as in PattNG (design 3.5)  -->
+                        <Separator />
+                        <MenuItem x:Name="menuAddAetherServer" Header="{x:Static resx:ResUI.menuAddAetherServer}" />
+                        <!--  PattN: the WARP keys window, beside the Aether profiles that share the keys (design 3.4)  -->
+                        <MenuItem x:Name="menuAetherKeys" Header="{x:Static resx:ResUI.TbAetherRenewKey}" />
                     </MenuItem>
 
                     <MenuItem Header="{x:Static resx:ResUI.menuSubscription}">

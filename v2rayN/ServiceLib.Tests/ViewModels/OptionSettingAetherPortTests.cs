@@ -9,7 +9,8 @@ namespace ServiceLib.Tests.ViewModels;
 /// PattN (design 2.5.1 and 3.7, PattNG SettingsViewModel.validateAetherListenPort): the Aether listen port in "Core: basic
 /// settings". It has to be a port from 1024 to 65532, and neither it nor the three ports after it, which the core takes as
 /// well, may be one of the local ports of the app, the mixed port L and the six after it (critique 10). The same check runs
-/// when the mixed port moves, the new L against the Aether listen port of the dialog. A refused value is not stored.
+/// when the mixed port moves, the new L against the Aether listen port of the dialog. A refused value is not stored. An
+/// overlap the settings already hold is refused only by a save that moves one of the two ports (E3).
 /// </summary>
 public class OptionSettingAetherPortTests
 {
@@ -18,7 +19,7 @@ public class OptionSettingAetherPortTests
     [Test]
     public async Task TheAetherListenPortIsAPortFrom1024To65532()
     {
-        foreach (var text in new[] { "1023", "65533", "abc", "", " ", "0", "-1", "10829.5", "70000", "99999999999" })
+        foreach (var text in new[] { "1023", "65533", "abc", "", " ", "0", "-1", "10819.5", "70000", "99999999999" })
         {
             await OptionSettingViewModel.AetherPortsProblem(L, text).Should().BeEqualTo(ResUI.FillAetherListenPort).Because($"\"{text}\"");
         }
@@ -80,7 +81,7 @@ public class OptionSettingAetherPortTests
     [NotInParallel("AppManager config")]
     public async Task TheDialogShowsThePortTheCoresUse()
     {
-        foreach (var (stored, shown) in new (int?, string)[] { (20808, "20808"), (null, "10829"), (80, "10829"), (65533, "10829") })
+        foreach (var (stored, shown) in new (int?, string)[] { (20808, "20808"), (null, "10819"), (80, "10819"), (65533, "10819") })
         {
             var config = CoreConfigTestFactory.CreateConfig();
             config.CoreBasicItem.AetherListenPort = stored;
@@ -120,6 +121,83 @@ public class OptionSettingAetherPortTests
             await shown.Should().Contain(message).Because($"P = {port}, L = {localPort}");
             await shown.Should().NotContain(ResUI.OperationSuccess);
             await config.CoreBasicItem.AetherListenPort.Should().BeEqualTo(20808);
+            await config.Inbound[0].LocalPort.Should().BeEqualTo(L);
+        }
+    }
+
+    // ---- E3: an overlap the settings already hold
+
+    /// <summary>A stored Aether listen port whose ports, P..P+3 = L+2..L+5, lie among the app's local ports L..L+6.</summary>
+    private const int StoredOverlap = L + 2;
+
+    [Test]
+    public async Task AnOverlapStoredEarlierIsRefusedOnlyWhenTheSaveMovesAPortIntoOne()
+    {
+        // Both ports as they were: the save goes through; the start of an Aether session refuses the overlap.
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, StoredOverlap.ToString(), L, StoredOverlap).Should().BeNull();
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, $" {StoredOverlap} ", L, StoredOverlap).Should().BeNull();
+        // Either port moved into another overlap: refused.
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, (StoredOverlap + 1).ToString(), L, StoredOverlap)
+            .Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+        await OptionSettingViewModel.AetherPortsSaveProblem(L + 1, StoredOverlap.ToString(), L, StoredOverlap)
+            .Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+        await OptionSettingViewModel.AetherPortsSaveProblem(L - 1, (StoredOverlap + 1).ToString(), L, StoredOverlap)
+            .Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+        // Either port moved out of it: nothing wrong.
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, "20808", L, StoredOverlap).Should().BeNull();
+        await OptionSettingViewModel.AetherPortsSaveProblem(StoredOverlap + 4, StoredOverlap.ToString(), L, StoredOverlap).Should().BeNull();
+        // A value that is no port is refused whatever was stored, the port it falls back to among them.
+        foreach (var stored in new[] { StoredOverlap, AetherPorts.DefaultListenPort })
+        {
+            await OptionSettingViewModel.AetherPortsSaveProblem(L, "abc", L, stored).Should().BeEqualTo(ResUI.FillAetherListenPort);
+        }
+    }
+
+    [Test]
+    public async Task WithNoOverlapStoredASaveThatMovesAPortIntoOneIsRefused()
+    {
+        const int p = AetherPorts.DefaultListenPort;
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, p.ToString(), L, p).Should().BeNull();
+        await OptionSettingViewModel.AetherPortsSaveProblem(L, (L + 6).ToString(), L, p).Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+        await OptionSettingViewModel.AetherPortsSaveProblem(p - 3, p.ToString(), L, p).Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+        await OptionSettingViewModel.AetherPortsSaveProblem(p, p.ToString(), L, p).Should().BeEqualTo(ResUI.MsgAetherListenPortLocalProxy);
+    }
+
+    [Test]
+    [NotInParallel("AppManager config")]
+    public async Task AnOverlapStoredEarlierStopsOnlyTheSaveThatMovesAPort()
+    {
+        // A fragment length that is no number stops the save at the check after the ports, before anything is stored (a
+        // save that goes through writes the settings file and the autostart task): a save that gets there passed the
+        // port check.
+        foreach (var (port, localPort, message) in new (string Port, int LocalPort, string Message)[]
+                 {
+                     (StoredOverlap.ToString(), L, ResUI.FillFragmentParameterError),
+                     ((StoredOverlap + 1).ToString(), L, ResUI.MsgAetherListenPortLocalProxy),
+                     (StoredOverlap.ToString(), L + 1, ResUI.MsgAetherListenPortLocalProxy),
+                 })
+        {
+            var config = CoreConfigTestFactory.CreateConfig();
+            config.CoreBasicItem.AetherListenPort = StoredOverlap;
+            var vm = ViewModelConfig.With(config, () => new OptionSettingViewModel());
+            await vm.AetherListenPort.Should().BeEqualTo(StoredOverlap.ToString());
+            vm.AetherListenPort = port;
+            vm.LocalPort = localPort;
+            vm.FragmentLengths = "not a length";
+            // Other tests may show messages meanwhile, from other threads.
+            var shown = new ConcurrentQueue<string>();
+            using (AppEvents.SendSnackMsgRequested.AsObservable().Subscribe(shown.Enqueue))
+            {
+                await vm.SaveCmd.Execute().ToTask().WaitAsync(TimeSpan.FromSeconds(10));
+            }
+
+            await shown.Should().Contain(message).Because($"P = {port}, L = {localPort}");
+            if (message != ResUI.MsgAetherListenPortLocalProxy)
+            {
+                await shown.Should().NotContain(ResUI.MsgAetherListenPortLocalProxy);
+            }
+            await shown.Should().NotContain(ResUI.OperationSuccess);
+            await config.CoreBasicItem.AetherListenPort.Should().BeEqualTo(StoredOverlap);
             await config.Inbound[0].LocalPort.Should().BeEqualTo(L);
         }
     }

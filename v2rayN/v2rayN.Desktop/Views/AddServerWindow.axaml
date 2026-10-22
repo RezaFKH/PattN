@@ -1156,6 +1156,12 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Text="{x:Static resx:ResUI.TbFinalmask}" />
+                    <!--  PattN: the arrow of the finalMask presets and the name of the one the flyout's text holds sit beside the flyout's  -->
+                    <!--  button, so that both are in sight while it is closed (design 3.3); the button is upstream's, its lines kept as they are  -->
+                    <StackPanel
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Orientation="Horizontal">
                     <Button
                         Grid.Row="0"
                         Grid.Column="1"
@@ -1184,6 +1190,11 @@
                             </Flyout>
                         </Button.Flyout>
                     </Button>
+                        <views:PresetField
+                            x:Name="presetFinalmask"
+                            VerticalAlignment="Center"
+                            ShowsText="False" />
+                    </StackPanel>
 
                     <TextBlock
                         Grid.Row="1"
@@ -1288,12 +1299,11 @@
                         Margin="{StaticResource Margin4}"
                         VerticalAlignment="Center"
                         Text="{x:Static resx:ResUI.TbCipherSuites}" />
-                    <TextBox
-                        x:Name="txtCipherSuites"
+                    <!--  PattN: cipherSuites as a preset field (design 3.3)  -->
+                    <views:PresetField
+                        x:Name="presetCipherSuites"
                         Grid.Row="4"
                         Grid.Column="1"
-                        Width="400"
-                        Margin="{StaticResource Margin4}"
                         HorizontalAlignment="Left" />
 
                     <TextBlock

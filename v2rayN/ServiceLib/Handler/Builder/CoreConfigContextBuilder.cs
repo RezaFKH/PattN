@@ -33,8 +33,13 @@ public partial class CoreConfigContextBuilder
     ///     and processes outbound nodes referenced by routing rules.
     ///     PattN: <paramref name="rulesCarriedBehind" /> when the context is the pre-socks one, in front of a core whose
     ///     routing has the same rules and builds their chains itself (RuleChainShortfallAsync).
+    ///     PattN: a routing rule whose target names no profile, a name several have, or a profile that cannot be built
+    ///     refuses the context, as the session's, unless <paramref name="refuseRuleTargets" /> is false, as for a latency
+    ///     test, which measures the profile alone without the rules: such a rule then goes to the proxy (E2,
+    ///     RefusesRuleTarget).
     /// </summary>
-    public static async Task<CoreConfigContextBuilderResult> Build(Config config, ProfileItem node, bool rulesCarriedBehind = false)
+    public static async Task<CoreConfigContextBuilderResult> Build(Config config, ProfileItem node, bool rulesCarriedBehind = false,
+        bool refuseRuleTargets = true)
     {
         var runCoreType = AppManager.Instance.GetCoreType(node, node.ConfigType);
         var coreType = runCoreType == ECoreType.sing_box ? ECoreType.sing_box : ECoreType.Xray;
@@ -73,6 +78,8 @@ public partial class CoreConfigContextBuilder
         if (!(context.RoutingItem?.RuleSet.IsNullOrEmpty() ?? true))
         {
             var rules = JsonUtils.Deserialize<List<RulesItem>>(context.RoutingItem?.RuleSet) ?? [];
+            // PattN: the targets the context is refused for, each told once (E2)
+            var refusedTargets = new HashSet<string>(StringComparer.Ordinal);
             foreach (var ruleItem in rules.Where(ruleItem =>
                          ruleItem.Enabled && !Global.OutboundTags.Contains(ruleItem.OutboundTag)))
             {
@@ -82,9 +89,28 @@ public partial class CoreConfigContextBuilder
                     ruleItem.OutboundTag = Global.ProxyTag;
                     continue;
                 }
-                var ruleOutboundNode = await AppManager.Instance.GetProfileItemViaRemarks(ruleItem.OutboundTag);
+                // PattN: whether this rule's target refuses the context rather than give way to the proxy (E2)
+                var refusesRule = RefusesRuleTarget(node, ruleItem, rulesCarriedBehind, refuseRuleTargets);
+                // PattN: found by its name among the profiles a rule can send to, never the first of several (E2); this
+                // replaces upstream's GetProfileItemViaRemarks lookup, which takes the first profile of the name
+                var ruleTarget = await FindRuleTargetAsync(ruleItem.OutboundTag);
+                var ruleOutboundNode = (ruleTarget as ByName<ProfileItem>.One)?.Value;
                 if (ruleOutboundNode == null)
                 {
+                    // PattN: a name no profile has, or several have, refuses the context (E2); where it does not, a name
+                    // several have finds none of them, and says so
+                    if (refusesRule)
+                    {
+                        RefuseRuleTarget(validatorResult, refusedTargets, RuleTargetNotFound(ruleTarget, ruleItem.OutboundTag));
+                        continue;
+                    }
+                    if (ruleTarget is ByName<ProfileItem>.Several)
+                    {
+                        validatorResult.Warnings.Add(string.Format(ResUI.MsgRoutingRuleOutboundNodeError, ruleItem.Remarks,
+                            ruleItem.OutboundTag, RuleTargetNotFound(ruleTarget, ruleItem.OutboundTag).Message));
+                        ruleItem.OutboundTag = Global.ProxyTag;
+                        continue;
+                    }
                     validatorResult.Warnings.Add(string.Format(ResUI.MsgRoutingRuleOutboundNodeNotFound,
                         ruleItem.Remarks, ruleItem.OutboundTag));
                     ruleItem.OutboundTag = Global.ProxyTag;
@@ -94,8 +120,8 @@ public partial class CoreConfigContextBuilder
                 // PattN: the profile a rule sends to runs inside its subscription's previous/next chain, as the main
                 // profile does (PattNG CoreConfigContextBuilder.kt resolveOutbound), where upstream resolves it alone
                 // (includeSubChain false). A chain holding an Aether profile that lacks a hop is refused for the rule as
-                // for the main profile; the rule then goes to the proxy with the error as a warning, as for any target
-                // that cannot be built.
+                // for the main profile, as any target that cannot be built: the context is refused for it (E2), or, where
+                // rule targets do not refuse it, the rule goes to the proxy with the error as a warning.
                 // PattN: what resolving it adds to the context is taken back when the rule cannot use it (D1-R4)
                 var stateBeforeRule = RuleTargetState.Of(context);
                 var (actRuleNode, ruleNodeValidatorResult) = await ResolveNodeAsync(context, ruleOutboundNode, true);
@@ -111,6 +137,14 @@ public partial class CoreConfigContextBuilder
                     string.Format(ResUI.MsgRoutingRuleOutboundNodeWarning, ruleItem.Remarks, ruleItem.OutboundTag, w)));
                 if (!ruleNodeValidatorResult.Success)
                 {
+                    // PattN: a target that cannot be built refuses the context, with why after it (E2); nothing of it stays
+                    if (refusesRule)
+                    {
+                        RefuseRuleTarget(validatorResult, refusedTargets,
+                            RuleTargetUnbuilt(ruleItem.OutboundTag, ruleNodeValidatorResult.Errors));
+                        stateBeforeRule.Restore(context);
+                        continue;
+                    }
                     validatorResult.Warnings.AddRange(ruleNodeValidatorResult.Errors.Select(e =>
                         string.Format(ResUI.MsgRoutingRuleOutboundNodeError, ruleItem.Remarks, ruleItem.OutboundTag,
                             e)));

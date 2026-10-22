@@ -55,7 +55,7 @@ public class AetherFmtTests
         return AetherFmt.Resolve(link, out _);
     }
 
-    // PattNG's normalize reads the listen port of the settings unless a screen passes one; that setting is 10829 in
+    // PattNG's normalize reads the listen port of the settings unless a screen passes one; that setting is 10819 in
     // these tests. AetherFmt.Normalize has no default, so that no caller forgets the setting.
     private static AetherProblem? Normalize(ProfileItem config, IEnumerable<int>? takenPorts = null, int listenPort = AetherPorts.DefaultListenPort)
     {
@@ -237,11 +237,11 @@ public class AetherFmtTests
         // WireGuard inside Psiphon is fine: Psiphon carries the tunnel only the other way round.
         await Normalize(Profile(it => it with { AetherProtocol = AetherProtocol.WireGuard.Type, AetherPsiphon = "chain" })).Should().BeNull();
 
-        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10830)).Should().BeEqualTo(AetherProblem.NextPortTaken);
-        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10829)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
-        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10831)).Should().BeNull();
+        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10820)).Should().BeEqualTo(AetherProblem.NextPortTaken);
+        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10819)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
+        await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(10821)).Should().BeNull();
         // Without Psiphon inside, the port after the listen port is nobody's business.
-        await Normalize(Profile(), takenPorts: Ports(10830)).Should().BeNull();
+        await Normalize(Profile(), takenPorts: Ports(10820)).Should().BeNull();
     }
 
     [Test]
@@ -372,13 +372,13 @@ public class AetherFmtTests
     [Test]
     public async Task TorTakesThePortAfterTheListenPortInsideOrAroundTheTunnel()
     {
-        await Normalize(Profile(it => it with { AetherTor = "chain" }), takenPorts: Ports(10830)).Should().BeEqualTo(AetherProblem.NextPortTaken);
-        await Normalize(Profile(it => it with { AetherTor = "reverse" }), takenPorts: Ports(10830)).Should().BeEqualTo(AetherProblem.NextPortTaken);
-        await Normalize(Profile(it => it with { AetherTor = "only" }), takenPorts: Ports(10830)).Should().BeNull();
+        await Normalize(Profile(it => it with { AetherTor = "chain" }), takenPorts: Ports(10820)).Should().BeEqualTo(AetherProblem.NextPortTaken);
+        await Normalize(Profile(it => it with { AetherTor = "reverse" }), takenPorts: Ports(10820)).Should().BeEqualTo(AetherProblem.NextPortTaken);
+        await Normalize(Profile(it => it with { AetherTor = "only" }), takenPorts: Ports(10820)).Should().BeNull();
         // Nested, Psiphon inside and Tor around, the core takes two ports after the listen port.
-        await Normalize(Profile(it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), takenPorts: Ports(10831))
+        await Normalize(Profile(it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), takenPorts: Ports(10821))
             .Should().BeEqualTo(AetherProblem.NextPortTaken);
-        await Normalize(Profile(it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), takenPorts: Ports(10832)).Should().BeNull();
+        await Normalize(Profile(it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), takenPorts: Ports(10822)).Should().BeNull();
     }
 
     [Test]
@@ -554,7 +554,7 @@ public class AetherFmtTests
             await waiting.GetProtocolExtra().AetherEchDns.Should().BeEqualTo("udp://dns.google");
             await waiting.GetProtocolExtra().AetherEchDomain.Should().BeEqualTo("--upstream");
             // Out of use, neither reaches the core nor a link.
-            var arguments = AetherArguments.Build(waiting, 10829);
+            var arguments = AetherArguments.Build(waiting, 10819);
             var reaching = arguments.Any(it => it.StartsWith("--ech", StringComparison.Ordinal) || it == "--upstream");
             await Labeled($"{name}: {string.Join(' ', arguments)}", reaching).Should().BeEqualTo(Labeled($"{name}: {string.Join(' ', arguments)}", false));
             await Labeled(name, Link(waiting).Contains("ech")).Should().BeEqualTo(Labeled(name, false));
@@ -668,7 +668,7 @@ public class AetherFmtTests
             await Labeled(name, Normalize(waiting)).Should().BeEqualTo(Labeled(name, null));
             await waiting.GetProtocolExtra().AetherMasqueSni.Should().BeEqualTo("1.1.1.1");
             // Out of use, it reaches neither the core nor a link.
-            var arguments = AetherArguments.Build(waiting, 10829);
+            var arguments = AetherArguments.Build(waiting, 10819);
             await Labeled($"{name}: {string.Join(' ', arguments)}", arguments.Contains("--masque-sni"))
                 .Should().BeEqualTo(Labeled($"{name}: {string.Join(' ', arguments)}", false));
             await Query(Link(waiting)).GetValueOrDefault("sni").Should().BeNull();
@@ -817,7 +817,7 @@ public class AetherFmtTests
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:10808" }), takenPorts: Ports(10808))
             .Should().BeEqualTo(AetherProblem.ListenPortTaken);
         await Normalize(
-                Profile(it => it with { AetherCommand = "aether --psiphon --bind 127.0.0.1:10808 --psiphon-bind 127.0.0.1:10829" }),
+                Profile(it => it with { AetherCommand = "aether --psiphon --bind 127.0.0.1:10808 --psiphon-bind 127.0.0.1:10819" }),
                 takenPorts: Ports(10808))
             .Should().BeEqualTo(AetherProblem.ListenPortTaken);
     }
@@ -1258,11 +1258,11 @@ public class AetherFmtTests
     [Test]
     public async Task TheAetherListenPortIsTakenOnceTheLocalProxyWasMovedOntoIt()
     {
-        var movedOntoIt = Ports(10829);
+        var movedOntoIt = Ports(10819);
         await Normalize(Profile(), movedOntoIt).Should().BeEqualTo(AetherProblem.ListenPortTaken);
         // A command written by hand listens where it says.
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808" }), movedOntoIt).Should().BeNull();
-        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:10829" }), movedOntoIt)
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:10819" }), movedOntoIt)
             .Should().BeEqualTo(AetherProblem.ListenPortTaken);
     }
 
@@ -1277,15 +1277,15 @@ public class AetherFmtTests
     [Test]
     public async Task AScreenChecksAProfileOnTheListenPortItHolds()
     {
-        // The setting says 10829; the screen holds 20808, which is what the checks go by.
+        // The setting says 10819; the screen holds 20808, which is what the checks go by.
         await Normalize(Profile(), takenPorts: Ports(20808), listenPort: 20808).Should().BeEqualTo(AetherProblem.ListenPortTaken);
-        await Normalize(Profile(), takenPorts: Ports(10829), listenPort: 20808).Should().BeNull();
+        await Normalize(Profile(), takenPorts: Ports(10819), listenPort: 20808).Should().BeNull();
         await Normalize(Profile(it => it with { AetherPsiphon = "chain" }), takenPorts: Ports(20809), listenPort: 20808)
             .Should().BeEqualTo(AetherProblem.NextPortTaken);
         // A command naming no listener gets one on that port as well.
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg" }), takenPorts: Ports(20808), listenPort: 20808)
             .Should().BeEqualTo(AetherProblem.ListenPortTaken);
-        await Normalize(Profile(it => it with { AetherCommand = "aether --wg" }), takenPorts: Ports(10829), listenPort: 20808).Should().BeNull();
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg" }), takenPorts: Ports(10819), listenPort: 20808).Should().BeNull();
     }
 
     // PattN: links as PattNG writes them (Java's URLEncoder, a space as %20, '*' kept and '~' escaped) read field for
@@ -1555,14 +1555,14 @@ public class AetherFmtTests
         await Normalize(config).Should().BeEqualTo(AetherProblem.TorBridgesMissing);
 
         Change(it => it with { AetherTorBridgeLines = "obfs4 192.0.2.1:443 FP cert=x iat-mode=0" });
-        await Normalize(config, takenPorts: Ports(10829)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
+        await Normalize(config, takenPorts: Ports(10819)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
         await config.GetProtocolExtra().AetherTorRelays.Should().BeEqualTo("auto");
-        await Normalize(config, takenPorts: Ports(10831)).Should().BeEqualTo(AetherProblem.NextPortTaken);
-        await Normalize(config, takenPorts: Ports(10832)).Should().BeNull();
+        await Normalize(config, takenPorts: Ports(10821)).Should().BeEqualTo(AetherProblem.NextPortTaken);
+        await Normalize(config, takenPorts: Ports(10822)).Should().BeNull();
 
         // A command written by hand comes last, once every setting has been rewritten.
         Change(it => it with { AetherCommand = " aether ", AetherExitLoc = " de " });
-        await Normalize(config, takenPorts: Ports(10829)).Should().BeEqualTo(AetherProblem.InvalidCommand);
+        await Normalize(config, takenPorts: Ports(10819)).Should().BeEqualTo(AetherProblem.InvalidCommand);
         await config.GetProtocolExtra().AetherExitLoc.Should().BeEqualTo("DE");
         await config.GetProtocolExtra().AetherCommand.Should().BeEqualTo("aether");
 
@@ -1597,7 +1597,7 @@ public class AetherFmtTests
         // A resolver is an address without the separators around it, which the core is never given.
         var dns = Profile(it => it with { AetherDns = "\u001F1.1.1.1" });
         await Normalize(dns).Should().BeNull();
-        await AetherArguments.ValueAfter(AetherArguments.Build(dns, 10829), "--dns").Should().BeEqualTo("1.1.1.1");
+        await AetherArguments.ValueAfter(AetherArguments.Build(dns, 10819), "--dns").Should().BeEqualTo("1.1.1.1");
         await Normalize(Profile(it => it with { AetherDns = "1.1.1.1\u0085" })).Should().BeEqualTo(AetherProblem.InvalidDns);
     }
 }

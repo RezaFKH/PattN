@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:reactiveui="http://reactiveui.net"
     xmlns:resx="clr-namespace:ServiceLib.Resx;assembly=ServiceLib"
+    xmlns:views="clr-namespace:v2rayN.Views"
     xmlns:vms="clr-namespace:ServiceLib.ViewModels;assembly=ServiceLib"
     Title="{x:Static resx:ResUI.menuServers}"
     Width="900"
@@ -1483,6 +1484,12 @@
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
                         Text="{x:Static resx:ResUI.TbFinalmask}" />
+                    <!--  PattN: the arrow of the finalMask presets and the name of the one the popup's text holds sit beside the popup, so  -->
+                    <!--  that both are in sight while it is closed (design 3.3); the popup is upstream's, its lines kept as they are  -->
+                    <StackPanel
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Orientation="Horizontal">
                     <materialDesign:PopupBox
                         Grid.Row="0"
                         Grid.Column="1"
@@ -1504,6 +1511,11 @@
                                 VerticalScrollBarVisibility="Auto" />
                         </StackPanel>
                     </materialDesign:PopupBox>
+                        <views:PresetField
+                            x:Name="presetFinalmask"
+                            VerticalAlignment="Center"
+                            ShowsText="False" />
+                    </StackPanel>
 
                     <TextBlock
                         Grid.Row="1"
@@ -1646,14 +1658,12 @@
                         VerticalAlignment="Center"
                         Style="{StaticResource ToolbarTextBlock}"
                         Text="{x:Static resx:ResUI.TbCipherSuites}" />
-                    <TextBox
-                        x:Name="txtCipherSuites"
+                    <!--  PattN: cipherSuites as a preset field (design 3.3)  -->
+                    <views:PresetField
+                        x:Name="presetCipherSuites"
                         Grid.Row="4"
                         Grid.Column="1"
-                        Width="400"
-                        Margin="{StaticResource Margin4}"
-                        HorizontalAlignment="Left"
-                        Style="{StaticResource DefTextBox}" />
+                        HorizontalAlignment="Left" />
 
                     <TextBlock
                         Grid.Row="5"

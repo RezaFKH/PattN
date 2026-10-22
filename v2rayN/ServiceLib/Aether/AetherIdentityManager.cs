@@ -329,6 +329,16 @@ public static partial class AetherIdentityManager
         return first.OverMasque == second.OverMasque;
     }
 
+    /// <summary>
+    /// Whether a tunnel of <paramref name="protocol" /> uses a key that new keys of <paramref name="kind" /> would replace
+    /// (PattNG AetherSession.usesKeysOf); the keys of the other protocols can change under it.
+    /// </summary>
+    public static bool UsesKeysOf(AetherProtocol protocol, AetherKeyKind kind)
+    {
+        var replaced = FilesOf(kind);
+        return FilesOf(protocol).Any(replaced.Contains);
+    }
+
     /// <summary>True for the core's last word in a registration, once every key it was asked for is saved.</summary>
     public static bool IsRegistered(string line)
     {

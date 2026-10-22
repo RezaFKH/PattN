@@ -33,6 +33,13 @@ public partial class MainWindowViewModel : MyReactiveObject
     public ReactiveCommand<RxVoid, RxVoid> AddAnytlsServerCmd { get; }
     public ReactiveCommand<RxVoid, RxVoid> AddNaiveServerCmd { get; }
     public ReactiveCommand<RxVoid, RxVoid> AddMasqueServerCmd { get; }
+
+    // PattN: "Add Aether config manually" (design 3.5)
+    public ReactiveCommand<RxVoid, RxVoid> AddAetherServerCmd { get; }
+
+    // PattN: the WARP keys window, beside "Add Aether config manually" (design 3.4)
+    public ReactiveCommand<RxVoid, RxVoid> AetherKeysCmd { get; }
+
     public ReactiveCommand<RxVoid, RxVoid> AddCustomServerCmd { get; }
     public ReactiveCommand<RxVoid, RxVoid> AddCustomOutboundServerCmd { get; }
     public ReactiveCommand<RxVoid, RxVoid> AddPolicyGroupServerCmd { get; }
@@ -145,6 +152,16 @@ public partial class MainWindowViewModel : MyReactiveObject
         AddMasqueServerCmd = ReactiveCommand.CreateFromTask(async () =>
         {
             await AddServerAsync(EConfigType.MASQUE);
+        });
+        // PattN: "Add Aether config manually" (design 3.5)
+        AddAetherServerCmd = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await AddServerAsync(EConfigType.Aether);
+        });
+        // PattN: the WARP keys window, which preselects nothing (design 3.4)
+        AetherKeysCmd = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await AppManager.Instance.WindowDialog.ShowDialogAsync(new AetherKeysViewModel());
         });
         AddCustomServerCmd = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -476,6 +493,12 @@ public partial class MainWindowViewModel : MyReactiveObject
         {
             var addGroupServerViewModel = new AddGroupServerViewModel(item);
             ret = await AppManager.Instance.WindowDialog.ShowDialogAsync(addGroupServerViewModel);
+        }
+        // PattN: an Aether profile has an editor of its own (design 3.1)
+        else if (eConfigType == EConfigType.Aether)
+        {
+            var addServerAetherViewModel = new AddServerAetherViewModel(item);
+            ret = await AppManager.Instance.WindowDialog.ShowDialogAsync(addServerAetherViewModel);
         }
         else
         {

@@ -241,6 +241,68 @@ public static class AetherUplink
         return device is "*" or "lo";
     }
 
+    /// <summary>
+    /// The first Linux release whose kernel lets a process without CAP_NET_RAW bind a socket to an interface
+    /// (SO_BINDTODEVICE), which Xray's sockopt.interface does. Before it the bind fails with EPERM, and so every dial of an
+    /// Xray bound to the uplink.
+    /// </summary>
+    public static readonly Version UnprivilegedBindKernel = new(5, 7);
+
+    private static readonly Regex KernelReleaseVersion = new(@"^\s*(\d+)\.(\d+)", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// The major and minor version of the Linux release <paramref name="release" />, as /proc/sys/kernel/osrelease (uname
+    /// -r) writes it: "5.4.0-150-generic", "6.8.0", "4.19.113+", "5.10.0-rc1"; whatever follows the minor version is left
+    /// out. Null for a text that starts with no such version.
+    /// </summary>
+    public static Version? ParseKernelRelease(string? release)
+    {
+        if (release == null || KernelReleaseVersion.Match(release) is not { Success: true } match
+            || !int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var major)
+            || !int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var minor))
+        {
+            return null;
+        }
+        return new Version(major, minor);
+    }
+
+    /// <summary>
+    /// Whether the Linux kernel of release <paramref name="release" /> lets an unprivileged process bind to an interface:
+    /// from <see cref="UnprivilegedBindKernel" /> on. A release that cannot be read counts as one that does, as every
+    /// kernel since 2020 does.
+    /// </summary>
+    public static bool KernelBindsToInterface(string? release)
+    {
+        return ParseKernelRelease(release) is not { } version || version >= UnprivilegedBindKernel;
+    }
+
+    private static readonly Lazy<bool> _systemBindsToInterface = new(() =>
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return true;
+        }
+        try
+        {
+            return KernelBindsToInterface(File.ReadAllText("/proc/sys/kernel/osrelease"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logging.SaveLog("AetherCore: the release of the kernel could not be read", ex);
+            return true;
+        }
+    });
+
+    /// <summary>
+    /// Whether this system lets the short-lived Xray of Aether, which runs unprivileged, bind to an interface: Windows and
+    /// macOS do; Linux from 5.7 on (<see cref="KernelBindsToInterface" />), read once, since the kernel does not change
+    /// while the app runs.
+    /// </summary>
+    public static bool SystemBindsToInterface()
+    {
+        return _systemBindsToInterface.Value;
+    }
+
     #endregion Linux
 
     #region macOS
@@ -519,7 +581,8 @@ public sealed class AetherWindowsUplinkReader : IAetherUplinkReader
 /// The default routes of Linux: the main routing table as /proc/net/route lists it, then /proc/net/ipv6_route, read
 /// only when no IPv4 default route is usable. A TUN that routes with a table of its own (sing-box) is not there; one
 /// that adds its default route to the main table (Xray's xray_tun, metric 1) is, and is left out by its name. Xray's
-/// sockopt.interface binds a socket with SO_BINDTODEVICE, which an unprivileged process may do since Linux 5.7.
+/// sockopt.interface binds a socket with SO_BINDTODEVICE, which an unprivileged process may do since Linux 5.7; on an older
+/// kernel nothing is bound (<see cref="AetherUplinkBinding.CanBind" />).
 /// </summary>
 public sealed class AetherLinuxUplinkReader : IAetherUplinkReader
 {
@@ -626,23 +689,47 @@ public sealed class AetherUplinkBinding
     /// <summary>Where the line goes that tells an Xray runs unbound for want of an uplink.</summary>
     public Action<string> Log { get; init; } = Logging.SaveLog;
 
+    /// <summary>
+    /// Whether the system lets the Xray, which runs unprivileged, bind to an interface at all: not on a Linux kernel before
+    /// 5.7 (E5). PattN's own asks the system (<see cref="AetherUplink.SystemBindsToInterface" />); fakes in tests.
+    /// </summary>
+    public Func<bool> CanBind { get; init; } = () => true;
+
+    // The roles the line about the kernel was written for: once each, since the kernel does not change while the app runs.
+    private readonly HashSet<string> _toldKernel = [];
+
     /// <summary>What PattN's own exits and tests run with.</summary>
     public static AetherUplinkBinding Default { get; } = new()
     {
         TunRunning = () => CoreManager.Instance.IsTunRunning,
         FindUplink = () => AetherUplink.Find(CoreManager.Instance.TunInterface),
+        CanBind = AetherUplink.SystemBindsToInterface,
     };
 
     /// <summary>
     /// Has the outbounds of the configuration <paramref name="context" /> is generated for bound to the uplink, found now
     /// (<see cref="AetherBuild.Uplink" />), when a TUN runs and the settings name no bind interface; the uplink, or null
     /// when they are left as they are. With no uplink to be found, the Xray of <paramref name="role" /> runs unbound, as
-    /// it did before, and a line says so.
+    /// it did before, and a line says so. On a Linux kernel before 5.7 (<see cref="CanBind" />) nothing is bound, since
+    /// every dial of the Xray would fail there, and a line says so once for each role (E5).
     /// </summary>
     public string? Apply(CoreConfigContext context, string role)
     {
         if (!context.AppConfig.CoreBasicItem.BindInterface.IsNullOrEmpty() || !TunRunning())
         {
+            return null;
+        }
+        if (!CanBind())
+        {
+            bool first;
+            lock (_toldKernel)
+            {
+                first = _toldKernel.Add(role);
+            }
+            if (first)
+            {
+                Log($"AetherCore: this kernel needs CAP_NET_RAW to bind to an interface; the {role} Xray runs unbound");
+            }
             return null;
         }
         var uplink = FindUplink();

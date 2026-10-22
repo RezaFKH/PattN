@@ -73,7 +73,7 @@ public class AetherFmtHandlerTests
         source.SetProtocolExtra(source.GetProtocolExtra() with
         {
             AetherExitNode = "germany",
-            AetherCommand = "aether --masque --bind 127.0.0.1:10829",
+            AetherCommand = "aether --masque --bind 127.0.0.1:10819",
         });
         source.TargetStrategy = "UseIPv4";
 

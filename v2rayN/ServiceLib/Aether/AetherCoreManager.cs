@@ -243,8 +243,7 @@ public sealed class AetherSession
     /// </summary>
     public bool UsesKeysOf(AetherKeyKind kind)
     {
-        var replaced = AetherIdentityManager.FilesOf(kind);
-        return AetherIdentityManager.FilesOf(Protocol).Any(replaced.Contains);
+        return AetherIdentityManager.UsesKeysOf(Protocol, kind);
     }
 
     internal void Saw(string line)
@@ -400,6 +399,14 @@ public sealed class AetherCoreManager
     /// </summary>
     public event Func<AetherSessionEnded, Task>? SessionEnded;
 
+    /// <summary>
+    /// Raised, on the thread that made the change, whenever <see cref="Session" /> becomes another one or none: a session
+    /// starts, is stopped, or exits on its own (design 3.2.5). The Aether editor follows it, as PattNG's re-reads the
+    /// session when it comes back to the screen, since a session can start or stop while the editor is open; nothing
+    /// polls for it.
+    /// </summary>
+    public event Action? SessionChanged;
+
     /// <summary>The label of the output of a core of <paramref name="role" /> (design 2.14).</summary>
     public static string SourceOf(AetherRole role)
     {
@@ -444,6 +451,7 @@ public sealed class AetherCoreManager
                 _session = session;
                 _sessionStarting = false;
             }
+            RaiseSessionChanged();
             IAetherCoreProcess process;
             try
             {
@@ -468,6 +476,7 @@ public sealed class AetherCoreManager
                         _session = null;
                     }
                 }
+                RaiseSessionChanged();
                 return ResUI.MsgAetherCoreCannotStart;
             }
             session.Process = process;
@@ -1257,6 +1266,7 @@ public sealed class AetherCoreManager
             current.StopRequested = true;
             _session = null;
         }
+        RaiseSessionChanged();
         if (current.Process is { } process)
         {
             await EndProcessAsync(process, SourceOf(AetherRole.Session)).ConfigureAwait(false);
@@ -1319,6 +1329,7 @@ public sealed class AetherCoreManager
             }
             if (message != null)
             {
+                RaiseSessionChanged();
                 // What it started may still run, holding its listener and Psiphon's datastore lock until it notices its
                 // pipes gone.
                 await EndProcessAsync(process, SourceOf(AetherRole.Session)).ConfigureAwait(false);
@@ -1359,6 +1370,26 @@ public sealed class AetherCoreManager
     private bool IsCurrent(AetherSession session)
     {
         return Volatile.Read(ref _session) == session;
+    }
+
+    /// <summary>Tells <see cref="SessionChanged" />; a handler that throws is logged, so that the change goes on.</summary>
+    private void RaiseSessionChanged()
+    {
+        if (SessionChanged is not { } handlers)
+        {
+            return;
+        }
+        foreach (var handler in handlers.GetInvocationList().Cast<Action>())
+        {
+            try
+            {
+                handler();
+            }
+            catch (Exception ex)
+            {
+                Logging.SaveLog("AetherCore: a change of the session could not be handled", ex);
+            }
+        }
     }
 
     private Task<bool> AwaitListeningAsync(AetherSession session, TimeSpan timeout, CancellationToken ct)

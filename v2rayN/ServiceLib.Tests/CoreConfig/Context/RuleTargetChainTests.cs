@@ -1,3 +1,7 @@
+using NLog;
+using NLog.Config;
+using NLog.Targets;
+using TUnit.Assertions.Enums;
 using static ServiceLib.Tests.CoreConfig.V2ray.AetherConfigTests;
 
 namespace ServiceLib.Tests.CoreConfig.Context;
@@ -6,6 +10,8 @@ namespace ServiceLib.Tests.CoreConfig.Context;
 /// PattN (PattNG CoreConfigContextBuilder.kt resolveOutbound): the profile a routing rule sends to runs inside its
 /// subscription's previous/next chain, as the main profile does, whatever its type; upstream v2rayN resolves it alone.
 /// The chain is stored entry hop first (previous, profile, next), and built from the exit hop, which the rule sends to.
+/// A target that names no profile, a name several have, or a profile that cannot be built refuses the session (E2), as
+/// PattNG refuses it; a latency test's context (refuseRuleTargets false) sends such a rule to the proxy, as upstream does.
 /// Each test builds the whole context (CoreConfigContextBuilder.Build) with a routing of its own made the active one in
 /// the test database, and gives the active one back after; every name is new to the test, as the database is shared.
 /// </summary>
@@ -96,6 +102,24 @@ public class RuleTargetChainTests
             string.Format(ResUI.MsgRoutingRuleChainHopNotBuilt, lost.Remarks));
     }
 
+    /// <summary>
+    /// E2: the errors that refuse a context for a rule to <paramref name="target" />, which could not be built for
+    /// <paramref name="reasons" />: PattNG's message, and why after it.
+    /// </summary>
+    private static string[] Unbuilt(ProfileItem target, params string[] reasons)
+    {
+        return [string.Format(ResUI.MsgRoutingRuleTargetUnbuilt, target.Remarks), .. reasons];
+    }
+
+    /// <summary>E2: the context of a session refused for its rule, with exactly <paramref name="errors" />, and nothing of the rule's target left in it.</summary>
+    private static async Task AssertRefused(CoreConfigContextBuilderResult built, string[] errors, params ProfileItem[] notLeft)
+    {
+        await built.Success.Should().BeFalse();
+        await built.ValidatorResult.Errors.Should().BeEquivalentTo(errors, CollectionOrdering.Matching);
+        await AssertNoneRegistered(built.Context, notLeft);
+        await built.Context.AllProxiesMap.Keys.Any(key => key.StartsWith("remark:", StringComparison.Ordinal)).Should().BeFalse();
+    }
+
     /// <summary>Nothing of <paramref name="profiles" />, nor a chain of a subscription, stayed in the context.</summary>
     private static async Task AssertNoneRegistered(CoreConfigContext context, params ProfileItem[] profiles)
     {
@@ -110,13 +134,33 @@ public class RuleTargetChainTests
     /// The context Build makes for <paramref name="main" /> while the active routing has one rule, sending
     /// <see cref="RuleDomain" /> to the profile named <paramref name="target" />.
     /// </summary>
-    private static Task<CoreConfigContextBuilderResult> BuildWithRuleTo(Config config, ProfileItem main, string target)
+    private static Task<CoreConfigContextBuilderResult> BuildWithRuleTo(Config config, ProfileItem main, string target, bool refuseRuleTargets = true)
     {
-        return WithRuleTo(target, () => CoreConfigContextBuilder.Build(config, main));
+        return WithRuleTo(target, () => CoreConfigContextBuilder.Build(config, main, refuseRuleTargets: refuseRuleTargets));
     }
 
     /// <summary>What <paramref name="build" /> gives while the active routing has one rule, sending <see cref="RuleDomain" /> to <paramref name="target" />.</summary>
-    private static async Task<T> WithRuleTo<T>(string target, Func<Task<T>> build)
+    private static Task<T> WithRuleTo<T>(string target, Func<Task<T>> build)
+    {
+        return WithRules([Rule(target)], build);
+    }
+
+    /// <summary>A routing rule sending <see cref="RuleDomain" /> to <paramref name="target" />.</summary>
+    private static RulesItem Rule(string target, ERuleType type = ERuleType.Routing, string remarks = RuleName)
+    {
+        return new RulesItem
+        {
+            Id = NewName("rule"),
+            Remarks = remarks,
+            Enabled = true,
+            RuleType = type,
+            OutboundTag = target,
+            Domain = [$"full:{RuleDomain}"],
+        };
+    }
+
+    /// <summary>What <paramref name="build" /> gives while the active routing has <paramref name="rules" />.</summary>
+    private static async Task<T> WithRules<T>(List<RulesItem> rules, Func<Task<T>> build)
     {
         SQLiteHelper.Instance.CreateTable<FullConfigTemplateItem>();
         SQLiteHelper.Instance.CreateTable<DNSItem>();
@@ -126,18 +170,7 @@ public class RuleTargetChainTests
         {
             Id = NewName("routing"),
             Remarks = "rule targets",
-            RuleSet = JsonUtils.Serialize(new List<RulesItem>
-            {
-                new()
-                {
-                    Id = NewName("rule"),
-                    Remarks = RuleName,
-                    Enabled = true,
-                    RuleType = ERuleType.Routing,
-                    OutboundTag = target,
-                    Domain = [$"full:{RuleDomain}"],
-                },
-            }),
+            RuleSet = JsonUtils.Serialize(rules),
             DomainStrategy = Global.AsIs,
             DomainStrategy4Singbox = string.Empty,
             IsActive = true,
@@ -277,11 +310,12 @@ public class RuleTargetChainTests
     }
 
     // D1-R1: the traversal of the chain leaves out a hop that fails its checks, and without the profile the rule names the
-    // rule would leave by its neighbours alone; it goes to the proxy, as when upstream resolves the profile alone.
+    // rule would leave by its neighbours alone; the session is refused (E2), and a test's context sends the rule to the
+    // proxy, as when upstream resolves the profile alone.
     [Test]
     [Arguments(true)]
     [Arguments(false)]
-    public async Task ARuleToAProfileItsCoreCannotRunGoesToTheProxyAndNeverThroughItsNeighbours(bool withNext)
+    public async Task ARuleToAProfileItsCoreCannotRunRefusesTheSessionAndNeverGoesThroughItsNeighbours(bool withNext)
     {
         var prev = XrayHop("prev", "198.51.100.41");
         var next = XrayHop("next", "198.51.100.43");
@@ -289,7 +323,10 @@ public class RuleTargetChainTests
         await Store(prev, next, target);
         var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
 
-        var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks);
+        var session = await BuildWithRuleTo(NewConfig(), main, target.Remarks);
+        await AssertRefused(session, Unbuilt(target, string.Format(ResUI.MsgRoutingRuleChainHopNotBuilt, target.Remarks)), prev, next, target);
+
+        var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks, refuseRuleTargets: false);
 
         await result.Success.Should().BeTrue();
         await result.Warnings.Should().Contain(ChainLost(target, target));
@@ -422,7 +459,7 @@ public class RuleTargetChainTests
 
     // D1-R1 under sing-box: a profile over xhttp, which sing-box cannot run.
     [Test]
-    public async Task UnderSingBoxARuleToAProfileItCannotRunGoesToTheProxyAndNeverThroughItsNeighbours()
+    public async Task UnderSingBoxARuleToAProfileItCannotRunRefusesTheSessionAndNeverGoesThroughItsNeighbours()
     {
         var config = CoreConfigTestFactory.CreateConfig(ECoreType.sing_box);
         CoreConfigTestFactory.BindAppManagerConfig(config);
@@ -432,7 +469,10 @@ public class RuleTargetChainTests
         await Store(prev, next, target);
         var main = CoreConfigTestFactory.CreateSocksNode(ECoreType.sing_box, NewName("main"), NewName("main"));
 
-        var (context, result) = await BuildWithRuleTo(config, main, target.Remarks);
+        var session = await BuildWithRuleTo(config, main, target.Remarks);
+        await AssertRefused(session, Unbuilt(target, string.Format(ResUI.MsgRoutingRuleChainHopNotBuilt, target.Remarks)), prev, next, target);
+
+        var (context, result) = await BuildWithRuleTo(config, main, target.Remarks, refuseRuleTargets: false);
 
         await result.Success.Should().BeTrue();
         await result.Warnings.Should().Contain(ChainLost(target, target));
@@ -445,10 +485,11 @@ public class RuleTargetChainTests
         await singbox.route.rules.Any(rule => rule.domain?.Contains(RuleDomain) == true && rule.outbound == Global.ProxyTag).Should().BeTrue();
     }
 
-    // critique 4: sing-box runs no Aether profile, so the chain would run without WARP; the rule goes to the proxy, as
-    // when sing-box is told to run the Aether profile alone, and never through the previous profile alone.
+    // critique 4: sing-box runs no Aether profile, so the chain would run without WARP; the session is refused (E2), and a
+    // test's context sends the rule to the proxy, as when sing-box is told to run the Aether profile alone, and never
+    // through the previous profile alone.
     [Test]
-    public async Task UnderSingBoxARuleToAnAetherProfileOfAChainingSubscriptionGoesToTheProxy()
+    public async Task UnderSingBoxARuleToAnAetherProfileOfAChainingSubscriptionRefusesTheSession()
     {
         var config = CoreConfigTestFactory.CreateConfig(ECoreType.sing_box);
         CoreConfigTestFactory.BindAppManagerConfig(config);
@@ -456,11 +497,18 @@ public class RuleTargetChainTests
         var warp = In(await Subscription(prev.Remarks, null), Warp(NewName("warp"), NewName("WARP")));
         await Store(prev, warp);
         var main = CoreConfigTestFactory.CreateSocksNode(ECoreType.sing_box, NewName("main"), NewName("main"));
+        var refusal = string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, warp.Remarks);
 
-        var (context, result) = await BuildWithRuleTo(config, main, warp.Remarks);
+        var session = await BuildWithRuleTo(config, main, warp.Remarks);
+        await session.Success.Should().BeFalse();
+        // The refusal, and why after it: the chain's, beside sing-box's own word on the Aether profile.
+        await session.ValidatorResult.Errors.First().Should().BeEqualTo(Unbuilt(warp)[0]);
+        await session.ValidatorResult.Errors.Should().Contain(refusal);
+        await AssertNoneRegistered(session.Context, prev, warp);
+
+        var (context, result) = await BuildWithRuleTo(config, main, warp.Remarks, refuseRuleTargets: false);
 
         await result.Success.Should().BeTrue();
-        var refusal = string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, warp.Remarks);
         await result.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeError, RuleName, warp.Remarks, refusal));
         await RuleNode(context, warp).Should().BeNull();
         var generated = new CoreConfigSingboxService(context).GenerateClientConfigContent();
@@ -524,19 +572,22 @@ public class RuleTargetChainTests
     }
 
     [Test]
-    public async Task ARuleToAnAetherProfileWhoseSubscriptionNamesAProfileNoneHasIsRefusedForTheRule()
+    public async Task ARuleToAnAetherProfileWhoseSubscriptionNamesAProfileNoneHasRefusesTheSession()
     {
-        // The main profile's chain is refused rather than shortened (AetherSubscriptionChainRefusal); a rule's goes to the
-        // proxy with the refusal as a warning, as for any target that cannot be built.
+        // The main profile's chain is refused rather than shortened (AetherSubscriptionChainRefusal), and so is a session
+        // whose rule sends to such a profile, as for any target that cannot be built (E2); a test's context sends the rule
+        // to the proxy with the refusal as a warning.
         var missing = NewName("missing");
         var warp = In(await Subscription(missing, null), Warp(NewName("warp"), NewName("WARP")));
         await Store(warp);
         var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+        var refusal = string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, missing);
 
-        var (context, result) = await BuildWithRuleTo(NewConfig(), main, warp.Remarks);
+        await AssertRefused(await BuildWithRuleTo(NewConfig(), main, warp.Remarks), Unbuilt(warp, refusal), warp);
+
+        var (context, result) = await BuildWithRuleTo(NewConfig(), main, warp.Remarks, refuseRuleTargets: false);
 
         await result.Success.Should().BeTrue();
-        var refusal = string.Format(ResUI.MsgAetherChainHopDropped, warp.Remarks, missing);
         await result.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeError, RuleName, warp.Remarks, refusal));
         await RuleNode(context, warp).Should().BeNull();
         await context.AllProxiesMap.Should().NotContainKey(warp.IndexId);
@@ -552,7 +603,8 @@ public class RuleTargetChainTests
     }
 
     // D1-R4: the WebAPI's preflight asks for the aether core when the context holds an Aether profile
-    // (CoreLaunchPreflight.NeedsAether); a rule that goes to the proxy leaves none of the profiles it resolved behind.
+    // (CoreLaunchPreflight.NeedsAether); a rule that goes to the proxy leaves none of the profiles it resolved behind, and
+    // nor does one that refuses the session (E2).
     [Test]
     public async Task ARefusedRuleLeavesNoAetherProfileInTheContext()
     {
@@ -566,7 +618,13 @@ public class RuleTargetChainTests
         // The subscription's chain, and a proxy chain the user made: each loses its TUIC hop, which Xray cannot run.
         foreach (var target in new[] { behindWarp, userChain })
         {
-            var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks);
+            var session = await BuildWithRuleTo(NewConfig(), main, target.Remarks);
+            await session.Success.Should().BeFalse();
+            await session.ValidatorResult.Errors.First().Should().BeEqualTo(string.Format(ResUI.MsgRoutingRuleTargetUnbuilt, target.Remarks));
+            await session.Context.AllProxiesMap.Values.Any(profile => profile.ConfigType == EConfigType.Aether).Should().BeFalse();
+            await AssertNoneRegistered(session.Context, warp, target);
+
+            var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks, refuseRuleTargets: false);
 
             await result.Success.Should().BeTrue();
             await RuleNode(context, target).Should().BeNull();
@@ -598,5 +656,269 @@ public class RuleTargetChainTests
         var twoTunnels = await Built(NewConfig(), main, behindWg.Remarks);
         await AssertChain(twoTunnels, behindWg, wg, behindWg);
         await Refused(twoTunnels, ResUI.MsgAetherChainOneProfile);
+    }
+
+    // ---- E2: a target that names no profile, a name several have, or a profile that cannot be built
+
+    private static ProfileItem CustomConfig(string remarks)
+    {
+        return new ProfileItem
+        {
+            IndexId = NewName("custom"),
+            ConfigType = EConfigType.Custom,
+            CoreType = ECoreType.Xray,
+            Remarks = remarks,
+            Address = "custom-config.json",
+            Subid = string.Empty,
+        };
+    }
+
+    /// <summary>A test's context for the rule: built, the rule sent to the proxy with <paramref name="warning" />.</summary>
+    private static async Task AssertGoesToTheProxy(Config config, ProfileItem main, string target, string warning, params ProfileItem[] notLeft)
+    {
+        var (context, result) = await BuildWithRuleTo(config, main, target, refuseRuleTargets: false);
+        await result.Success.Should().BeTrue().Because(string.Join(" | ", result.Errors));
+        await result.Warnings.Should().Contain(warning);
+        await AssertNoneRegistered(context, notLeft);
+        var g = await Succeeds(context);
+        await g.Config.routing.rules.Any(rule => rule.domain?.Contains($"full:{RuleDomain}") == true && rule.outboundTag == Global.ProxyTag).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task ARuleToANameNoProfileHasRefusesTheSession()
+    {
+        // PattNG: "No profile named ... was found", as for a renamed or deleted profile; never the proxy in its place.
+        var nobody = NewName("nobody");
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+
+        await AssertRefused(await BuildWithRuleTo(NewConfig(), main, nobody), [string.Format(ResUI.MsgRoutingRuleTargetNotFound, nobody)]);
+
+        await AssertGoesToTheProxy(NewConfig(), main, nobody, string.Format(ResUI.MsgRoutingRuleOutboundNodeNotFound, RuleName, nobody));
+    }
+
+    [Test]
+    public async Task ARuleToANameSeveralProfilesShareRefusesTheSessionAndNeverTakesTheFirst()
+    {
+        var name = NewName("twice");
+        var first = Vless(NewName("first"), name, "198.51.100.91");
+        var second = Vless(NewName("second"), name, "198.51.100.92");
+        await Store(first, second);
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+        var duplicate = string.Format(ResUI.MsgRoutingRuleTargetDuplicate, name);
+
+        await AssertRefused(await BuildWithRuleTo(NewConfig(), main, name), [duplicate], first, second);
+
+        // Nor does a test's context take one of them.
+        await AssertGoesToTheProxy(NewConfig(), main, name, string.Format(ResUI.MsgRoutingRuleOutboundNodeError, RuleName, name, duplicate), first, second);
+    }
+
+    [Test]
+    public async Task OnlyAProfileThatCanBeARoutingTargetIsFoundByTheName()
+    {
+        // A custom configuration is no outbound (PattNG takesAsRoutingTarget): a name only it has names no profile, and one
+        // it shares with another profile names that one.
+        var alone = CustomConfig(NewName("custom"));
+        var shared = NewName("shared");
+        var customShared = CustomConfig(shared);
+        var vless = Vless(NewName("vless"), shared, "198.51.100.93");
+        await Store(alone, customShared, vless);
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+
+        await AssertRefused(await BuildWithRuleTo(NewConfig(), main, alone.Remarks), [string.Format(ResUI.MsgRoutingRuleTargetNotFound, alone.Remarks)], alone);
+
+        var context = await Built(NewConfig(), main, shared);
+        await (RuleNode(context, vless)?.IndexId).Should().BeEqualTo(vless.IndexId);
+        await context.AllProxiesMap.Should().NotContainKey(customShared.IndexId);
+        var g = await Succeeds(context);
+        await g.Outbound(RuleTag(vless)).settings.address!.ToString().Should().BeEqualTo(vless.Address);
+    }
+
+    [Test]
+    public async Task TheNameIsToldApartWithoutTheSpacesAroundIt()
+    {
+        // As PattNG's ByName and the other references by name of PattN: the target " X " is the profile "X", and the
+        // message names the profile as the lists show it.
+        var target = Vless(NewName("target"), NewName("target"), "198.51.100.94");
+        await Store(target);
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+        var spaced = $" {target.Remarks} ";
+
+        var context = await Built(NewConfig(), main, spaced);
+        await (context.AllProxiesMap.GetValueOrDefault($"remark:{spaced}")?.IndexId).Should().BeEqualTo(target.IndexId);
+        var g = await Succeeds(context);
+        await g.Config.routing.rules.Any(rule => rule.domain?.Contains($"full:{RuleDomain}") == true && rule.outboundTag == RuleTag(target)).Should().BeTrue();
+
+        var nobody = NewName("nobody");
+        await AssertRefused(await BuildWithRuleTo(NewConfig(), main, $"  {nobody}\t"), [string.Format(ResUI.MsgRoutingRuleTargetNotFound, nobody)]);
+    }
+
+    [Test]
+    public async Task ATargetOfAnyTypeThatCannotBeBuiltRefusesTheSession()
+    {
+        // A profile Xray cannot run (TUIC), a policy group and a proxy chain with no member it can run.
+        var tuic = TuicHop("tuic", "198.51.100.95");
+        var member = TuicHop("member", "198.51.100.96");
+        var group = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.Xray, NewName("group"), NewName("group"), [member.IndexId]);
+        var chain = CoreConfigTestFactory.CreateProxyChainNode(ECoreType.Xray, NewName("chain"), NewName("chain"), [member.IndexId]);
+        await Store(tuic, member, group, chain);
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+
+        foreach (var target in new[] { tuic, group, chain })
+        {
+            var session = await BuildWithRuleTo(NewConfig(), main, target.Remarks);
+            await session.Success.Should().BeFalse().Because(target.Remarks);
+            var errors = session.ValidatorResult.Errors;
+            await errors.First().Should().BeEqualTo(string.Format(ResUI.MsgRoutingRuleTargetUnbuilt, target.Remarks));
+            // Why, after it.
+            await (errors.Count > 1).Should().BeTrue().Because(string.Join(" | ", errors));
+            await AssertNoneRegistered(session.Context, target, member);
+
+            var (context, result) = await BuildWithRuleTo(NewConfig(), main, target.Remarks, refuseRuleTargets: false);
+            await result.Success.Should().BeTrue();
+            await RuleNode(context, target).Should().BeNull();
+            var g = await Succeeds(context);
+            await g.Config.routing.rules.Any(rule => rule.domain?.Contains($"full:{RuleDomain}") == true && rule.outboundTag == Global.ProxyTag).Should().BeTrue();
+        }
+    }
+
+    [Test]
+    public async Task ATargetSeveralRulesSendToIsToldOnce()
+    {
+        var nobody = NewName("nobody");
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+
+        var built = await WithRules([Rule(nobody), Rule($" {nobody}", remarks: "second rule")],
+            () => CoreConfigContextBuilder.Build(NewConfig(), main));
+
+        await AssertRefused(built, [string.Format(ResUI.MsgRoutingRuleTargetNotFound, nobody)]);
+    }
+
+    [Test]
+    public async Task ARuleOfTheDnsAloneOrACustomConfigurationsSessionIsNotRefused()
+    {
+        // A rule of the DNS sends no traffic to its target; a custom configuration runs as it is written, by none of the
+        // rules (PattNG getV2rayConfig). Both go on as upstream's do.
+        var nobody = NewName("nobody");
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+        var dns = await WithRules([Rule(nobody, ERuleType.DNS)], () => CoreConfigContextBuilder.Build(NewConfig(), main));
+        await dns.Success.Should().BeTrue();
+        await dns.ValidatorResult.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeNotFound, RuleName, nobody));
+
+        var custom = CustomConfig(NewName("custom main"));
+        await Store(custom);
+        var (_, result) = await BuildWithRuleTo(NewConfig(), custom, nobody);
+        await result.Success.Should().BeTrue();
+        await result.Warnings.Should().Contain(string.Format(ResUI.MsgRoutingRuleOutboundNodeNotFound, RuleName, nobody));
+    }
+
+    [Test]
+    public async Task UnderTheLegacyTunTheCoreBehindRefusesTheSessionAndNothingIsBuiltInFront()
+    {
+        // Xray behind sing-box refuses the rule; the context in front, which would send the rule to Xray, is never built.
+        var nobody = NewName("nobody");
+        var main = CoreConfigTestFactory.CreateVmessNode(ECoreType.Xray, NewName("main"), NewName("main"));
+
+        var built = await WithRuleTo(nobody, () => CoreConfigContextBuilder.BuildAll(LegacyTunConfig(), main));
+
+        await built.Success.Should().BeFalse();
+        await built.PreSocksResult.Should().BeNull();
+        await built.CombinedValidatorResult.Errors.Should().BeEquivalentTo([string.Format(ResUI.MsgRoutingRuleTargetNotFound, nobody)]);
+    }
+
+    // ---- the contexts of a test, which drop the routing rules (E2)
+
+    /// <summary>The lines <paramref name="action" /> logs, caught in memory while it runs; the logging set up before comes back after.</summary>
+    private static async Task<List<string>> Logged(Func<Task> action)
+    {
+        var previous = LogManager.Configuration;
+        var memory = new MemoryTarget(NewName("rule-targets")) { Layout = "${message}" };
+        var caught = new LoggingConfiguration();
+        caught.AddRuleForAllLevels(memory);
+        LogManager.Configuration = caught;
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            LogManager.Configuration = previous;
+        }
+        return [.. memory.Logs];
+    }
+
+    // E2-2: an Aether latency test measures the profile alone and drops the rules: a rule's target never refuses it, as it
+    // refuses the session.
+    [Test]
+    public async Task TheAetherTesterOfTheAppIsNotRefusedForARulesTarget()
+    {
+        var config = NewConfig();
+        var tested = XrayHop("tested", "198.51.100.61");
+        await Store(tested);
+
+        var (session, test) = await WithRuleTo(NewName("nobody"), async () =>
+            (await CoreConfigContextBuilder.Build(config, tested), await AetherTestHost.Default().Build(tested)));
+
+        await session.Success.Should().BeFalse();
+        await test.Success.Should().BeTrue().Because(string.Join(" | ", test.ValidatorResult.Errors));
+    }
+
+    // E2-2: a group sing-box runs leaves its Aether member out, as its session does, and stays in the batch: the checks
+    // that tell whether its test leaves it drop the rules, so that a rule's target does not take it out to be refused.
+    [Test]
+    public async Task TheAetherCandidatesOfTheAppAreNotTakenOutForARulesTarget()
+    {
+        var config = NewConfig();
+        var warp = Warp(NewName("warp"), NewName("WARP"));
+        warp.Address = "162.159.198.1";
+        warp.Port = 443;
+        var socks = SingboxHop("socks", "198.51.100.62");
+        var group = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.sing_box, NewName("group"), NewName("group"), [warp.IndexId, socks.IndexId]);
+        await Store(warp, socks, group);
+        // Read afresh for each use: the builder rewrites the members of a group it builds.
+        async Task<ProfileItem> Group() => (await AppManager.Instance.GetProfileItem(group.IndexId))!;
+        async Task<List<ServerTestItem>> Taken()
+        {
+            var item = new ServerTestItem { IndexId = group.IndexId, ConfigType = EConfigType.PolicyGroup, CoreType = ECoreType.sing_box, Profile = await Group() };
+            return await AetherTestCandidates.FromDatabase().TakeAsync(ESpeedActionType.Realping, [item]);
+        }
+        var nobody = NewName("nobody");
+
+        await (await Taken()).Should().BeEmpty();
+        await (await WithRuleTo(nobody, Taken)).Should().BeEmpty();
+        // The rule refuses the group's session all the same.
+        await (await WithRuleTo(nobody, async () => await CoreConfigContextBuilder.Build(config, await Group()))).Success.Should().BeFalse();
+    }
+
+    // E2-3: the context of a scan's or a key run's exit, of the editor's look at an exit-node and of a batch latency test
+    // is never refused for a rule's target, and does not log that it is; the session's does.
+    [Test]
+    public async Task ContextsThatDropTheRulesLogNoRefusalForARulesTarget()
+    {
+        var config = NewConfig();
+        var nobody = NewName("nobody");
+        var refusal = $"Routing rule target '{nobody}'";
+
+        var session = await Logged(() => WithRuleTo(nobody, async () =>
+            await CoreConfigContextBuilder.Build(config, AetherExitHost.ContextProfile())));
+        await session.Any(line => line.Contains(refusal, StringComparison.Ordinal)).Should().BeTrue();
+
+        var file = Path.Combine(Path.GetTempPath(), $"{NewName("speedtest")}.json");
+        var tests = await Logged(() => WithRuleTo(nobody, async () =>
+        {
+            var exit = await AetherExitHost.GenerateAsync(AetherExit.Plain, 20808, new AetherUplinkBinding { TunRunning = () => false, FindUplink = () => null });
+            await exit.Success.Should().BeTrue().Because(exit.Msg ?? string.Empty);
+            var lookup = await new AetherEditorSource(config).FindExitNodeAsync(NewName("node"));
+            await (lookup is ExitNodeLookup.NotFound).Should().BeTrue();
+            try
+            {
+                await CoreConfigHandler.GenerateClientSpeedtestConfig(config, file, [], ECoreType.Xray);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+            return true;
+        }));
+        await tests.Any(line => line.Contains(refusal, StringComparison.Ordinal)).Should().BeFalse().Because(string.Join(" | ", tests));
     }
 }

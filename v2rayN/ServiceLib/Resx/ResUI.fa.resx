@@ -1908,4 +1908,502 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>فرمان پروفایل Aether به هسته می‌گوید روی {0} گوش دهد که پورت نیست (1 تا 65535)؛ پورت‌های فرمان را تغییر دهید</value>
   </data>
+  <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
+    <value>هیچ پروفایلی با نام «{0}» پیدا نشد</value>
+  </data>
+  <data name="MsgRoutingRuleTargetDuplicate" xml:space="preserve">
+    <value>دو پروفایل با نام «{0}» پیدا شد؛ لطفاً نام یکی را تغییر دهید</value>
+  </data>
+  <data name="MsgRoutingRuleTargetUnbuilt" xml:space="preserve">
+    <value>پروفایل «{0}» که یک قانون مسیریابی ترافیک را به آن می‌فرستد ساخته نشد؛ آن را درست کنید، یا قانون‌هایی را که از آن استفاده می‌کنند خاموش کنید</value>
+  </data>
+  <data name="menuAddAetherServer" xml:space="preserve">
+    <value>افزودن دستی کانفیگ Aether</value>
+  </data>
+  <data name="TbAetherRenewKey" xml:space="preserve">
+    <value>دریافت کلیدهای جدید WARP…</value>
+  </data>
+  <data name="TbAetherProtocol" xml:space="preserve">
+    <value>پروتکل</value>
+  </data>
+  <data name="TbAetherTransport" xml:space="preserve">
+    <value>حامل</value>
+  </data>
+  <data name="TbAetherMasqueSni" xml:space="preserve">
+    <value>نام سرور MASQUE (SNI)</value>
+  </data>
+  <data name="TbAetherFragment" xml:space="preserve">
+    <value>تکه‌تکه کردن ClientHello</value>
+  </data>
+  <data name="TbAetherFragmentSize" xml:space="preserve">
+    <value>اندازه تکه‌ها (بایت)</value>
+  </data>
+  <data name="TbAetherFragmentDelay" xml:space="preserve">
+    <value>تأخیر بین تکه‌ها (میلی‌ثانیه)</value>
+  </data>
+  <data name="TbAetherEch" xml:space="preserve">
+    <value>Encrypted Client Hello (ECH)</value>
+  </data>
+  <data name="TbAetherEchHint" xml:space="preserve">
+    <value>نام سرور را در دست‌دهی MASQUE پنهان می‌کند؛ بدون کلید قابل استفاده، Aether وصل نمی‌شود</value>
+  </data>
+  <data name="TbAetherEchDns" xml:space="preserve">
+    <value>DNS برای ECH</value>
+  </data>
+  <data name="TbAetherEchDomain" xml:space="preserve">
+    <value>دامنه‌ی ECH</value>
+  </data>
+  <data name="TbAetherScanMode" xml:space="preserve">
+    <value>حالت اسکن</value>
+  </data>
+  <data name="TbAetherScanTurbo" xml:space="preserve">
+    <value>توربو</value>
+  </data>
+  <data name="TbAetherScanBalanced" xml:space="preserve">
+    <value>متعادل</value>
+  </data>
+  <data name="TbAetherScanThorough" xml:space="preserve">
+    <value>دقیق</value>
+  </data>
+  <data name="TbAetherScanVerified" xml:space="preserve">
+    <value>تأییدشده</value>
+  </data>
+  <data name="TbAetherScanIronclad" xml:space="preserve">
+    <value>تضمینی</value>
+  </data>
+  <data name="TbAetherObfuscation" xml:space="preserve">
+    <value>مبهم‌سازی</value>
+  </data>
+  <data name="TbAetherNoizeAuto" xml:space="preserve">
+    <value>خودکار</value>
+  </data>
+  <data name="TbAetherNoizeOff" xml:space="preserve">
+    <value>خاموش</value>
+  </data>
+  <data name="TbAetherNoizeLight" xml:space="preserve">
+    <value>سبک</value>
+  </data>
+  <data name="TbAetherNoizeFirewall" xml:space="preserve">
+    <value>فایروال</value>
+  </data>
+  <data name="TbAetherNoizeBalanced" xml:space="preserve">
+    <value>متعادل</value>
+  </data>
+  <data name="TbAetherNoizeGfw" xml:space="preserve">
+    <value>GFW</value>
+  </data>
+  <data name="TbAetherNoizeAggressive" xml:space="preserve">
+    <value>شدید</value>
+  </data>
+  <data name="TbAetherFingerprint" xml:space="preserve">
+    <value>اثرانگشت</value>
+  </data>
+  <data name="TbAetherIpVersion" xml:space="preserve">
+    <value>نسخه IP</value>
+  </data>
+  <data name="TbAetherExitNode" xml:space="preserve">
+    <value>exit-node</value>
+  </data>
+  <data name="TbAetherExitNodeFreedom" xml:space="preserve">
+    <value>freedom (پیش‌فرض)</value>
+  </data>
+  <data name="TbAetherExitNodeHint" xml:space="preserve">
+    <value>هسته از راه خروجی این پروفایل به بیرون وصل می‌شود، مانند گامی از زنجیرهٔ پروکسی؛ finalMask و dialMode پایین فقط برای freedom است</value>
+  </data>
+  <data name="TbAetherExitFinalMask" xml:space="preserve">
+    <value>JSON خام finalMask برای exit-node، قالب: { FinalMaskObject }</value>
+  </data>
+  <data name="TbAetherExitDialMode" xml:space="preserve">
+    <value>exit-node dialMode</value>
+  </data>
+  <data name="TbLabelNumbered" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="TbAetherPsiphon" xml:space="preserve">
+    <value>سایفون</value>
+  </data>
+  <data name="TbAetherPsiphonOff" xml:space="preserve">
+    <value>خاموش</value>
+  </data>
+  <data name="TbAetherPsiphonChain" xml:space="preserve">
+    <value>اول WARP، بعد سایفون</value>
+  </data>
+  <data name="TbAetherPsiphonReverse" xml:space="preserve">
+    <value>اول سایفون، بعد WARP</value>
+  </data>
+  <data name="TbAetherPsiphonOnly" xml:space="preserve">
+    <value>فقط سایفون</value>
+  </data>
+  <data name="TbAetherTor" xml:space="preserve">
+    <value>تور (Tor)</value>
+  </data>
+  <data name="TbAetherTorOff" xml:space="preserve">
+    <value>خاموش</value>
+  </data>
+  <data name="TbAetherTorChain" xml:space="preserve">
+    <value>اول WARP، بعد تور</value>
+  </data>
+  <data name="TbAetherTorReverse" xml:space="preserve">
+    <value>اول تور، بعد WARP</value>
+  </data>
+  <data name="TbAetherTorOnly" xml:space="preserve">
+    <value>فقط تور</value>
+  </data>
+  <data name="TbAetherPsiphonMode" xml:space="preserve">
+    <value>نحوه اتصال سایفون</value>
+  </data>
+  <data name="TbAetherPsiphonModeAuto" xml:space="preserve">
+    <value>خودکار</value>
+  </data>
+  <data name="TbAetherPsiphonModeCdn" xml:space="preserve">
+    <value>فقط از طریق CDN</value>
+  </data>
+  <data name="TbAetherPsiphonModeDirect" xml:space="preserve">
+    <value>فقط مستقیم</value>
+  </data>
+  <data name="TbAetherPsiphonCdnIps" xml:space="preserve">
+    <value>آی‌پی‌های CDN</value>
+  </data>
+  <data name="TbAetherPsiphonCdnSni" xml:space="preserve">
+    <value>نام سرورهای CDN (SNI)</value>
+  </data>
+  <data name="TbAetherPsiphonListHint" xml:space="preserve">
+    <value>با کاما جدا کنید؛ خالی بگذارید تا فهرست داخلی استفاده شود</value>
+  </data>
+  <data name="TbAetherPsiphonCdnSets" xml:space="preserve">
+    <value>فهرست‌های لبهٔ CDN برای اسکن</value>
+  </data>
+  <data name="TbAetherPsiphonCdnSetsAll" xml:space="preserve">
+    <value>همهٔ فهرست‌های داخلی سایفون</value>
+  </data>
+  <data name="TbAetherPsiphonCdnSetsHint" xml:space="preserve">
+    <value>کدام فهرست‌های لبهٔ داخلی سایفون در اسکن فرانتینگ امتحان شوند. هیچ‌کدام یعنی همه؛ در کنار IPهای خودتان، پس از آن‌ها امتحان می‌شوند</value>
+  </data>
+  <data name="TbAetherCdnSetCloudflare" xml:space="preserve">
+    <value>Cloudflare</value>
+  </data>
+  <data name="TbAetherCdnSetFastly" xml:space="preserve">
+    <value>Fastly</value>
+  </data>
+  <data name="TbAetherCdnSetCloudfront" xml:space="preserve">
+    <value>CloudFront</value>
+  </data>
+  <data name="TbAetherCdnSetAkamai" xml:space="preserve">
+    <value>Akamai (فهرست سایفون)</value>
+  </data>
+  <data name="TbAetherCdnSetBunny" xml:space="preserve">
+    <value>Bunny (فهرست سایفون)</value>
+  </data>
+  <data name="TbAetherCdnSetVercel" xml:space="preserve">
+    <value>Vercel</value>
+  </data>
+  <data name="TbAetherCdnSetGithub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="TbAetherCdnSetCurated" xml:space="preserve">
+    <value>لبه‌های گزینش‌شدهٔ فرانتینگ</value>
+  </data>
+  <data name="TbAetherCdnSetLegacy" xml:space="preserve">
+    <value>بازنویسی‌های قدیمی اندروید</value>
+  </data>
+  <data name="TbAetherPsiphonRegion" xml:space="preserve">
+    <value>کشور خروجی</value>
+  </data>
+  <data name="TbAetherPsiphonRegionAny" xml:space="preserve">
+    <value>هر کشوری</value>
+  </data>
+  <data name="TbAetherPsiphonBundledList" xml:space="preserve">
+    <value>شروع از فهرست سرورهای همراه برنامه</value>
+  </data>
+  <data name="TbAetherPsiphonBundledListHint" xml:space="preserve">
+    <value>روشن: سایفون بی‌درنگ سرورهای psiphon_servers.dat را امتحان می‌کند و فهرست تازه را فقط وقتی می‌گیرد که آن‌ها کار نکنند. خاموش: پیش از نخستین اتصال فهرست تازه را می‌گیرد، پس فهرست باید در دسترس باشد، مثلاً از پشت WARP</value>
+  </data>
+  <data name="TbAetherClearPsiphon" xml:space="preserve">
+    <value>پاک کردن داده‌های سایفون</value>
+  </data>
+  <data name="TbAetherClearPsiphonHint" xml:space="preserve">
+    <value>سرورهایی که سایفون یاد گرفته و فهرست‌هایی که گرفته فراموش می‌شوند. شروع بعدی دوباره از فهرست همراه برنامه است، یا اگر گزینهٔ بالا خاموش باشد، از یک دریافت تازه</value>
+  </data>
+  <data name="TbAetherTorBridges" xml:space="preserve">
+    <value>پل‌ها</value>
+  </data>
+  <data name="TbAetherTorBridgesAuto" xml:space="preserve">
+    <value>وقتی تور مسدود است</value>
+  </data>
+  <data name="TbAetherTorBridgesFirst" xml:space="preserve">
+    <value>از همان ابتدا</value>
+  </data>
+  <data name="TbAetherTorBridgesNever" xml:space="preserve">
+    <value>هرگز</value>
+  </data>
+  <data name="TbAetherTorBridgesOwn" xml:space="preserve">
+    <value>خط‌های پل خودم</value>
+  </data>
+  <data name="TbAetherTorRelays" xml:space="preserve">
+    <value>منبع پل‌ها</value>
+  </data>
+  <data name="TbAetherTorRelaysAuto" xml:space="preserve">
+    <value>bridgedb و رله‌های عمومی</value>
+  </data>
+  <data name="TbAetherTorRelaysOnly" xml:space="preserve">
+    <value>فقط رله‌های عمومی</value>
+  </data>
+  <data name="TbAetherTorRelaysOff" xml:space="preserve">
+    <value>فقط bridgedb</value>
+  </data>
+  <data name="TbAetherTorBridgeLines" xml:space="preserve">
+    <value>خط‌های پل</value>
+  </data>
+  <data name="TbAetherTorBridgeLinesHint" xml:space="preserve">
+    <value>هر خط یک پل، مانند torrc: obfs4 1.2.3.4:443 FINGERPRINT cert=… iat-mode=0</value>
+  </data>
+  <data name="TbAetherOuterHop" xml:space="preserve">
+    <value>مسیر بیرونی</value>
+  </data>
+  <data name="TbAetherInnerHop" xml:space="preserve">
+    <value>مسیر درونی</value>
+  </data>
+  <data name="TbAetherEndpointHint" xml:space="preserve">
+    <value>خالی بگذارید تا اسکن شود</value>
+  </data>
+  <data name="TbAetherGoolPeerHint" xml:space="preserve">
+    <value>خالی بگذارید تا نشانی‌ای که WARP می‌دهد استفاده شود</value>
+  </data>
+  <data name="TbAetherOtherSettings" xml:space="preserve">
+    <value>تنظیمات دیگر</value>
+  </data>
+  <data name="TbAetherDns" xml:space="preserve">
+    <value>DNS درون تونل</value>
+  </data>
+  <data name="TbAetherDnsHint" xml:space="preserve">
+    <value>با کاما جدا کنید؛ خالی بگذارید تا 1.1.1.1 و 1.0.0.1 استفاده شود</value>
+  </data>
+  <data name="TbAetherExitLoc" xml:space="preserve">
+    <value>کشور خروجی تونل</value>
+  </data>
+  <data name="TbAetherExitLocHint" xml:space="preserve">
+    <value>DE,SE فقط همان‌ها را مجاز می‌کند؛ !IR,RU آن‌ها را رد می‌کند؛ خالی یعنی هر کشوری</value>
+  </data>
+  <data name="TbAetherScan" xml:space="preserve">
+    <value>اسکن برای یافتن سرور</value>
+  </data>
+  <data name="TbAetherScanning" xml:space="preserve">
+    <value>در حال اسکن…</value>
+  </data>
+  <data name="TbAetherScanAnyway" xml:space="preserve">
+    <value>با این حال اسکن کن</value>
+  </data>
+  <data name="TbAetherSaveAnyway" xml:space="preserve">
+    <value>با این حال ذخیره کن</value>
+  </data>
+  <data name="MsgAetherScanBlocked" xml:space="preserve">
+    <value>پیش از اسکن، اتصال Aether را قطع کنید؛ اسکن یک تونل دوم با کلید اتصال فعلی باز می‌کند</value>
+  </data>
+  <data name="TbAetherCommand" xml:space="preserve">
+    <value>فرمان Aether</value>
+  </data>
+  <data name="TbAetherCommandCustom" xml:space="preserve">
+    <value>دستی ویرایش شده: این فرمان همان‌طور که نوشته شده اجرا می‌شود و تنظیمات بالا اعمال نمی‌شوند، به‌جز تنظیمات Xray-core</value>
+  </data>
+  <data name="TbAetherUseSettings" xml:space="preserve">
+    <value>استفاده از تنظیمات</value>
+  </data>
+  <data name="TbAetherLog" xml:space="preserve">
+    <value>لاگ</value>
+  </data>
+  <data name="TbAetherLogEmpty" xml:space="preserve">
+    <value>نتیجه اسکن‌ها و وضعیت کلید WARP اینجا نمایش داده می‌شود</value>
+  </data>
+  <data name="MsgAetherKeysMissing" xml:space="preserve">
+    <value>کلید WARP لازم را ندارید؛ لطفاً اول آن را دریافت کنید</value>
+  </data>
+  <data name="MsgAetherInvalidMasqueSni" xml:space="preserve">
+    <value>نام سرور MASQUE (SNI) باید نام دامنه باشد، مانند www.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherInvalidEndpoint" xml:space="preserve">
+    <value>یک نشانی IP و پورت وارد کنید، یا نشانی را خالی بگذارید تا اسکن شود</value>
+  </data>
+  <data name="MsgAetherInvalidHop" xml:space="preserve">
+    <value>نشانی و پورت را با هم بنویسید، مثل 162.159.192.1:2408</value>
+  </data>
+  <data name="MsgAetherSameHop" xml:space="preserve">
+    <value>دو مسیر باید نشانی متفاوت داشته باشند</value>
+  </data>
+  <data name="MsgAetherInvalidFragment" xml:space="preserve">
+    <value>یک عدد یا بازه مثل 16-32 بنویسید: اندازه 1 تا 4096 بایت، تأخیر 0 تا 1000 میلی‌ثانیه</value>
+  </data>
+  <data name="MsgAetherInvalidDns" xml:space="preserve">
+    <value>نشانی‌های DNS مانند 1.1.1.1 یا 10.0.0.1:5353 را با کاما جدا بنویسید</value>
+  </data>
+  <data name="MsgAetherInvalidExitLoc" xml:space="preserve">
+    <value>کدهای دوحرفی کشور را با کاما جدا بنویسید، با ! در ابتدا برای رد کردن</value>
+  </data>
+  <data name="MsgAetherInvalidEchDns" xml:space="preserve">
+    <value>DNS برای ECH باید udp://IP، tcp://IP یا نشانی https:// یک سرور DNS-over-HTTPS باشد</value>
+  </data>
+  <data name="MsgAetherInvalidEchDomain" xml:space="preserve">
+    <value>دامنه‌ی ECH باید نام دامنه باشد، مانند cloudflare-ech.com</value>
+  </data>
+  <data name="MsgAetherPsiphonNeedsMasque" xml:space="preserve">
+    <value>حالت «اول سایفون، بعد WARP» فقط با پروتکل MASQUE کار می‌کند</value>
+  </data>
+  <data name="MsgAetherTorNeedsMasque" xml:space="preserve">
+    <value>حالت «اول تور، بعد WARP» فقط با پروتکل MASQUE کار می‌کند</value>
+  </data>
+  <data name="MsgAetherTorPsiphonConflict" xml:space="preserve">
+    <value>تور و سایفون فقط به این شکل با هم کار می‌کنند: یکی درون تونل و دیگری دور آن</value>
+  </data>
+  <data name="MsgAetherTorBridgesMissing" xml:space="preserve">
+    <value>دست‌کم یک خط پل بنویسید، یا تنظیم دیگری برای پل‌ها انتخاب کنید</value>
+  </data>
+  <data name="MsgAetherNextPortTaken" xml:space="preserve">
+    <value>با تور یا سایفون در مسیر، هسته پورت‌های بعد از پورت شنود Aether را هم استفاده می‌کند و هیچ‌کدام نمی‌تواند پورت پروکسی محلی برنامه باشد؛ پورت شنود Aether را در تنظیمات تغییر دهید</value>
+  </data>
+  <data name="MsgAetherInvalidCommand" xml:space="preserve">
+    <value>فرمان باید آرگومان‌های هسته Aether را داشته باشد و پورت گوش‌دادن پس از --bind بیاید</value>
+  </data>
+  <data name="MsgAetherScanStarted" xml:space="preserve">
+    <value>در حال اسکن برای یافتن سرور…</value>
+  </data>
+  <data name="MsgAetherScanFound" xml:space="preserve">
+    <value>پیدا شد: {0}</value>
+  </data>
+  <data name="MsgAetherScanFoundHops" xml:space="preserve">
+    <value>مسیر بیرونی {0} و مسیر درونی {1} پیدا شد</value>
+  </data>
+  <data name="MsgAetherScanSuccess" xml:space="preserve">
+    <value>سرور پیدا شد</value>
+  </data>
+  <data name="MsgAetherScanFailed" xml:space="preserve">
+    <value>سروری پیدا نشد</value>
+  </data>
+  <data name="MsgAetherScanCancelled" xml:space="preserve">
+    <value>اسکن لغو شد</value>
+  </data>
+  <data name="MsgAetherPsiphonCleared" xml:space="preserve">
+    <value>داده‌های سایفون پاک شد</value>
+  </data>
+  <data name="MsgAetherPsiphonClearFailed" xml:space="preserve">
+    <value>داده‌های سایفون پاک نشد</value>
+  </data>
+  <data name="MsgAetherPsiphonClearBlocked" xml:space="preserve">
+    <value>پیش از پاک کردن داده‌های سایفون، اتصال Aether را قطع کنید؛ اتصال فعلی از آن‌ها استفاده می‌کند</value>
+  </data>
+  <data name="TbPresetDefault" xml:space="preserve">
+    <value>پیش‌فرض</value>
+  </data>
+  <data name="TbPresetChoose" xml:space="preserve">
+    <value>انتخاب یک {0} آماده</value>
+  </data>
+  <data name="TbPresetReplace" xml:space="preserve">
+    <value>جایگزین کن</value>
+  </data>
+  <data name="TbPresetReplaceTitle" xml:space="preserve">
+    <value>{0} جایگزین شود؟</value>
+  </data>
+  <data name="TbPresetReplaceMessage" xml:space="preserve">
+    <value>{0} فعلی در فهرست نیست و پاک می‌شود. با {1} جایگزین شود؟</value>
+  </data>
+  <data name="MsgAetherKeyWireguardReady" xml:space="preserve">
+    <value>کلید WireGuard: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyWireguardMissing" xml:space="preserve">
+    <value>کلید WireGuard: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyWireguardInnerReady" xml:space="preserve">
+    <value>کلید مسیر درونی WireGuard: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyWireguardInnerMissing" xml:space="preserve">
+    <value>کلید مسیر درونی WireGuard: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyMasqueReady" xml:space="preserve">
+    <value>کلید MASQUE: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyMasqueMissing" xml:space="preserve">
+    <value>کلید MASQUE: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyMasqueInnerReady" xml:space="preserve">
+    <value>کلید مسیر درونی MASQUE: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyMasqueInnerMissing" xml:space="preserve">
+    <value>کلید مسیر درونی MASQUE: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyGoolReady" xml:space="preserve">
+    <value>کلید WireGuard over MASQUE: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyGoolMissing" xml:space="preserve">
+    <value>کلید WireGuard over MASQUE: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyOuterReady" xml:space="preserve">
+    <value>کلید مسیر بیرونی: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyOuterMissing" xml:space="preserve">
+    <value>کلید مسیر بیرونی: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyInnerReady" xml:space="preserve">
+    <value>کلید مسیر درونی: دستگاه {0}، IPv4 {1}، IPv6 {2}</value>
+  </data>
+  <data name="MsgAetherKeyInnerMissing" xml:space="preserve">
+    <value>کلید مسیر درونی: هنوز ثبت نشده؛ در اولین اسکن یا اتصال ثبت می‌شود</value>
+  </data>
+  <data name="MsgAetherPsiphonUnavailable" xml:space="preserve">
+    <value>psiphon-tunnel-core در پوشه هسته Aether نیست، پس پروفایلی که از سایفون استفاده کند نمی‌تواند وصل شود؛ aether-core را در «بررسی بروزرسانی» به‌روز کنید</value>
+  </data>
+  <data name="MsgAetherTorTransportsUnavailable" xml:space="preserve">
+    <value>lyrebird در پوشه هسته Aether نیست، پس پل‌های تور قابل استفاده نیستند؛ تور فقط جایی وصل می‌شود که مسدود نباشد</value>
+  </data>
+  <data name="MsgAetherCoreUnavailable" xml:space="preserve">
+    <value>هسته Aether نصب نیست؛ aether-core را از «بررسی بروزرسانی» دریافت کنید</value>
+  </data>
+  <data name="TbAetherGetKeys" xml:space="preserve">
+    <value>دریافت کلیدهای جدید WARP</value>
+  </data>
+  <data name="TbAetherRenewing" xml:space="preserve">
+    <value>در حال دریافت کلیدهای جدید WARP…</value>
+  </data>
+  <data name="TbAetherKeysKind" xml:space="preserve">
+    <value>دریافت کلید جدید برای</value>
+  </data>
+  <data name="TbAetherKeysKindAll" xml:space="preserve">
+    <value>همه</value>
+  </data>
+  <data name="TbAetherKeysApiAddress" xml:space="preserve">
+    <value>نشانی API</value>
+  </data>
+  <data name="TbAetherKeysFragmentHint" xml:space="preserve">
+    <value>ClientHello درخواست‌های WARP API را تکه‌تکه می‌فرستد، برای شبکه‌هایی که نام API را فیلتر می‌کنند</value>
+  </data>
+  <data name="TbAetherKeysEchHint" xml:space="preserve">
+    <value>نام سرور را در درخواست‌های WARP API پنهان می‌کند؛ بدون کلید ECH قابل استفاده، هیچ کلید WARP درخواست نمی‌شود</value>
+  </data>
+  <data name="MsgAetherRenewBlocked" xml:space="preserve">
+    <value>پیش از دریافت این کلیدها، اتصال Aether را قطع کنید؛ اتصال فعلی از آن‌ها استفاده می‌کند</value>
+  </data>
+  <data name="TbAetherKeysLogEmpty" xml:space="preserve">
+    <value>خروجی هسته و کلیدهای WARP اینجا نمایش داده می‌شود</value>
+  </data>
+  <data name="MsgAetherKeyRenewing" xml:space="preserve">
+    <value>در حال ثبت کلیدهای جدید WARP؛ کلیدهای فعلی تا آماده شدن همه کلیدهای جدید سر جای خود می‌مانند…</value>
+  </data>
+  <data name="MsgAetherKeyRenewed" xml:space="preserve">
+    <value>کلیدهای جدید WARP جایگزین شدند و از اتصال بعدی استفاده می‌شوند</value>
+  </data>
+  <data name="MsgAetherKeyRenewFailed" xml:space="preserve">
+    <value>ثبت کلیدهای جدید WARP ناموفق بود؛ کلیدهای فعلی حفظ شد</value>
+  </data>
+  <data name="MsgAetherKeyRenewCancelled" xml:space="preserve">
+    <value>دریافت کلیدهای جدید WARP لغو شد</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
+    <value>نشانی API باید یک نشانی IP یا نام دامنه باشد، با پورت یا بدون آن، مثل 188.114.97.6:443 یا [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
+    <value>فرمان باید کلید ثبت کند: --register و پس از آن all، wg، masque، mim، gool-classic (WARP-in-WARP) یا gool (WireGuard over MASQUE)</value>
+  </data>
+  <data name="MsgCipherSuitesNeedUnsafe" xml:space="preserve">
+    <value>cipherSuites فقط با fingerprint از نوع unsafe اعمال می‌شود. unsafe را انتخاب کنید یا cipherSuites را خالی کنید.</value>
+  </data>
+  <data name="MsgWebsocketAlpnHttp1Only" xml:space="preserve">
+    <value>WebSocket و HTTPUpgrade فقط با alpn برابر http/1.1 یا بدون alpn وصل می‌شوند. http/1.1 را انتخاب کنید یا alpn را خالی بگذارید.</value>
+  </data>
 </root>

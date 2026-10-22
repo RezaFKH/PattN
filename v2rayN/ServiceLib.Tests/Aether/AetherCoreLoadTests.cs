@@ -11,7 +11,7 @@ namespace ServiceLib.Tests.Aether;
 /// </summary>
 public class AetherCoreLoadTests
 {
-    private static readonly AetherCore Warp = new AetherCore(["--masque", "--bind", "127.0.0.1:10829"]).Through(10832);
+    private static readonly AetherCore Warp = new AetherCore(["--masque", "--bind", "127.0.0.1:10819"]).Through(10822);
 
     /// <summary>Steps that write down what they do; <paramref name="core" /> is the Aether core the configuration needs.</summary>
     private sealed class Steps(AetherCore? core)
@@ -28,7 +28,7 @@ public class AetherCoreLoadTests
         public long Generation { get; private set; } = 41;
 
         /// <summary>The port of Xray's secondary-socks inbound for the core.</summary>
-        public int? Secondary { get; init; } = 10832;
+        public int? Secondary { get; init; } = 10822;
 
         /// <summary>How long a taken port is given to be released.</summary>
         public TimeSpan PortRelease { get; init; } = TimeSpan.FromMilliseconds(300);
@@ -313,7 +313,7 @@ public class AetherCoreLoadTests
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.Started);
 
         // Xray's secondary-socks inbound listens before the core is started on it, as a session of the load's generation.
-        await steps.Events.Should().BeEquivalentTo(["wait for 10832", "start aether 42"], CollectionOrdering.Matching);
+        await steps.Events.Should().BeEquivalentTo(["wait for 10822", "start aether 42"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -338,7 +338,7 @@ public class AetherCoreLoadTests
 
             await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.XrayDown).Because($"listens: {listens}");
 
-            await steps.Events.Should().BeEquivalentTo(["wait for 10832"], CollectionOrdering.Matching).Because($"listens: {listens}");
+            await steps.Events.Should().BeEquivalentTo(["wait for 10822"], CollectionOrdering.Matching).Because($"listens: {listens}");
         }
     }
 
@@ -350,7 +350,7 @@ public class AetherCoreLoadTests
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.AetherFailed);
 
         await steps.Events.Should().BeEquivalentTo(
-            ["wait for 10832", "start aether 42", "report True The Aether core could not start", "stop cores"], CollectionOrdering.Matching);
+            ["wait for 10822", "start aether 42", "report True The Aether core could not start", "stop cores"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -360,14 +360,14 @@ public class AetherCoreLoadTests
 
         await (await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42)).Should().BeEqualTo(AetherCoreLoadOutcome.Started);
 
-        await steps.Events.Should().BeEquivalentTo(["wait for 10832", "start aether 42"], CollectionOrdering.Matching);
+        await steps.Events.Should().BeEquivalentTo(["wait for 10822", "start aether 42"], CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task ACoreThatNamesAnUpstreamOfItsOwnStartsWithoutAWaitForXray()
     {
         // A hand-written --upstream to a proxy elsewhere is no inbound of Xray's.
-        var steps = new Steps(new AetherCore(["--masque", "--bind", "127.0.0.1:10829", "--upstream", "socks5://192.0.2.7:1080"]));
+        var steps = new Steps(new AetherCore(["--masque", "--bind", "127.0.0.1:10819", "--upstream", "socks5://192.0.2.7:1080"]));
 
         await AetherCoreLoad.AfterXrayAsync(steps.Build(), 42);
 
@@ -377,7 +377,7 @@ public class AetherCoreLoadTests
     [Test]
     public async Task TheUpstreamOfACoreIsTheLoopbackPortItNames()
     {
-        await AetherCoreLoad.UpstreamPort(Warp).Should().BeEqualTo(10832);
+        await AetherCoreLoad.UpstreamPort(Warp).Should().BeEqualTo(10822);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5://localhost:2080"])).Should().BeEqualTo(2080);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5h://user:pass@[::1]:2081"])).Should().BeEqualTo(2081);
         await AetherCoreLoad.UpstreamPort(new AetherCore(["--upstream", "socks5://192.0.2.7:1080"])).Should().BeNull();

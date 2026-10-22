@@ -18,17 +18,37 @@ public class AetherPortsTests
         return profile;
     }
 
-    // PattN (D4): the default Aether listen port is 10829, so the core takes 10829..10832 unless the setting names another
+    // PattN (E1): the default Aether listen port is 10819, so the core takes 10819..10822 unless the setting names another
     // port: in a new settings file (ConfigHandler.LoadConfig stores the default where the value is missing) and wherever a
     // stored value is no such port.
     [Test]
-    public async Task TheDefaultAetherListenPortIs10829()
+    public async Task TheDefaultAetherListenPortIs10819()
     {
-        await AetherPorts.DefaultListenPort.Should().BeEqualTo(10829);
+        await AetherPorts.DefaultListenPort.Should().BeEqualTo(10819);
         await new CoreBasicItem().AetherListenPort.Should().BeNull();
-        await AetherPorts.ListenPortOf(new CoreBasicItem().AetherListenPort).Should().BeEqualTo(10829);
-        await AetherPorts.ListenPortOf((string?)null).Should().BeEqualTo(10829);
-        await AetherPorts.SecondarySocksPortOf(AetherPorts.ListenPortOf((int?)null)).Should().BeEqualTo(10832);
+        await AetherPorts.ListenPortOf(new CoreBasicItem().AetherListenPort).Should().BeEqualTo(10819);
+        await AetherPorts.ListenPortOf((string?)null).Should().BeEqualTo(10819);
+        await AetherPorts.SecondarySocksPortOf(AetherPorts.ListenPortOf((int?)null)).Should().BeEqualTo(10822);
+    }
+
+    // PattN (E1): with the default mixed port the speed tests pick their ports from 10829 on (the mixed port plus 21), above
+    // the default Aether ports, so the port pickers that pass over the core's ports (IsReserved) never pass over one of
+    // theirs: the speed tests of other profiles take the ports they took before Aether. 10829, the default for a while,
+    // lay on the first four of them.
+    [Test]
+    public async Task WithTheDefaultPortsNoSpeedTestPortIsTheCoresOwn()
+    {
+        const int mixed = 10808;
+        var firstSpeedTestPort = mixed + (int)EInboundProtocol.speedtest;
+        await firstSpeedTestPort.Should().BeEqualTo(10829);
+        await (AetherPorts.SecondarySocksPortOf(AetherPorts.DefaultListenPort) < firstSpeedTestPort).Should().BeTrue();
+        for (var port = firstSpeedTestPort; port < firstSpeedTestPort + 64; port++)
+        {
+            await AetherPorts.IsReserved(port, AetherPorts.DefaultListenPort).Should().BeFalse().Because($"port {port}");
+            await AetherPorts.Unreserved(port, AetherPorts.DefaultListenPort).Should().BeEqualTo(port);
+        }
+        // Nor is a default Aether port one of the app's own, the mixed port and the six after it.
+        await AetherPorts.ListenPortProblem(AetherPorts.DefaultListenPort.ToString(), AetherPorts.LocalPortsOf(mixed)).Should().BeNull();
     }
 
     [Test]
@@ -37,9 +57,9 @@ public class AetherPortsTests
         await AetherPorts.ListenPortOf(" 20808 ").Should().BeEqualTo(20808);
         await AetherPorts.ListenPortOf("1024").Should().BeEqualTo(1024);
         await AetherPorts.ListenPortOf("65532").Should().BeEqualTo(65532);
-        foreach (var text in new[] { null, "", "socks", "0", "80", "1023", "65533", "70000", "-1", "10829.5" })
+        foreach (var text in new[] { null, "", "socks", "0", "80", "1023", "65533", "70000", "-1", "10819.5" })
         {
-            await AetherPorts.ListenPortOf(text).Should().BeEqualTo(10829);
+            await AetherPorts.ListenPortOf(text).Should().BeEqualTo(10819);
         }
     }
 
@@ -47,7 +67,7 @@ public class AetherPortsTests
     public async Task TheAetherListenPortAndTheThreeAfterItStayClearOfTheLocalProxy()
     {
         int[] local = [10808, 10809];
-        await AetherPorts.ListenPortProblem("10829", local).Should().BeNull();
+        await AetherPorts.ListenPortProblem("10819", local).Should().BeNull();
         await AetherPorts.ListenPortProblem(" 10810 ", local).Should().BeNull();
         await AetherPorts.ListenPortProblem("10804", local).Should().BeNull();
         foreach (var text in new[] { "10805", "10806", "10808", "10809" })
@@ -73,18 +93,18 @@ public class AetherPortsTests
         await AetherPorts.ListenPortProblem("10814", local).Should().BeEqualTo(AetherListenPortProblem.LocalProxy);
         await AetherPorts.ListenPortProblem("10804", local).Should().BeNull();
         await AetherPorts.ListenPortProblem("10815", local).Should().BeNull();
-        await AetherPorts.ListenPortProblem("10829", local).Should().BeNull();
+        await AetherPorts.ListenPortProblem("10819", local).Should().BeNull();
     }
 
     // PattN: the ports the core of the listen port may take, which the speed test's port pickers skip (design 2.5.1).
     [Test]
     public async Task TheListenPortAndTheThreeAfterItAreTheCoresOwn()
     {
-        await AetherPorts.IsReserved(10828, 10829).Should().BeFalse();
-        await AetherPorts.IsReserved(10829, 10829).Should().BeTrue();
-        await AetherPorts.IsReserved(10830, 10829).Should().BeTrue();
-        await AetherPorts.IsReserved(10832, 10829).Should().BeTrue();
-        await AetherPorts.IsReserved(10833, 10829).Should().BeFalse();
+        await AetherPorts.IsReserved(10818, 10819).Should().BeFalse();
+        await AetherPorts.IsReserved(10819, 10819).Should().BeTrue();
+        await AetherPorts.IsReserved(10820, 10819).Should().BeTrue();
+        await AetherPorts.IsReserved(10822, 10819).Should().BeTrue();
+        await AetherPorts.IsReserved(10823, 10819).Should().BeFalse();
         await AetherPorts.IsReserved(AetherPorts.SecondarySocksPortOf(20808), 20808).Should().BeTrue();
         // No overflow at the ends of int's range.
         await AetherPorts.IsReserved(int.MinValue, int.MaxValue).Should().BeFalse();

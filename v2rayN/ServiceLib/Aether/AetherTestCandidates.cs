@@ -11,8 +11,8 @@ namespace ServiceLib.Aether;
 /// <see cref="TakeAsync" />.
 /// </summary>
 /// <param name="refused">
-/// Whether the checks a session start makes refuse a profile (CoreConfigContextBuilder.Build); null leaves every profile
-/// another core than Xray runs to the batch.
+/// Whether the checks a session start makes refuse a profile (CoreConfigContextBuilder.Build), but for the targets of the
+/// routing rules, which a test drops; null leaves every profile another core than Xray runs to the batch.
 /// </param>
 public sealed class AetherTestCandidates(
     Func<string, Task<SubItem?>> subscription,
@@ -30,7 +30,8 @@ public sealed class AetherTestCandidates(
             subId => AppManager.Instance.GetSubItem(subId),
             name => AppManager.Instance.GetProfileItemViaRemarks(name),
             async group => (await GroupProfileManager.GetAllChildProfileItems(group)).Values,
-            async profile => !(await CoreConfigContextBuilder.Build(AppManager.Instance.Config, profile)).ValidatorResult.Success);
+            // As the test's own checks (AetherTestHost.Build): a routing rule's target never refuses a test (E2).
+            async profile => !(await CoreConfigContextBuilder.Build(AppManager.Instance.Config, profile, refuseRuleTargets: false)).ValidatorResult.Success);
     }
 
     /// <summary>

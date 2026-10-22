@@ -88,9 +88,9 @@ public class AetherArgumentsTests
     [Test]
     public async Task BindsToTheLoopbackPortItIsGiven()
     {
-        await ValueAfter(Build(Profile(), 10829), "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(Build(Profile(), 10819), "--bind").Should().BeEqualTo("127.0.0.1:10819");
         await ValueAfter(Build(Profile(), 0, scan: true), "--bind").Should().BeEqualTo("127.0.0.1:0");
-        await AetherArguments.ListenerPortOf(Build(Profile(), 10829)).Should().BeEqualTo(10829);
+        await AetherArguments.ListenerPortOf(Build(Profile(), 10819)).Should().BeEqualTo(10819);
     }
 
     // PattN: the three example commands of the Aether editor (design stage 1, report 04 section 6.2), word for word in
@@ -106,25 +106,25 @@ public class AetherArgumentsTests
         }
         List<string> Command(ProfileItem profile)
         {
-            return AetherArguments.WithoutOption(Build(profile, 10829), "--log-level");
+            return AetherArguments.WithoutOption(Build(profile, 10819), "--log-level");
         }
 
         // A new profile: WireGuard, with every setting at its default.
         await ShouldBe(Command(Of(new ProtocolExtraItem())),
-            "--bind", "127.0.0.1:10829", "--protocol", "wg", "--scan", "balanced", "--ip", "v4", "--quick-reconnect");
+            "--bind", "127.0.0.1:10819", "--protocol", "wg", "--scan", "balanced", "--ip", "v4", "--quick-reconnect");
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Masque.Type })),
-            "--bind", "127.0.0.1:10829", "--protocol", "masque", "--scan", "balanced", "--ip", "v4",
+            "--bind", "127.0.0.1:10819", "--protocol", "masque", "--scan", "balanced", "--ip", "v4",
             "--masque-sni", "www.cloudflare.com", "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES", "--quick-reconnect");
         // WARP-in-WARP without hops.
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Gool.Type })),
-            "--bind", "127.0.0.1:10829", "--protocol", "gool", "--gool-classic", "--scan", "balanced", "--ip", "v4", "--wiw-scan",
+            "--bind", "127.0.0.1:10819", "--protocol", "gool", "--gool-classic", "--scan", "balanced", "--ip", "v4", "--wiw-scan",
             "--quick-reconnect");
     }
 
     [Test]
     public async Task TheChosenModesAreForwarded()
     {
-        var arguments = Build(Profile(), 10829);
+        var arguments = Build(Profile(), 10819);
         await ValueAfter(arguments, "--protocol").Should().BeEqualTo("masque");
         await ValueAfter(arguments, "--scan").Should().BeEqualTo("verified");
         await ValueAfter(arguments, "--noize").Should().BeEqualTo("aggressive");
@@ -135,16 +135,16 @@ public class AetherArgumentsTests
     [Test]
     public async Task EachProtocolIsNamedToTheCore()
     {
-        await ValueAfter(Build(Profile(AetherProtocol.WireGuard), 10829), "--protocol").Should().BeEqualTo("wg");
-        await ValueAfter(Build(Profile(AetherProtocol.Gool), 10829), "--protocol").Should().BeEqualTo("gool");
-        await ValueAfter(Build(Profile(AetherProtocol.Mim), 10829), "--protocol").Should().BeEqualTo("mim");
+        await ValueAfter(Build(Profile(AetherProtocol.WireGuard), 10819), "--protocol").Should().BeEqualTo("wg");
+        await ValueAfter(Build(Profile(AetherProtocol.Gool), 10819), "--protocol").Should().BeEqualTo("gool");
+        await ValueAfter(Build(Profile(AetherProtocol.Mim), 10819), "--protocol").Should().BeEqualTo("mim");
         // Gool is WireGuard over MASQUE to the core; WARP-in-WARP is its classic gool, asked for by name.
-        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque), 10829), "--protocol").Should().BeEqualTo("gool");
-        await Build(Profile(AetherProtocol.Gool), 10829).Contains("--gool-classic").Should().BeTrue();
+        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque), 10819), "--protocol").Should().BeEqualTo("gool");
+        await Build(Profile(AetherProtocol.Gool), 10819).Contains("--gool-classic").Should().BeTrue();
         await Build(Profile(AetherProtocol.Gool), 0, scan: true).Contains("--gool-classic").Should().BeTrue();
         foreach (var protocol in AetherProtocol.All.Where(it => it != AetherProtocol.Gool))
         {
-            await Build(Profile(protocol), 10829).Contains("--gool-classic").Should().BeFalse();
+            await Build(Profile(protocol), 10819).Contains("--gool-classic").Should().BeFalse();
         }
     }
 
@@ -155,9 +155,9 @@ public class AetherArgumentsTests
         {
             foreach (var scan in new[] { false, true })
             {
-                var hopless = Build(Profile(protocol), 10829, scan);
+                var hopless = Build(Profile(protocol), 10819, scan);
                 await AetherArguments.ProtocolOf(hopless).Should().BeEqualTo(protocol);
-                var hops = Build(Profile(protocol, outer: "162.159.192.1:443", inner: "188.114.96.1:2408"), 10829, scan);
+                var hops = Build(Profile(protocol, outer: "162.159.192.1:443", inner: "188.114.96.1:2408"), 10819, scan);
                 await AetherArguments.ProtocolOf(hops).Should().BeEqualTo(protocol);
             }
         }
@@ -166,33 +166,33 @@ public class AetherArgumentsTests
     [Test]
     public async Task Http2AndFragmentationOnlyApplyToTunnelsOverMasque()
     {
-        await Build(Profile(fragment: true), 10829).Contains("--h2").Should().BeFalse();
-        await Build(Profile(fragment: true), 10829).Contains("--fragment").Should().BeFalse();
+        await Build(Profile(fragment: true), 10819).Contains("--h2").Should().BeFalse();
+        await Build(Profile(fragment: true), 10819).Contains("--fragment").Should().BeFalse();
 
-        var http2 = Build(Profile(transport: AetherTransport.Http2), 10829);
+        var http2 = Build(Profile(transport: AetherTransport.Http2), 10819);
         await http2.Contains("--h2").Should().BeTrue();
         // Off is no flag at all: the core fragments nothing unless told to, and has no flag for off.
         await http2.Contains("--fragment").Should().BeFalse();
         await http2.Contains("--no-fragment").Should().BeFalse();
 
-        var fragmented = Build(Profile(transport: AetherTransport.Http2, fragment: true), 10829);
+        var fragmented = Build(Profile(transport: AetherTransport.Http2, fragment: true), 10819);
         await fragmented.Contains("--fragment").Should().BeTrue();
 
-        var wireguard = Build(Profile(AetherProtocol.WireGuard, AetherTransport.Http2, fragment: true), 10829);
+        var wireguard = Build(Profile(AetherProtocol.WireGuard, AetherTransport.Http2, fragment: true), 10819);
         await wireguard.Contains("--h2").Should().BeFalse();
         await wireguard.Contains("--fragment").Should().BeFalse();
 
         // WireGuard over MASQUE rides the MASQUE carrier chosen here, as the WireGuard inside it does.
-        var goolOverMasque = Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2, fragment: true), 10829);
+        var goolOverMasque = Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2, fragment: true), 10819);
         await goolOverMasque.Contains("--h2").Should().BeTrue();
         await goolOverMasque.Contains("--fragment").Should().BeTrue();
-        await Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2), 10829).Contains("--fragment").Should().BeFalse();
+        await Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2), 10819).Contains("--fragment").Should().BeFalse();
 
         // Both masque-in-masque hops ride on the carrier chosen here.
-        var mim = Build(Profile(AetherProtocol.Mim, AetherTransport.Http2, fragment: true), 10829);
+        var mim = Build(Profile(AetherProtocol.Mim, AetherTransport.Http2, fragment: true), 10819);
         await mim.Contains("--h2").Should().BeTrue();
         await mim.Contains("--fragment").Should().BeTrue();
-        await Build(Profile(AetherProtocol.Mim, fragment: true), 10829).Contains("--h2").Should().BeFalse();
+        await Build(Profile(AetherProtocol.Mim, fragment: true), 10819).Contains("--h2").Should().BeFalse();
     }
 
     [Test]
@@ -202,16 +202,16 @@ public class AetherArgumentsTests
             transport: AetherTransport.Http2,
             fragment: true,
             copy: it => it with { AetherFragmentSize = "32-16", AetherFragmentDelay = "5" });
-        var arguments = Build(tuned, 10829);
+        var arguments = Build(tuned, 10819);
         await ValueAfter(arguments, "--fragment-size").Should().BeEqualTo("16-32");
         await ValueAfter(arguments, "--fragment-delay").Should().BeEqualTo("5");
 
-        var off = Build(Copy(tuned, it => it with { AetherFragment = false }), 10829);
+        var off = Build(Copy(tuned, it => it with { AetherFragment = false }), 10819);
         await off.Contains("--fragment").Should().BeFalse();
         await off.Contains("--fragment-size").Should().BeFalse();
         await off.Contains("--fragment-delay").Should().BeFalse();
 
-        var invalid = Build(Copy(tuned, it => it with { AetherFragmentSize = "0", AetherFragmentDelay = "x" }), 10829);
+        var invalid = Build(Copy(tuned, it => it with { AetherFragmentSize = "0", AetherFragmentDelay = "x" }), 10819);
         await invalid.Contains("--fragment").Should().BeTrue();
         await invalid.Contains("--fragment-size").Should().BeFalse();
         await invalid.Contains("--fragment-delay").Should().BeFalse();
@@ -220,25 +220,25 @@ public class AetherArgumentsTests
     [Test]
     public async Task APinnedEndpointIsForwardedInTheCoreFormat()
     {
-        await ValueAfter(Build(Profile(server: "162.159.198.1", port: 443), 10829), "--peer").Should().BeEqualTo("162.159.198.1:443");
-        await ValueAfter(Build(Profile(AetherProtocol.WireGuard, server: "2606:4700:d0::a29f:c001", port: 2408), 10829), "--peer")
+        await ValueAfter(Build(Profile(server: "162.159.198.1", port: 443), 10819), "--peer").Should().BeEqualTo("162.159.198.1:443");
+        await ValueAfter(Build(Profile(AetherProtocol.WireGuard, server: "2606:4700:d0::a29f:c001", port: 2408), 10819), "--peer")
             .Should().BeEqualTo("[2606:4700:d0::a29f:c001]:2408");
     }
 
     [Test]
     public async Task AnEndpointTheCoreCannotReadIsLeftToTheScan()
     {
-        await ValueAfter(Build(Profile(), 10829), "--peer").Should().BeNull();
-        await ValueAfter(Build(Profile(server: "162.159.198.1"), 10829), "--peer").Should().BeNull();
-        await ValueAfter(Build(Profile(port: 443), 10829), "--peer").Should().BeNull();
-        await ValueAfter(Build(Profile(server: "162.159.198.1", port: 0), 10829), "--peer").Should().BeNull();
-        await ValueAfter(Build(Profile(server: "engage.cloudflareclient.com", port: 2408), 10829), "--peer").Should().BeNull();
+        await ValueAfter(Build(Profile(), 10819), "--peer").Should().BeNull();
+        await ValueAfter(Build(Profile(server: "162.159.198.1"), 10819), "--peer").Should().BeNull();
+        await ValueAfter(Build(Profile(port: 443), 10819), "--peer").Should().BeNull();
+        await ValueAfter(Build(Profile(server: "162.159.198.1", port: 0), 10819), "--peer").Should().BeNull();
+        await ValueAfter(Build(Profile(server: "engage.cloudflareclient.com", port: 2408), 10819), "--peer").Should().BeNull();
     }
 
     [Test]
     public async Task BothGoolHopsReachTheCoreWhenNamedByHand()
     {
-        var arguments = Build(Profile(AetherProtocol.Gool, outer: "162.159.192.1:2408", inner: "188.114.96.1:894"), 10829);
+        var arguments = Build(Profile(AetherProtocol.Gool, outer: "162.159.192.1:2408", inner: "188.114.96.1:894"), 10819);
         await ValueAfter(arguments, "--wiw-outer").Should().BeEqualTo("162.159.192.1:2408");
         await ValueAfter(arguments, "--wiw-inner").Should().BeEqualTo("188.114.96.1:894");
         await arguments.Contains("--wiw-scan").Should().BeFalse();
@@ -250,7 +250,7 @@ public class AetherArgumentsTests
     [Test]
     public async Task WireGuardOverMasqueDialsItsGatewayAndItsWireGuardEndpointByTheirOwnFlags()
     {
-        var named = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.198.1:443", inner: "162.159.192.1:2408"), 10829);
+        var named = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.198.1:443", inner: "162.159.192.1:2408"), 10819);
         await ValueAfter(named, "--peer").Should().BeEqualTo("162.159.198.1:443");
         await ValueAfter(named, "--gool-peer").Should().BeEqualTo("162.159.192.1:2408");
         // No classic gool word: any of them would turn the core to WireGuard in WireGuard.
@@ -259,16 +259,16 @@ public class AetherArgumentsTests
             await named.Contains(flag).Should().BeFalse();
         }
         // The same address on both hops is no problem for the core here.
-        var shared = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.192.1:443", inner: "162.159.192.1:2408"), 10829);
+        var shared = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.192.1:443", inner: "162.159.192.1:2408"), 10819);
         await ValueAfter(shared, "--peer").Should().BeEqualTo("162.159.192.1:443");
         await ValueAfter(shared, "--gool-peer").Should().BeEqualTo("162.159.192.1:2408");
 
         // Left blank, the gateway is scanned for and the WireGuard endpoint is the one WARP assigns.
-        var blank = Build(Profile(AetherProtocol.WgOverMasque, server: "162.159.198.1", port: 443), 10829);
+        var blank = Build(Profile(AetherProtocol.WgOverMasque, server: "162.159.198.1", port: 443), 10819);
         await blank.Contains("--peer").Should().BeFalse();
         await blank.Contains("--gool-peer").Should().BeFalse();
         await blank.Contains("--wiw-scan").Should().BeFalse();
-        var malformed = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.198.1", inner: "x:2408"), 10829);
+        var malformed = Build(Profile(AetherProtocol.WgOverMasque, outer: "162.159.198.1", inner: "x:2408"), 10819);
         await malformed.Contains("--peer").Should().BeFalse();
         await malformed.Contains("--gool-peer").Should().BeFalse();
 
@@ -282,7 +282,7 @@ public class AetherArgumentsTests
     [Test]
     public async Task NamingOneGoolHopLeavesTheOtherToTheScan()
     {
-        var arguments = Build(Profile(AetherProtocol.Gool, inner: "188.114.96.1:894"), 10829);
+        var arguments = Build(Profile(AetherProtocol.Gool, inner: "188.114.96.1:894"), 10819);
         await ValueAfter(arguments, "--wiw-outer").Should().BeNull();
         await ValueAfter(arguments, "--wiw-inner").Should().BeEqualTo("188.114.96.1:894");
         await arguments.Contains("--wiw-scan").Should().BeFalse();
@@ -291,14 +291,14 @@ public class AetherArgumentsTests
     [Test]
     public async Task GoolScansForHopsItCannotUse()
     {
-        await Build(Profile(AetherProtocol.Gool), 10829).Contains("--wiw-scan").Should().BeTrue();
-        await Build(Profile(AetherProtocol.Gool), 10829).Contains("--gool-classic").Should().BeTrue();
+        await Build(Profile(AetherProtocol.Gool), 10819).Contains("--wiw-scan").Should().BeTrue();
+        await Build(Profile(AetherProtocol.Gool), 10819).Contains("--gool-classic").Should().BeTrue();
 
-        var malformed = Build(Profile(AetherProtocol.Gool, outer: "162.159.192.1"), 10829);
+        var malformed = Build(Profile(AetherProtocol.Gool, outer: "162.159.192.1"), 10819);
         await ValueAfter(malformed, "--wiw-outer").Should().BeNull();
         await malformed.Contains("--wiw-scan").Should().BeTrue();
 
-        var pinnedEndpoint = Build(Profile(AetherProtocol.Gool, server: "162.159.198.1", port: 443), 10829);
+        var pinnedEndpoint = Build(Profile(AetherProtocol.Gool, server: "162.159.198.1", port: 443), 10819);
         await pinnedEndpoint.Contains("--peer").Should().BeFalse();
         await pinnedEndpoint.Contains("--wiw-scan").Should().BeTrue();
     }
@@ -306,7 +306,7 @@ public class AetherArgumentsTests
     [Test]
     public async Task ARunReusesTheLastGatewayButAScanLooksAfresh()
     {
-        var run = Build(Profile(server: "162.159.198.1", port: 443), 10829);
+        var run = Build(Profile(server: "162.159.198.1", port: 443), 10819);
         await run.Contains("--quick-reconnect").Should().BeTrue();
         await run.Contains("--no-quick-reconnect").Should().BeFalse();
 
@@ -319,14 +319,14 @@ public class AetherArgumentsTests
     [Test]
     public async Task MimHopsReachTheCoreUnderTheirOwnFlags()
     {
-        var both = Build(Profile(AetherProtocol.Mim, outer: "162.159.192.1:443", inner: "188.114.96.1:443"), 10829);
+        var both = Build(Profile(AetherProtocol.Mim, outer: "162.159.192.1:443", inner: "188.114.96.1:443"), 10819);
         await ValueAfter(both, "--mim-outer").Should().BeEqualTo("162.159.192.1:443");
         await ValueAfter(both, "--mim-inner").Should().BeEqualTo("188.114.96.1:443");
         await both.Contains("--mim-scan").Should().BeFalse();
         await both.Contains("--peer").Should().BeFalse();
         await both.Contains("--wiw-outer").Should().BeFalse();
 
-        var innerOnly = Build(Profile(AetherProtocol.Mim, inner: "188.114.96.1:443"), 10829);
+        var innerOnly = Build(Profile(AetherProtocol.Mim, inner: "188.114.96.1:443"), 10819);
         await ValueAfter(innerOnly, "--mim-outer").Should().BeNull();
         await ValueAfter(innerOnly, "--mim-inner").Should().BeEqualTo("188.114.96.1:443");
         await innerOnly.Contains("--mim-scan").Should().BeFalse();
@@ -335,13 +335,13 @@ public class AetherArgumentsTests
     [Test]
     public async Task MimScansForHopsItCannotUse()
     {
-        await Build(Profile(AetherProtocol.Mim), 10829).Contains("--mim-scan").Should().BeTrue();
+        await Build(Profile(AetherProtocol.Mim), 10819).Contains("--mim-scan").Should().BeTrue();
 
-        var malformed = Build(Profile(AetherProtocol.Mim, outer: "162.159.192.1"), 10829);
+        var malformed = Build(Profile(AetherProtocol.Mim, outer: "162.159.192.1"), 10819);
         await ValueAfter(malformed, "--mim-outer").Should().BeNull();
         await malformed.Contains("--mim-scan").Should().BeTrue();
 
-        var pinnedEndpoint = Build(Profile(AetherProtocol.Mim, server: "162.159.198.1", port: 443), 10829);
+        var pinnedEndpoint = Build(Profile(AetherProtocol.Mim, server: "162.159.198.1", port: 443), 10819);
         await pinnedEndpoint.Contains("--peer").Should().BeFalse();
         await pinnedEndpoint.Contains("--mim-scan").Should().BeTrue();
 
@@ -373,7 +373,7 @@ public class AetherArgumentsTests
         await AetherArguments.CoreLogLevel(null).Should().BeEqualTo("info");
         await AetherArguments.CoreLogLevel("verbose").Should().BeEqualTo("info");
 
-        await ValueAfter(Build(Profile(), 10829, logLevel: "warn"), "--log-level").Should().BeEqualTo("warn");
+        await ValueAfter(Build(Profile(), 10819, logLevel: "warn"), "--log-level").Should().BeEqualTo("warn");
         await ValueAfter(Build(Profile(), 0, scan: true), "--log-level").Should().BeEqualTo("info");
     }
 
@@ -391,7 +391,7 @@ public class AetherArgumentsTests
     [Test]
     public async Task TheSessionProtocolIsReadFromItsArguments()
     {
-        string[] gool = ["/data/app/lib/libaether.so", "--bind", "127.0.0.1:10829", "--protocol", "gool", "--scan", "balanced"];
+        string[] gool = ["/data/app/lib/libaether.so", "--bind", "127.0.0.1:10819", "--protocol", "gool", "--scan", "balanced"];
         await AetherArguments.ProtocolOf(gool).Should().BeEqualTo(AetherProtocol.WgOverMasque);
         await AetherArguments.ProtocolOf([.. gool, "--gool-classic"]).Should().BeEqualTo(AetherProtocol.Gool);
         await AetherArguments.ProtocolOf(["/data/app/lib/libaether.so", "--protocol", "wg"]).Should().BeEqualTo(AetherProtocol.WireGuard);
@@ -465,7 +465,7 @@ public class AetherArgumentsTests
     public async Task TheWordsOfACommandLineFromProcKeepItsEmptyArguments()
     {
         // Read as the core runs: WireGuard over MASQUE, the blank hop setting nothing.
-        await AetherArguments.ProtocolOf(["aether", "--gool", "--wiw-outer", "", "--bind", "127.0.0.1:10829"]).Should().BeEqualTo(AetherProtocol.WgOverMasque);
+        await AetherArguments.ProtocolOf(["aether", "--gool", "--wiw-outer", "", "--bind", "127.0.0.1:10819"]).Should().BeEqualTo(AetherProtocol.WgOverMasque);
     }
 
     [Test]
@@ -479,12 +479,12 @@ public class AetherArgumentsTests
     [Test]
     public async Task TheListenerIsReplacedWhereverItStands()
     {
-        await ShouldBe(AetherArguments.WithListener(["--bind", "127.0.0.1:10829", "--wg"], "--bind", 41234), "--wg", "--bind", "127.0.0.1:41234");
+        await ShouldBe(AetherArguments.WithListener(["--bind", "127.0.0.1:10819", "--wg"], "--bind", 41234), "--wg", "--bind", "127.0.0.1:41234");
         await ShouldBe(AetherArguments.WithListener(["--wg"], "--bind", 41234), "--wg", "--bind", "127.0.0.1:41234");
         await ShouldBe(
             AetherArguments.WithListener(["--wg", "--bind", "127.0.0.1:1", "--bind", "127.0.0.1:2"], "--bind", 41234),
             "--wg", "--bind", "127.0.0.1:41234");
-        await AetherArguments.BindPortOf(AetherArguments.WithListener(["--bind", "127.0.0.1:10829", "--wg"], "--bind", 41234)).Should().BeEqualTo(41234);
+        await AetherArguments.BindPortOf(AetherArguments.WithListener(["--bind", "127.0.0.1:10819", "--wg"], "--bind", 41234)).Should().BeEqualTo(41234);
     }
 
     [Test]
@@ -492,15 +492,15 @@ public class AetherArgumentsTests
     {
         var chain = Build(
             Profile(copy: it => it with { AetherPsiphon = "chain", AetherPsiphonMode = "cdn", AetherPsiphonCdnIps = "1.1.1.1,1.0.0.1", AetherPsiphonRegion = "DE" }),
-            10829);
-        await ValueAfter(chain, "--bind").Should().BeEqualTo("127.0.0.1:10830");
+            10819);
+        await ValueAfter(chain, "--bind").Should().BeEqualTo("127.0.0.1:10820");
         await chain.Contains("--psiphon").Should().BeTrue();
-        await ValueAfter(chain, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(chain, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:10819");
         await ValueAfter(chain, "--psiphon-mode").Should().BeEqualTo("cdn");
         await ValueAfter(chain, "--psiphon-cdn-ips").Should().BeEqualTo("1.1.1.1,1.0.0.1");
         await ValueAfter(chain, "--psiphon-region").Should().BeEqualTo("DE");
-        await AetherArguments.ListenerPortOf(chain).Should().BeEqualTo(10829);
-        await AetherArguments.ListenerAddressOf(chain).Should().BeEqualTo("127.0.0.1:10829");
+        await AetherArguments.ListenerPortOf(chain).Should().BeEqualTo(10819);
+        await AetherArguments.ListenerAddressOf(chain).Should().BeEqualTo("127.0.0.1:10819");
         // WARP is still set up underneath.
         await ValueAfter(chain, "--protocol").Should().BeEqualTo("masque");
         await chain.Contains("--quick-reconnect").Should().BeTrue();
@@ -510,18 +510,18 @@ public class AetherArgumentsTests
     public async Task TheCdnListsReachTheCoreOnlyWhereAFrontedTransportCanReadThem()
     {
         var fronted = Profile(copy: it => it with { AetherPsiphon = "only", AetherPsiphonCdnIps = "1.1.1.1", AetherPsiphonCdnSni = "a.example" });
-        await ValueAfter(Build(fronted, 10829), "--psiphon-cdn-ips").Should().BeEqualTo("1.1.1.1");
-        await ValueAfter(Build(fronted, 10829), "--psiphon-cdn-sni").Should().BeEqualTo("a.example");
-        await ValueAfter(Build(Copy(fronted, it => it with { AetherPsiphonMode = "cdn" }), 10829), "--psiphon-cdn-ips").Should().BeEqualTo("1.1.1.1");
+        await ValueAfter(Build(fronted, 10819), "--psiphon-cdn-ips").Should().BeEqualTo("1.1.1.1");
+        await ValueAfter(Build(fronted, 10819), "--psiphon-cdn-sni").Should().BeEqualTo("a.example");
+        await ValueAfter(Build(Copy(fronted, it => it with { AetherPsiphonMode = "cdn" }), 10819), "--psiphon-cdn-ips").Should().BeEqualTo("1.1.1.1");
 
         // The direct shape never fronts, so the lists would only be carried for nothing.
-        var direct = Build(Copy(fronted, it => it with { AetherPsiphonMode = "direct" }), 10829);
+        var direct = Build(Copy(fronted, it => it with { AetherPsiphonMode = "direct" }), 10819);
         await ValueAfter(direct, "--psiphon-mode").Should().BeEqualTo("direct");
         await ValueAfter(direct, "--psiphon-cdn-ips").Should().BeNull();
         await ValueAfter(direct, "--psiphon-cdn-sni").Should().BeNull();
 
         // Without an IP list of one's own the built-in list comes whole, names included.
-        var namesAlone = Build(Copy(fronted, it => it with { AetherPsiphonCdnIps = null }), 10829);
+        var namesAlone = Build(Copy(fronted, it => it with { AetherPsiphonCdnIps = null }), 10819);
         await ValueAfter(namesAlone, "--psiphon-cdn-ips").Should().BeNull();
         await ValueAfter(namesAlone, "--psiphon-cdn-sni").Should().BeNull();
     }
@@ -529,19 +529,19 @@ public class AetherArgumentsTests
     [Test]
     public async Task PsiphonAroundTheTunnelKeepsTheTunnelOnTheListenPortAndLetsPsiphonPickItsOwn()
     {
-        var reverse = Build(Profile(copy: it => it with { AetherPsiphon = "reverse" }), 10829);
-        await ValueAfter(reverse, "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        var reverse = Build(Profile(copy: it => it with { AetherPsiphon = "reverse" }), 10819);
+        await ValueAfter(reverse, "--bind").Should().BeEqualTo("127.0.0.1:10819");
         await reverse.Contains("--psiphon-reverse").Should().BeTrue();
         await ValueAfter(reverse, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:0");
         await ValueAfter(reverse, "--psiphon-mode").Should().BeEqualTo("auto");
-        await AetherArguments.ListenerPortOf(reverse).Should().BeEqualTo(10829);
+        await AetherArguments.ListenerPortOf(reverse).Should().BeEqualTo(10819);
     }
 
     [Test]
     public async Task PsiphonAloneLeavesWarpOut()
     {
-        var only = Build(Profile(server: "162.159.198.1", port: 443, copy: it => it with { AetherPsiphon = "only" }), 10829);
-        await ValueAfter(only, "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        var only = Build(Profile(server: "162.159.198.1", port: 443, copy: it => it with { AetherPsiphon = "only" }), 10819);
+        await ValueAfter(only, "--bind").Should().BeEqualTo("127.0.0.1:10819");
         await only.Contains("--psiphon-only").Should().BeTrue();
         await only.Contains("--protocol").Should().BeFalse();
         await only.Contains("--peer").Should().BeFalse();
@@ -549,18 +549,18 @@ public class AetherArgumentsTests
         await ValueAfter(only, "--log-level").Should().BeEqualTo("info");
         // PattN: the port table of design 2.5.2: Psiphon alone listens on P, under --bind, and on nothing else.
         await ValueAfter(only, "--psiphon-bind").Should().BeNull();
-        await AetherArguments.ListenerPortOf(only).Should().BeEqualTo(10829);
+        await AetherArguments.ListenerPortOf(only).Should().BeEqualTo(10819);
     }
 
     [Test]
     public async Task TorInsideTheTunnelIsWhatTheAppDialsAndTheTunnelTakesThePortAfterIt()
     {
-        var chain = Build(Profile(copy: it => it with { AetherTor = "chain" }), 10829);
+        var chain = Build(Profile(copy: it => it with { AetherTor = "chain" }), 10819);
         await chain.Contains("--tor").Should().BeTrue();
-        await ValueAfter(chain, "--tor-bind").Should().BeEqualTo("127.0.0.1:10829");
-        await ValueAfter(chain, "--bind").Should().BeEqualTo("127.0.0.1:10830");
-        await AetherArguments.ListenerPortOf(chain).Should().BeEqualTo(10829);
-        await AetherArguments.ListenerAddressOf(chain).Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(chain, "--tor-bind").Should().BeEqualTo("127.0.0.1:10819");
+        await ValueAfter(chain, "--bind").Should().BeEqualTo("127.0.0.1:10820");
+        await AetherArguments.ListenerPortOf(chain).Should().BeEqualTo(10819);
+        await AetherArguments.ListenerAddressOf(chain).Should().BeEqualTo("127.0.0.1:10819");
         // WARP is still set up underneath, and without a word about bridges Tor tries plainly first.
         await ValueAfter(chain, "--protocol").Should().BeEqualTo("masque");
         await chain.Contains("--quick-reconnect").Should().BeTrue();
@@ -572,42 +572,42 @@ public class AetherArgumentsTests
     [Test]
     public async Task TorAroundTheTunnelKeepsTheTunnelOnTheListenPortAndGivesTorThePortAfterIt()
     {
-        var reverse = Build(Profile(copy: it => it with { AetherTor = "reverse" }), 10829);
+        var reverse = Build(Profile(copy: it => it with { AetherTor = "reverse" }), 10819);
         await reverse.Contains("--tor-reverse").Should().BeTrue();
-        await ValueAfter(reverse, "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(reverse, "--bind").Should().BeEqualTo("127.0.0.1:10819");
         // Unlike Psiphon's, Tor's listener gets a real port: the core dials the address Tor was told to listen on.
-        await ValueAfter(reverse, "--tor-bind").Should().BeEqualTo("127.0.0.1:10830");
-        await AetherArguments.ListenerPortOf(reverse).Should().BeEqualTo(10829);
+        await ValueAfter(reverse, "--tor-bind").Should().BeEqualTo("127.0.0.1:10820");
+        await AetherArguments.ListenerPortOf(reverse).Should().BeEqualTo(10819);
     }
 
     [Test]
     public async Task TorAloneLeavesWarpOut()
     {
-        var only = Build(Profile(server: "162.159.198.1", port: 443, copy: it => it with { AetherTor = "only" }), 10829);
+        var only = Build(Profile(server: "162.159.198.1", port: 443, copy: it => it with { AetherTor = "only" }), 10819);
         await only.Contains("--tor-only").Should().BeTrue();
-        await ValueAfter(only, "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(only, "--bind").Should().BeEqualTo("127.0.0.1:10819");
         await ValueAfter(only, "--tor-bind").Should().BeNull();
         await ValueAfter(only, "--protocol").Should().BeNull();
         await ValueAfter(only, "--peer").Should().BeNull();
         await only.Contains("--quick-reconnect").Should().BeFalse();
-        await AetherArguments.ListenerPortOf(only).Should().BeEqualTo(10829);
+        await AetherArguments.ListenerPortOf(only).Should().BeEqualTo(10819);
     }
 
     [Test]
     public async Task TheBridgeSettingReachesTheCoreAsItsFlags()
     {
-        await Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorBridges = "first" }), 10829).Contains("--tor-bridges").Should().BeTrue();
-        await Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "never" }), 10829).Contains("--no-tor-bridges").Should().BeTrue();
+        await Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorBridges = "first" }), 10819).Contains("--tor-bridges").Should().BeTrue();
+        await Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "never" }), 10819).Contains("--no-tor-bridges").Should().BeTrue();
 
         const string lines = "obfs4 192.0.2.55:38114 316E64 cert=abc iat-mode=0\n\n# mine\nBridge webtunnel [2001:db8::1]:443 7DD627 url=https://example.com/x ver=0.0.1\n";
-        var own = Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "own", AetherTorBridgeLines = lines }), 10829);
+        var own = Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "own", AetherTorBridgeLines = lines }), 10819);
         await ShouldBe(
             ValuesAfter(own, "--tor-bridge"),
             "obfs4 192.0.2.55:38114 316E64 cert=abc iat-mode=0",
             "webtunnel [2001:db8::1]:443 7DD627 url=https://example.com/x ver=0.0.1");
         await own.Contains("--tor-bridges").Should().BeFalse();
         // With Tor off, the bridge setting says nothing.
-        await Build(Profile(copy: it => it with { AetherTorBridges = "first" }), 10829).Contains("--tor-bridges").Should().BeFalse();
+        await Build(Profile(copy: it => it with { AetherTorBridges = "first" }), 10819).Contains("--tor-bridges").Should().BeFalse();
     }
 
     // PattN: the settings and the bridge lines are trimmed by Kotlin's whitespace, as PattNG trims them before the core
@@ -628,7 +628,7 @@ public class AetherArgumentsTests
             AetherTor = "only",
             AetherTorBridges = "own",
             AetherTorBridgeLines = "\u001F# a comment\n\u001Eobfs4 192.0.2.1:443 FP cert=x iat-mode=0",
-        }), 10829);
+        }), 10819);
         await ShouldBe(ValuesAfter(own, "--tor-bridge"), "obfs4 192.0.2.1:443 FP cert=x iat-mode=0");
 
         var cdn = Build(Profile(copy: it => it with
@@ -636,7 +636,7 @@ public class AetherArgumentsTests
             AetherPsiphon = AetherPsiphon.Chain.Type,
             AetherPsiphonMode = "cdn",
             AetherPsiphonCdnIps = "\u001F1.2.3.4",
-        }), 10829);
+        }), 10819);
         await ValueAfter(cdn, "--psiphon-cdn-ips").Should().BeEqualTo("1.2.3.4");
     }
 
@@ -644,20 +644,20 @@ public class AetherArgumentsTests
     public async Task TorAndPsiphonNestWithTheInnerOneOnTheListenPort()
     {
         // Psiphon inside, Tor around: the app dials Psiphon, the tunnel takes the next port, Tor the one after.
-        var psiphonInside = Build(Profile(copy: it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), 10829);
-        await ValueAfter(psiphonInside, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:10829");
-        await ValueAfter(psiphonInside, "--bind").Should().BeEqualTo("127.0.0.1:10830");
-        await ValueAfter(psiphonInside, "--tor-bind").Should().BeEqualTo("127.0.0.1:10831");
-        await AetherArguments.ListenerPortOf(psiphonInside).Should().BeEqualTo(10829);
+        var psiphonInside = Build(Profile(copy: it => it with { AetherPsiphon = "chain", AetherTor = "reverse" }), 10819);
+        await ValueAfter(psiphonInside, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:10819");
+        await ValueAfter(psiphonInside, "--bind").Should().BeEqualTo("127.0.0.1:10820");
+        await ValueAfter(psiphonInside, "--tor-bind").Should().BeEqualTo("127.0.0.1:10821");
+        await AetherArguments.ListenerPortOf(psiphonInside).Should().BeEqualTo(10819);
         await psiphonInside.Contains("--psiphon").Should().BeTrue();
         await psiphonInside.Contains("--tor-reverse").Should().BeTrue();
 
         // Tor inside, Psiphon around: the app dials Tor, and Psiphon picks its own port as the core reads it.
-        var torInside = Build(Profile(copy: it => it with { AetherPsiphon = "reverse", AetherTor = "chain" }), 10829);
-        await ValueAfter(torInside, "--tor-bind").Should().BeEqualTo("127.0.0.1:10829");
-        await ValueAfter(torInside, "--bind").Should().BeEqualTo("127.0.0.1:10830");
+        var torInside = Build(Profile(copy: it => it with { AetherPsiphon = "reverse", AetherTor = "chain" }), 10819);
+        await ValueAfter(torInside, "--tor-bind").Should().BeEqualTo("127.0.0.1:10819");
+        await ValueAfter(torInside, "--bind").Should().BeEqualTo("127.0.0.1:10820");
         await ValueAfter(torInside, "--psiphon-bind").Should().BeEqualTo("127.0.0.1:0");
-        await AetherArguments.ListenerPortOf(torInside).Should().BeEqualTo(10829);
+        await AetherArguments.ListenerPortOf(torInside).Should().BeEqualTo(10819);
     }
 
     [Test]
@@ -681,16 +681,16 @@ public class AetherArgumentsTests
     [Test]
     public async Task MasqueOverHttp2TakesNoObfuscation()
     {
-        await ValueAfter(Build(Profile(transport: AetherTransport.Http2), 10829), "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(AetherProtocol.Mim, AetherTransport.Http2), 10829), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(transport: AetherTransport.Http2), 10819), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(AetherProtocol.Mim, AetherTransport.Http2), 10819), "--noize").Should().BeNull();
         await ValueAfter(Build(Profile(transport: AetherTransport.Http2), 0, scan: true), "--noize").Should().BeNull();
         // Tor or Psiphon around the tunnel carry TCP alone, so the core takes HTTP/2 whatever the transport says.
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "reverse" }), 10829), "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(copy: it => it with { AetherPsiphon = "reverse" }), 10829), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "reverse" }), 10819), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherPsiphon = "reverse" }), 10819), "--noize").Should().BeNull();
         // Over HTTP/3, with a carrier inside the tunnel, and on WireGuard whatever the transport says, it stays.
-        await ValueAfter(Build(Profile(), 10829), "--noize").Should().BeEqualTo("aggressive");
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain" }), 10829), "--noize").Should().BeEqualTo("aggressive");
-        await ValueAfter(Build(Profile(AetherProtocol.WireGuard, AetherTransport.Http2), 10829), "--noize").Should().BeEqualTo("aggressive");
+        await ValueAfter(Build(Profile(), 10819), "--noize").Should().BeEqualTo("aggressive");
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain" }), 10819), "--noize").Should().BeEqualTo("aggressive");
+        await ValueAfter(Build(Profile(AetherProtocol.WireGuard, AetherTransport.Http2), 10819), "--noize").Should().BeEqualTo("aggressive");
 
         await AetherArguments.MasqueOverHttp2(AetherProtocol.Mim, AetherTransport.Http2, AetherTor.Off, AetherPsiphon.Off).Should().BeTrue();
         await AetherArguments.MasqueOverHttp2(AetherProtocol.Masque, AetherTransport.Http3, AetherTor.Reverse, AetherPsiphon.Off).Should().BeTrue();
@@ -699,12 +699,12 @@ public class AetherArgumentsTests
         await AetherArguments.MasqueOverHttp2(AetherProtocol.WgOverMasque, AetherTransport.Http2, AetherTor.Off, AetherPsiphon.Off).Should().BeTrue();
         // Tor or Psiphon around WireGuard over MASQUE carry its MASQUE over HTTP/2.
         await AetherArguments.MasqueOverHttp2(AetherProtocol.WgOverMasque, AetherTransport.Http3, AetherTor.Reverse, AetherPsiphon.Off).Should().BeTrue();
-        var throughTor = Build(Profile(AetherProtocol.WgOverMasque, copy: it => it with { AetherTor = "reverse" }), 10829);
+        var throughTor = Build(Profile(AetherProtocol.WgOverMasque, copy: it => it with { AetherTor = "reverse" }), 10819);
         await throughTor.Contains("--tor-reverse").Should().BeTrue();
         await ValueAfter(throughTor, "--protocol").Should().BeEqualTo("gool");
         await ValueAfter(throughTor, "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2), 10829), "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque), 10829), "--noize").Should().BeEqualTo("aggressive");
+        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque, AetherTransport.Http2), 10819), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(AetherProtocol.WgOverMasque), 10819), "--noize").Should().BeEqualTo("aggressive");
     }
 
     [Test]
@@ -716,25 +716,25 @@ public class AetherArgumentsTests
             {
                 // Chrome's rule is named, whatever the core's default; BoringSSL orders it by the machine's AES
                 // instructions as it does the TLS 1.3 suites. Chrome sends GREASE.
-                var chrome = Build(Profile(protocol, transport), 10829);
+                var chrome = Build(Profile(protocol, transport), 10819);
                 await ValueAfter(chrome, "--tls-ciphers").Should().BeEqualTo("ALL:!aPSK:!ECDSA+SHA1:!3DES");
                 await chrome.Contains("--disable-grease").Should().BeFalse();
                 foreach (var fingerprint in new[] { AetherFingerprint.Firefox, AetherFingerprint.SemiPython, AetherFingerprint.Go })
                 {
-                    var arguments = Build(Profile(protocol, transport, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10829);
+                    var arguments = Build(Profile(protocol, transport, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10819);
                     await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
                     await arguments.Contains("--disable-grease").Should().BeTrue();
                 }
             }
         }
         // A profile from before the setting is Chrome's.
-        var older = Build(Profile(copy: it => it with { AetherFingerprint = null }), 10829);
-        await ShouldBe(older, [.. Build(Profile(copy: it => it with { AetherFingerprint = "chrome" }), 10829)]);
+        var older = Build(Profile(copy: it => it with { AetherFingerprint = null }), 10819);
+        await ShouldBe(older, [.. Build(Profile(copy: it => it with { AetherFingerprint = "chrome" }), 10819)]);
         await ValueAfter(older, "--tls-ciphers").Should().BeEqualTo(AetherFingerprint.Chrome.Ciphers);
         // WireGuard has no TLS handshake of its own to shape.
         foreach (var protocol in new[] { AetherProtocol.WireGuard, AetherProtocol.Gool })
         {
-            var arguments = Build(Profile(protocol, AetherTransport.Http2, copy: it => it with { AetherFingerprint = "go" }), 10829);
+            var arguments = Build(Profile(protocol, AetherTransport.Http2, copy: it => it with { AetherFingerprint = "go" }), 10819);
             await arguments.Contains("--tls-ciphers").Should().BeFalse();
             await arguments.Contains("--disable-grease").Should().BeFalse();
         }
@@ -746,11 +746,11 @@ public class AetherArgumentsTests
     public async Task ObfuscationIsTheCoresOwnChoiceUnlessAProfileNamesIt()
     {
         // The core takes firewall for MASQUE and balanced for WireGuard and gool; automatic says nothing.
-        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "auto" }), 10829), "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = null }), 10829), "--noize").Should().BeNull();
-        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "firewall" }), 10829), "--noize").Should().BeEqualTo("firewall");
-        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "gfw" }), 10829), "--noize").Should().BeEqualTo("gfw");
-        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "off" }), 10829), "--noize").Should().BeEqualTo("off");
+        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "auto" }), 10819), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = null }), 10819), "--noize").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "firewall" }), 10819), "--noize").Should().BeEqualTo("firewall");
+        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "gfw" }), 10819), "--noize").Should().BeEqualTo("gfw");
+        await ValueAfter(Build(Profile(copy: it => it with { AetherObfuscation = "off" }), 10819), "--noize").Should().BeEqualTo("off");
     }
 
     [Test]
@@ -765,17 +765,17 @@ public class AetherArgumentsTests
             AetherEchDomain = "--bind",
             AetherMasqueSni = "--upstream",
         });
-        var arguments = Build(crafted, 10829);
+        var arguments = Build(crafted, 10819);
         await arguments.Contains("--upstream").Should().BeFalse();
         await ValueAfter(arguments, "--dns").Should().BeNull();
         await ValueAfter(arguments, "--exit-loc").Should().BeNull();
         await ValueAfter(arguments, "--ech-dns").Should().BeEqualTo("udp://1.1.1.1");
         await ValueAfter(arguments, "--ech-domain").Should().BeEqualTo("cloudflare-ech.com");
         await ValueAfter(arguments, "--masque-sni").Should().BeEqualTo("www.cloudflare.com");
-        await ValueAfter(arguments, "--bind").Should().BeEqualTo("127.0.0.1:10829");
+        await ValueAfter(arguments, "--bind").Should().BeEqualTo("127.0.0.1:10819");
         // The core of the session is still told to dial out through Xray.
-        var session = AetherCore.Of(crafted, 10829).Through(10832);
-        await ValueAfter(session.Arguments, "--upstream").Should().BeEqualTo("socks5://127.0.0.1:10832");
+        var session = AetherCore.Of(crafted, 10819).Through(10822);
+        await ValueAfter(session.Arguments, "--upstream").Should().BeEqualTo("socks5://127.0.0.1:10822");
 
         var psiphon = Profile(copy: it => it with
         {
@@ -785,7 +785,7 @@ public class AetherArgumentsTests
             AetherPsiphonCdnSni = "-x",
             AetherPsiphonRegion = "--upstream",
         });
-        var carried = Build(psiphon, 10829);
+        var carried = Build(psiphon, 10819);
         await carried.Contains("--upstream").Should().BeFalse();
         await ValueAfter(carried, "--psiphon-cdn-ips").Should().BeNull();
         await ValueAfter(carried, "--psiphon-cdn-sni").Should().BeNull();
@@ -797,7 +797,7 @@ public class AetherArgumentsTests
             AetherTorBridges = "own",
             AetherTorBridgeLines = "--upstream\nobfs4 192.0.2.1:443 FP cert=x iat-mode=0",
         });
-        var bridged = Build(tor, 10829);
+        var bridged = Build(tor, 10819);
         await bridged.Contains("--upstream").Should().BeFalse();
         await ShouldBe(ValuesAfter(bridged, "--tor-bridge"), "obfs4 192.0.2.1:443 FP cert=x iat-mode=0");
     }
@@ -806,9 +806,9 @@ public class AetherArgumentsTests
     public async Task TheServerNameOfTheMasqueHandshakesReachesTheCoreOverMasqueAlone()
     {
         // The default is named as well, so that the command shows what is sent.
-        await ValueAfter(Build(Profile(), 10829), "--masque-sni").Should().BeEqualTo("www.cloudflare.com");
+        await ValueAfter(Build(Profile(), 10819), "--masque-sni").Should().BeEqualTo("www.cloudflare.com");
         var blank = Profile(copy: it => it with { AetherMasqueSni = " " });
-        await ValueAfter(Build(blank, 10829), "--masque-sni").Should().BeEqualTo("www.cloudflare.com");
+        await ValueAfter(Build(blank, 10819), "--masque-sni").Should().BeEqualTo("www.cloudflare.com");
 
         // A name of the profile's own, trimmed, on either carrier, on every protocol over MASQUE, and in a scan.
         var named = Profile(copy: it => it with { AetherMasqueSni = " consumer-masque.cloudflareclient.com " });
@@ -825,7 +825,7 @@ public class AetherArgumentsTests
         {
             foreach (var scan in new[] { false, true })
             {
-                var arguments = Build(profile, 10829, scan: scan);
+                var arguments = Build(profile, 10819, scan: scan);
                 await ValueAfter(arguments, "--masque-sni").Should().BeEqualTo("consumer-masque.cloudflareclient.com");
                 await arguments.Count(it => it == "--masque-sni").Should().BeEqualTo(1);
             }
@@ -841,7 +841,7 @@ public class AetherArgumentsTests
         };
         foreach (var profile in without)
         {
-            await Build(profile, 10829).Contains("--masque-sni").Should().BeFalse();
+            await Build(profile, 10819).Contains("--masque-sni").Should().BeFalse();
         }
     }
 
@@ -849,7 +849,7 @@ public class AetherArgumentsTests
     public async Task EncryptedClientHelloTheResolversAndTheExitRuleReachTheCore()
     {
         var tuned = Profile(copy: it => it with { AetherEch = true, AetherDns = "1.1.1.1,10.0.0.1:5353", AetherExitLoc = "!IR,RU" });
-        var arguments = Build(tuned, 10829);
+        var arguments = Build(tuned, 10819);
         await ValueAfter(arguments, "--ech").Should().BeEqualTo("auto");
         await ValueAfter(arguments, "--dns").Should().BeEqualTo("1.1.1.1,10.0.0.1:5353");
         await ValueAfter(arguments, "--exit-loc").Should().BeEqualTo("!IR,RU");
@@ -857,20 +857,20 @@ public class AetherArgumentsTests
         // The key is asked of the default resolver for the default domain, unless the profile names others.
         await ValueAfter(arguments, "--ech-dns").Should().BeEqualTo("udp://1.1.1.1");
         await ValueAfter(arguments, "--ech-domain").Should().BeEqualTo("cloudflare-ech.com");
-        var named = Build(Copy(tuned, it => it with { AetherEchDns = " https://doq.dns4all.eu/dns-query ", AetherEchDomain = "ip.gs" }), 10829);
+        var named = Build(Copy(tuned, it => it with { AetherEchDns = " https://doq.dns4all.eu/dns-query ", AetherEchDomain = "ip.gs" }), 10819);
         await ValueAfter(named, "--ech-dns").Should().BeEqualTo("https://doq.dns4all.eu/dns-query");
         await ValueAfter(named, "--ech-domain").Should().BeEqualTo("ip.gs");
-        var blank = Build(Copy(tuned, it => it with { AetherEchDns = " ", AetherEchDomain = "" }), 10829);
+        var blank = Build(Copy(tuned, it => it with { AetherEchDns = " ", AetherEchDomain = "" }), 10819);
         await ValueAfter(blank, "--ech-dns").Should().BeEqualTo("udp://1.1.1.1");
         await ValueAfter(blank, "--ech-domain").Should().BeEqualTo("cloudflare-ech.com");
-        var off = Build(Profile(copy: it => it with { AetherEchDns = "tcp://1.1.1.1", AetherEchDomain = "ip.gs" }), 10829);
+        var off = Build(Profile(copy: it => it with { AetherEchDns = "tcp://1.1.1.1", AetherEchDomain = "ip.gs" }), 10819);
         await ValueAfter(off, "--ech-dns").Should().BeNull();
         await ValueAfter(off, "--ech-domain").Should().BeNull();
 
         // ECH belongs to the MASQUE handshake, on either carrier and both hops.
-        await ValueAfter(Build(Copy(tuned, it => it with { AetherProtocol = "mim" }), 10829), "--ech").Should().BeEqualTo("auto");
-        await ValueAfter(Build(Copy(tuned, it => it with { AetherProtocol = "wg" }), 10829), "--ech").Should().BeNull();
-        await ValueAfter(Build(Profile(), 10829), "--ech").Should().BeNull();
+        await ValueAfter(Build(Copy(tuned, it => it with { AetherProtocol = "mim" }), 10819), "--ech").Should().BeEqualTo("auto");
+        await ValueAfter(Build(Copy(tuned, it => it with { AetherProtocol = "wg" }), 10819), "--ech").Should().BeNull();
+        await ValueAfter(Build(Profile(), 10819), "--ech").Should().BeNull();
 
         // A scan runs under the same conditions, the exit rule included, so it ends on an endpoint the session will accept.
         var scan = Build(tuned, 0, scan: true);
@@ -881,7 +881,7 @@ public class AetherArgumentsTests
         await ValueAfter(scan, "--exit-loc").Should().BeEqualTo("!IR,RU");
 
         // Without a WARP tunnel there is nothing for them to apply to.
-        var alone = Build(Copy(tuned, it => it with { AetherPsiphon = "only" }), 10829);
+        var alone = Build(Copy(tuned, it => it with { AetherPsiphon = "only" }), 10819);
         await ValueAfter(alone, "--dns").Should().BeNull();
         await ValueAfter(alone, "--exit-loc").Should().BeNull();
         await ValueAfter(alone, "--ech").Should().BeNull();
@@ -890,12 +890,12 @@ public class AetherArgumentsTests
     [Test]
     public async Task TheBridgePoolReachesTheCoreOnlyWhereBridgesAreFetched()
     {
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorRelays = "only" }), 10829), "--tor-relays").Should().BeEqualTo("only");
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "first", AetherTorRelays = "off" }), 10829), "--tor-relays")
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorRelays = "only" }), 10819), "--tor-relays").Should().BeEqualTo("only");
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "first", AetherTorRelays = "off" }), 10819), "--tor-relays")
             .Should().BeEqualTo("off");
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorRelays = "auto" }), 10829), "--tor-relays").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "chain", AetherTorRelays = "auto" }), 10819), "--tor-relays").Should().BeNull();
         // With the profile's own lines, or no bridges at all, nothing is fetched.
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "never", AetherTorRelays = "only" }), 10829), "--tor-relays")
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTor = "only", AetherTorBridges = "never", AetherTorRelays = "only" }), 10819), "--tor-relays")
             .Should().BeNull();
         var own = Profile(copy: it => it with
         {
@@ -904,8 +904,8 @@ public class AetherArgumentsTests
             AetherTorBridgeLines = "obfs4 192.0.2.55:38114 316E64 cert=abc iat-mode=0",
             AetherTorRelays = "only",
         });
-        await ValueAfter(Build(own, 10829), "--tor-relays").Should().BeNull();
-        await ValueAfter(Build(Profile(copy: it => it with { AetherTorRelays = "only" }), 10829), "--tor-relays").Should().BeNull();
+        await ValueAfter(Build(own, 10819), "--tor-relays").Should().BeNull();
+        await ValueAfter(Build(Profile(copy: it => it with { AetherTorRelays = "only" }), 10819), "--tor-relays").Should().BeNull();
     }
 
     [Test]
@@ -916,7 +916,7 @@ public class AetherArgumentsTests
             return AetherArguments.PathOf(words);
         }
 
-        await ShouldBe(Path("--bind", "127.0.0.1:10829"), "MASQUE");
+        await ShouldBe(Path("--bind", "127.0.0.1:10819"), "MASQUE");
         await ShouldBe(Path("--wg", "--psiphon"), "WIREGUARD", "PSIPHON");
         await ShouldBe(Path("--psiphon-reverse"), "PSIPHON", "MASQUE");
         await ShouldBe(Path("--tor"), "MASQUE", "TOR");
@@ -939,8 +939,8 @@ public class AetherArgumentsTests
     [Test]
     public async Task WhereTheAppDialsPsiphonReadinessNeedsTheCoresWord()
     {
-        await AetherArguments.ReadyNeedsWord(["--wg", "--psiphon", "--psiphon-bind", "127.0.0.1:10829"]).Should().BeTrue();
-        await AetherArguments.ReadyNeedsWord(["--psiphon-only", "--bind", "127.0.0.1:10829"]).Should().BeTrue();
+        await AetherArguments.ReadyNeedsWord(["--wg", "--psiphon", "--psiphon-bind", "127.0.0.1:10819"]).Should().BeTrue();
+        await AetherArguments.ReadyNeedsWord(["--psiphon-only", "--bind", "127.0.0.1:10819"]).Should().BeTrue();
         // Around the tunnel the app dials WARP, whose listener comes up only once the tunnel stands.
         await AetherArguments.ReadyNeedsWord(["--masque", "--psiphon-reverse"]).Should().BeFalse();
         await AetherArguments.ReadyNeedsWord(["--wg", "--tor"]).Should().BeFalse();
@@ -1059,7 +1059,7 @@ public class AetherArgumentsTests
     [Test]
     public async Task TheListenersAreLeftOutWhenTunnelsAreCompared()
     {
-        var session = Build(Profile(copy: it => it with { AetherPsiphon = "chain" }), 10829);
+        var session = Build(Profile(copy: it => it with { AetherPsiphon = "chain" }), 10819);
         var elsewhere = Build(Profile(copy: it => it with { AetherPsiphon = "chain" }), 20808);
         await ShouldBe(AetherArguments.TunnelArguments(session), [.. AetherArguments.TunnelArguments(elsewhere)]);
         await AetherArguments.TunnelArguments(session).Contains("--psiphon-bind").Should().BeFalse();
@@ -1070,13 +1070,13 @@ public class AetherArgumentsTests
     {
         // PattNG AetherCoreManager.runsProfile, on the listen port the session was given.
         static bool RunsProfile(IReadOnlyList<string> arguments, ProfileItem profile) =>
-            AetherCore.Of(profile, 10829).RunsAs(arguments);
+            AetherCore.Of(profile, 10819).RunsAs(arguments);
 
         var pinned = Profile(server: "162.159.198.1", port: 443);
         var renamed = Profile(server: "162.159.198.1", port: 443);
         renamed.Remarks = "another name";
         var otherPort = Profile(server: "162.159.198.1", port: 2408);
-        var session = Build(pinned, 10829, logLevel: "warn");
+        var session = Build(pinned, 10819, logLevel: "warn");
         await RunsProfile(session, pinned).Should().BeTrue();
         await RunsProfile(session, renamed).Should().BeTrue();
         await RunsProfile(session, otherPort).Should().BeFalse();
@@ -1094,10 +1094,10 @@ public class AetherArgumentsTests
         var scan = Build(Profile(), 0, scan: true);
         await ShouldBe(AetherArguments.StandaloneArguments(scan, 41234), [.. scan, AetherArguments.Upstream, "socks5://127.0.0.1:41234"]);
         // A command exported from a session names the session's Xray, which a core of its own does not dial.
-        string[] exported = ["--wg", AetherArguments.Upstream, "socks5://127.0.0.1:10832", "--bind", "127.0.0.1:10830"];
+        string[] exported = ["--wg", AetherArguments.Upstream, "socks5://127.0.0.1:10822", "--bind", "127.0.0.1:10820"];
         await ShouldBe(
             AetherArguments.StandaloneArguments(exported, 41234),
-            "--wg", "--bind", "127.0.0.1:10830", AetherArguments.Upstream, "socks5://127.0.0.1:41234");
+            "--wg", "--bind", "127.0.0.1:10820", AetherArguments.Upstream, "socks5://127.0.0.1:41234");
     }
 
     // PattN only: the session's log level as PattNG's AetherCoreManager.start sets it (design 2.6.2).

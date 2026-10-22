@@ -172,6 +172,13 @@ public sealed partial class V2rayRuntime
         {
             return OperationView.Fail(code, messageKey);
         }
+        // PattN: the TLS settings the server editor refuses to save, weighed as it weighs them: with the default fingerprint
+        // of the settings and the core that runs the profile (X2)
+        if (TlsSettingsRefusal(profile, Config.CoreBasicItem.DefFingerprint, AppManager.Instance.GetCoreType(profile, profile.ConfigType)) is { } tlsRefusal)
+        {
+            Logging.SaveLog($"WebAPI: the profile \"{profile.Remarks}\" was not saved: {tlsRefusal.Code}");
+            return tlsRefusal;
+        }
 
         // PattN: a blank or AsIs (Xray's default) targetStrategy is stored as nothing, as in the server editor
         profile.TargetStrategy = profile.GetTargetStrategy() ?? string.Empty;
@@ -261,6 +268,24 @@ public sealed partial class V2rayRuntime
         code = "ok";
         messageKey = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// PattN: why the server editor would not save <paramref name="profile" /> for its TLS settings (TlsSettingsCheck, X2),
+    /// as a refusal with a code of its own and the editor's message as its detail; null when it would. cipherSuites need
+    /// the unsafe fingerprint on a profile Xray runs, as <paramref name="core" /> says, an empty fingerprint being
+    /// <paramref name="defaultFingerprint" />; WebSocket and HTTPUpgrade connect with alpn http/1.1 alone, or none.
+    /// </summary>
+    internal static OperationView? TlsSettingsRefusal(ProfileItem profile, string? defaultFingerprint, ECoreType core)
+    {
+        return TlsSettingsCheck.Validate(profile, defaultFingerprint, core) switch
+        {
+            ETlsSettingsError.CipherSuitesNeedUnsafe => OperationView.Fail("profile_cipher_suites_need_unsafe",
+                ApiMessageKeys.ProfileInvalid, new { detail = ServiceLib.Resx.ResUI.MsgCipherSuitesNeedUnsafe }),
+            ETlsSettingsError.WebsocketAlpnNotHttp1 => OperationView.Fail("profile_websocket_alpn_http1_only",
+                ApiMessageKeys.ProfileInvalid, new { detail = ServiceLib.Resx.ResUI.MsgWebsocketAlpnHttp1Only }),
+            _ => null,
+        };
     }
 
     internal static bool IsConfigTypeUnchanged(ProfileItem input, ProfileItem existing) =>
