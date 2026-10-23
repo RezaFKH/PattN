@@ -99,7 +99,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path "tmp/probe" | Out-Null
 
           Invoke-WebRequest -Uri "https://github.com/2dust/v2rayN-core-bin/raw/refs/heads/master/v2rayN-windows-64/bin/xray/xray.exe" -OutFile "tmp/probe/xray.exe"
-          $xrayOutput = (& "tmp/probe/xray.exe" version) -join "`n"
+          # PattN: Xray never runs as xray.exe on Windows, not even here: its copy p-xray-p.exe runs
+          Copy-Item "tmp/probe/xray.exe" "tmp/probe/p-xray-p.exe" -Force
+          $xrayOutput = (& "tmp/probe/p-xray-p.exe" version) -join "`n"
           Write-Host $xrayOutput
 
           $xrayMatch = [regex]::Match($xrayOutput, 'Xray\s+([0-9.]+)')

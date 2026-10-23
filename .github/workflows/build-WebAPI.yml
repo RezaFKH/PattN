@@ -300,7 +300,12 @@ jobs:
             }
           }
           $candidateBin = Join-Path $publishDirectory 'bin'
-          & (Join-Path $candidateBin 'xray\xray.exe') -version
+          # PattN: Xray never runs as xray.exe on Windows, not even here: its copy p-xray-p.exe runs, made outside the
+          # package (PattN makes the package's own copy when it starts)
+          $xraySmoke = Join-Path $env:RUNNER_TEMP 'xray-smoke-win-x64'
+          New-Item -ItemType Directory -Path $xraySmoke -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $candidateBin 'xray\xray.exe') -Destination (Join-Path $xraySmoke 'p-xray-p.exe') -Force
+          & (Join-Path $xraySmoke 'p-xray-p.exe') -version
           if ($LASTEXITCODE -ne 0) { throw "xray.exe smoke failed: $LASTEXITCODE" }
           & (Join-Path $candidateBin 'sing_box\sing-box.exe') version
           if ($LASTEXITCODE -ne 0) { throw "sing-box.exe smoke failed: $LASTEXITCODE" }
@@ -451,7 +456,12 @@ jobs:
             $required = Join-Path $destinationBin $relative
             if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Missing Windows ARM64 Core asset: $required" }
           }
-          & (Join-Path $destinationBin 'xray\xray.exe') -version
+          # PattN: Xray never runs as xray.exe on Windows, not even here: its copy p-xray-p.exe runs, made outside the
+          # package (PattN makes the package's own copy when it starts)
+          $xraySmoke = Join-Path $env:RUNNER_TEMP 'xray-smoke-win-arm64'
+          New-Item -ItemType Directory -Path $xraySmoke -Force | Out-Null
+          Copy-Item -LiteralPath (Join-Path $destinationBin 'xray\xray.exe') -Destination (Join-Path $xraySmoke 'p-xray-p.exe') -Force
+          & (Join-Path $xraySmoke 'p-xray-p.exe') -version
           if ($LASTEXITCODE -ne 0) { throw "xray.exe smoke failed: $LASTEXITCODE" }
           & (Join-Path $destinationBin 'sing_box\sing-box.exe') version
           if ($LASTEXITCODE -ne 0) { throw "sing-box.exe smoke failed: $LASTEXITCODE" }
