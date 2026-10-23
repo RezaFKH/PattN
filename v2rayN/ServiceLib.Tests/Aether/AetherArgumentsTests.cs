@@ -1167,6 +1167,29 @@ public class AetherArgumentsTests
         await AetherArguments.PortAfter(["--tor-bind", "127.0.0.1:10819\u0085"], AetherArguments.TorBind).Should().BeEqualTo(10819);
     }
 
+    // PattNG AetherCoreManagerTest.aListenerAnswersTheAppOnLoopbackOrOnEveryAddress, with the system as a parameter.
+    [Test]
+    public async Task AListenerAnswersTheAppOnLoopbackOrOnEveryAddress()
+    {
+        string[] everywhere = ["127.0.0.1", "0.0.0.0"];
+        string[] dualStackOnly = ["[::]", "[0:0:0:0:0:0:0:0]", "[::0]", "[::ffff:127.0.0.1]", "[::FFFF:7f00:1]", "[0:0:0:0:0:ffff:127.0.0.1]", "[::ffff:0.0.0.0]"];
+        string[] nowhere = ["127.0.0.2", "192.168.1.5", "[::1]", "[::ffff:127.0.0.2]", "[::ffff:10.0.0.1]", "[1::]", "[fe80::1%2]", "[::ffff:0:1]"];
+        foreach (var host in everywhere)
+        {
+            await AetherArguments.ReachesLoopback(host, dualStack: true).Should().BeTrue().Because(host);
+            await AetherArguments.ReachesLoopback(host, dualStack: false).Should().BeTrue().Because(host);
+        }
+        foreach (var host in dualStackOnly)
+        {
+            await AetherArguments.ReachesLoopback(host, dualStack: true).Should().BeTrue().Because(host);
+            await AetherArguments.ReachesLoopback(host, dualStack: false).Should().BeFalse().Because(host);
+        }
+        foreach (var host in nowhere)
+        {
+            await AetherArguments.ReachesLoopback(host, dualStack: true).Should().BeFalse().Because(host);
+        }
+    }
+
     // PattNG AetherCoreManager.defaultListenerPorts: where the core listens when a command leaves a listener out.
     [Test]
     public async Task TheCoreListensOnItsDefaultsWhereACommandNamesNoListener()

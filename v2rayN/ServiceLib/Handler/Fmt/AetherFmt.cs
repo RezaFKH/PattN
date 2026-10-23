@@ -683,7 +683,7 @@ public partial class AetherFmt : BaseFmt
             return AetherProblem.InvalidCommand;
         }
         // As a start checks it (AetherCoreLoad.PortsProblem): a number that is no port, an address the core does not
-        // take, then ports.
+        // take, one where the app does not reach the listener it dials, then ports.
         if (AetherCoreLoad.InvalidPort(core) != null)
         {
             return AetherProblem.ListenPortInvalid;
@@ -691,6 +691,10 @@ public partial class AetherFmt : BaseFmt
         if (core.InvalidListener != null)
         {
             return AetherProblem.ListenAddressInvalid;
+        }
+        if (core.UnreachableListener != null)
+        {
+            return AetherProblem.ListenAddressUnreachable;
         }
         if (core.SharedPort != null)
         {
@@ -742,6 +746,16 @@ public partial class AetherFmt : BaseFmt
     public static string? InvalidListener(ProfileItem config, int listenPort)
     {
         return CommandCore(config, listenPort)?.InvalidListener;
+    }
+
+    /// <summary>
+    /// The option <see cref="AetherProblem.ListenAddressUnreachable" /> is about, for its message: the option of the
+    /// listener the app dials, when the command <paramref name="config" /> carries puts it where the app does not reach
+    /// it, as <see cref="Normalize" /> finds it; null when there is none.
+    /// </summary>
+    public static string? UnreachableListener(ProfileItem config, int listenPort)
+    {
+        return CommandCore(config, listenPort)?.UnreachableListener;
     }
 
     /// <summary>The core of the command <paramref name="config" /> carries in place of its settings, as <see cref="Normalize" /> reads it; null for none.</summary>
@@ -1002,6 +1016,7 @@ public enum AetherProblem
     ListenPortShared,
     ListenPortInvalid,
     ListenAddressInvalid,
+    ListenAddressUnreachable,
     PsiphonNeedsMasque,
     NextPortTaken,
     TorNeedsMasque,

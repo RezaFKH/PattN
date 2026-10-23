@@ -2040,6 +2040,9 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
     <value>Aether profilinin əmri {0} üçün nüvənin qəbul etmədiyi ünvan yazır; ondan sonra IP ünvanı və port yazın, məsələn, 127.0.0.1:20808</value>
   </data>
+  <data name="MsgAetherListenAddressUnreachable" xml:space="preserve">
+    <value>Aether profilinin əmri {0} üçün tətbiqin qoşulmadığı ünvan yazır: tətbiq nüvəyə 127.0.0.1 üzərindən qoşulur, ona görə də ondan sonra 127.0.0.1 (və ya bütün ünvanlar üçün 0.0.0.0) və port yazın</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
     <value>Aether profilinin əmri nüvəyə iki dinləyicisi ilə {0} portunda dinləməyi bildirir (əmrin göstərmədiyi dinləyici yenə də dinləyir: tətbiqin qoşulduğu dinləyici Aether dinləmə portunda, digərləri nüvənin standart portunda: 1819, 1820 və ya 1821); hər dinləyiciyə ayrıca port verin</value>
   </data>

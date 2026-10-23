@@ -756,6 +756,37 @@ public static class AetherArguments
         return halves.Length == 2 ? count <= 7 : count == 8;
     }
 
+    /// <summary>
+    /// Whether a listener bound on <paramref name="host" />, an IPv4 address or an IPv6 one in brackets, as
+    /// <see cref="IsSocketAddress" /> takes it, answers a connection to 127.0.0.1, where the app dials the core (PattNG
+    /// AetherCoreManager.reachesLoopback): 127.0.0.1 itself and every IPv4 address, 0.0.0.0; and, where
+    /// <paramref name="dualStack" />, every address of IPv6, ::, and the IPv4-mapped spellings of those two. Linux and
+    /// macOS open an IPv6 socket to IPv4 as well unless told otherwise, which the core never does (tokio and mio set no
+    /// IPV6_V6ONLY); Windows opens it to IPv6 alone and binds no IPv4-mapped address.
+    /// </summary>
+    public static bool ReachesLoopback(string host, bool dualStack)
+    {
+        if (!host.StartsWith('['))
+        {
+            return host is Global.Loopback or "0.0.0.0";
+        }
+        if (!dualStack || host.Length < 2)
+        {
+            return false;
+        }
+        var inner = host[1..^1];
+        var percent = inner.IndexOf('%');
+        if (!IPAddress.TryParse(percent < 0 ? inner : inner[..percent], out var address) || address.AddressFamily != AddressFamily.InterNetworkV6)
+        {
+            return false;
+        }
+        if (address.Equals(IPAddress.IPv6Any))
+        {
+            return true;
+        }
+        return address.IsIPv4MappedToIPv6 && address.MapToIPv4() is var mapped && (mapped.Equals(IPAddress.Loopback) || mapped.Equals(IPAddress.Any));
+    }
+
     /// <summary>One or more ASCII digits whose value, leading zeros and all, is at most <paramref name="max" />, as Rust reads a port or a scope.</summary>
     private static bool IsDecimalUpTo(string text, long max)
     {

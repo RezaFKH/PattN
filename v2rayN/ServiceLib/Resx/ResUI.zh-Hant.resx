@@ -2044,6 +2044,9 @@
   <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
     <value>Aether 設定檔的命令給 {0} 寫了核心不接受的位址；請在它後面寫 IP 位址和連接埠，例如 127.0.0.1:20808</value>
   </data>
+  <data name="MsgAetherListenAddressUnreachable" xml:space="preserve">
+    <value>Aether 設定檔的命令給 {0} 寫了應用程式不會連線的位址：應用程式透過 127.0.0.1 連線核心，請在它後面寫 127.0.0.1（或表示所有位址的 0.0.0.0）和連接埠</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
     <value>Aether 設定檔的命令讓核心以兩個監聽器監聽 {0}（命令未寫出的監聽器仍會監聽：應用程式連線的那個在 Aether 監聽連接埠上，其他的在核心的預設連接埠上：1819、1820 或 1821）；請為每個監聽器指定各自的連接埠</value>
   </data>

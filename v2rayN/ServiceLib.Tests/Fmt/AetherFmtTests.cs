@@ -1317,6 +1317,15 @@ public class AetherFmtTests
         await Normalize(anyPort).Should().BeNull();
         await AetherFmt.InvalidListenPort(anyPort, AetherPorts.DefaultListenPort).Should().BeNull();
         await AetherFmt.InvalidListener(anyPort, AetherPorts.DefaultListenPort).Should().BeNull();
+        // An address the core takes, where the app does not reach the listener it dials, comes before a shared port, and
+        // before a taken one.
+        var unreachable = Profile(it => it with { AetherCommand = "aether --wg --bind 192.168.1.5:20808 --http-proxy 127.0.0.1:20808" });
+        await Normalize(unreachable, takenPorts: Ports(20808)).Should().BeEqualTo(AetherProblem.ListenAddressUnreachable);
+        await AetherFmt.UnreachableListener(unreachable, AetherPorts.DefaultListenPort).Should().BeEqualTo("--bind");
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenAddressUnreachable, unreachable, null, AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenAddressUnreachable, "--bind"));
+        await AetherFmt.UnreachableListener(anyPort, AetherPorts.DefaultListenPort).Should().BeNull();
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 0.0.0.0:20808" })).Should().BeNull();
         // The app's own listener on port 0 is no port it can dial.
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:0" })).Should().BeEqualTo(AetherProblem.ListenPortInvalid);
         // Nothing to name for a profile built from its settings, nor for a blank command.
@@ -1337,6 +1346,8 @@ public class AetherFmtTests
             .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 20808));
         await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenAddressInvalid, settings, null, 20808)
             .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenAddressInvalid, string.Empty));
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenAddressUnreachable, settings, null, 20808)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenAddressUnreachable, string.Empty));
     }
 
     [Test]

@@ -2038,6 +2038,9 @@
   <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
     <value>Aether 配置的命令给 {0} 写了内核不接受的地址；请在它后面写 IP 地址和端口，例如 127.0.0.1:20808</value>
   </data>
+  <data name="MsgAetherListenAddressUnreachable" xml:space="preserve">
+    <value>Aether 配置的命令给 {0} 写了应用不会连接的地址：应用通过 127.0.0.1 连接内核，请在它后面写 127.0.0.1（或表示所有地址的 0.0.0.0）和端口</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
     <value>Aether 配置的命令让内核用两个监听器监听 {0}（命令未写出的监听器仍会监听：应用连接的那个在 Aether 监听端口上，其他的在内核的默认端口上：1819、1820 或 1821）；请为每个监听器指定各自的端口</value>
   </data>

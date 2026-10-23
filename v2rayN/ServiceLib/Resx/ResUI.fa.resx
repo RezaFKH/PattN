@@ -1914,6 +1914,9 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
     <value>فرمان پروفایل Aether به {0} نشانی‌ای می‌دهد که هسته نمی‌پذیرد؛ پس از آن یک نشانی IP و یک پورت بنویسید، مانند 127.0.0.1:20808</value>
   </data>
+  <data name="MsgAetherListenAddressUnreachable" xml:space="preserve">
+    <value>فرمان پروفایل Aether به {0} نشانی‌ای می‌دهد که برنامه به آن وصل نمی‌شود: برنامه از راه 127.0.0.1 به هسته وصل می‌شود؛ بنابراین پس از آن 127.0.0.1 (یا 0.0.0.0 برای همهٔ نشانی‌ها) و یک پورت بنویسید</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
     <value>فرمان پروفایل Aether به هسته می‌گوید با دو شنونده روی {0} گوش دهد (شنونده‌ای که فرمان نامی از آن نمی‌برد باز هم گوش می‌دهد: آنکه برنامه به آن وصل می‌شود روی پورت شنود Aether، و بقیه روی پورت پیش‌فرض هسته: 1819، 1820 یا 1821)؛ به هر شنونده پورت جداگانه‌ای بدهید</value>
   </data>

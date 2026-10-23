@@ -645,6 +645,8 @@ public partial class AddServerAetherViewModel : MyReactiveObject, ICloseable
                 string.Format(ResUI.MsgAetherListenPortInvalid, AetherFmt.InvalidListenPort(profile, listenPort) ?? listenPort),
             AetherProblem.ListenAddressInvalid =>
                 string.Format(ResUI.MsgAetherListenAddressInvalid, AetherFmt.InvalidListener(profile, listenPort) ?? string.Empty),
+            AetherProblem.ListenAddressUnreachable =>
+                string.Format(ResUI.MsgAetherListenAddressUnreachable, AetherFmt.UnreachableListener(profile, listenPort) ?? string.Empty),
             AetherProblem.PsiphonNeedsMasque => ResUI.MsgAetherPsiphonNeedsMasque,
             AetherProblem.NextPortTaken => ResUI.MsgAetherNextPortTaken,
             AetherProblem.TorNeedsMasque => ResUI.MsgAetherTorNeedsMasque,

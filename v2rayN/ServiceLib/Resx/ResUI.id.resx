@@ -1932,6 +1932,9 @@ Tindakan "Ambil sertifikat" mungkin gagal jika sertifikat self-signed digunakan 
   <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
     <value>The command of the Aether profile gives {0} an address the core does not take; write an IP address and a port after it, such as 127.0.0.1:20808</value>
   </data>
+  <data name="MsgAetherListenAddressUnreachable" xml:space="preserve">
+    <value>The command of the Aether profile gives {0} an address the app does not connect to: the app connects to the core on 127.0.0.1, so write 127.0.0.1, or 0.0.0.0 for every address, and a port after it</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
     <value>The command of the Aether profile tells the core to listen on {0} with two of its listeners (a listener the command leaves out still listens: the one the app dials on the Aether listen port, any other on the core's default, 1819, 1820 or 1821); give each listener a port of its own</value>
   </data>

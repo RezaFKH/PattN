@@ -2489,7 +2489,16 @@ namespace ServiceLib.Resx {
                 return ResourceManager.GetString("MsgAetherListenAddressInvalid", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   查找类似 The command of the Aether profile gives {0} an address the app does not connect to: the app connects to the core on 127.0.0.1, so write 127.0.0.1, or 0.0.0.0 for every address, and a port after it 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenAddressUnreachable {
+            get {
+                return ResourceManager.GetString("MsgAetherListenAddressUnreachable", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   查找类似 Port {0}, which the Aether core listens on, is taken by another program or reserved by the system; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
         /// </summary>

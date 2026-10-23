@@ -256,6 +256,30 @@ public class AetherCoreLoadTests
     }
 
     [Test]
+    public async Task AListenerTheAppDialsWhereItDoesNotReachItIsRefusedWithoutAWait()
+    {
+        // The core would listen on ::1, where the app does not dial it: the session would stay connecting.
+        var core = AetherCore.OfCommand("aether --masque --bind [::1]:20808", AetherPorts.DefaultListenPort)!;
+        var refusal = string.Format(ResUI.MsgAetherListenAddressUnreachable, "--bind");
+        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(refusal);
+        // Before the port two listeners share.
+        var shared = AetherCore.OfCommand("aether --masque --bind [::1]:20808 --http-proxy 127.0.0.1:20808", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(shared, null, (_, _) => true).Should().BeEqualTo(refusal);
+        var steps = new Steps(core) { Secondary = null, PortRelease = TimeSpan.FromSeconds(5), CanListen = (_, _) => false };
+
+        var waited = Stopwatch.StartNew();
+        await Load(steps);
+
+        await (waited.Elapsed < TimeSpan.FromSeconds(2)).Should().BeTrue();
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", $"report True {refusal}"],
+            CollectionOrdering.Matching);
+        // 0.0.0.0 answers on 127.0.0.1 as well.
+        var everywhere = AetherCore.OfCommand("aether --masque --bind 0.0.0.0:20808", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(everywhere, null, (_, _) => true).Should().BeNull();
+    }
+
+    [Test]
     public async Task AnAddressTheCoreDoesNotTakeIsRefusedWithoutAWait()
     {
         // A command stored before the editor refused it: the core would quietly listen on 1819, where the app dials 20808.

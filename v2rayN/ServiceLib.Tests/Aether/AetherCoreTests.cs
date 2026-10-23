@@ -415,6 +415,30 @@ public class AetherCoreTests
     }
 
     [Test]
+    public async Task TheListenerTheAppDialsIsWhereTheAppReachesIt()
+    {
+        // The app dials the core on 127.0.0.1, which a listener on 0.0.0.0 answers as well.
+        await OfCommand("aether --wg --bind 127.0.0.1:10819").UnreachableListener.Should().BeNull();
+        await OfCommand("aether --wg --bind 0.0.0.0:10819").UnreachableListener.Should().BeNull();
+        // :: outside Windows, which opens an IPv6 socket to IPv4 as well; Windows does not.
+        await OfCommand("aether --wg --bind [::]:10819").UnreachableListener.Should().BeEqualTo(OperatingSystem.IsWindows() ? "--bind" : null);
+        // Another loopback address, IPv6's, or a network's: the session would stay connecting.
+        await OfCommand("aether --wg --bind 127.0.0.2:10819").UnreachableListener.Should().BeEqualTo("--bind");
+        await OfCommand("aether --wg --bind [::1]:10819").UnreachableListener.Should().BeEqualTo("--bind");
+        await OfCommand("aether --wg --bind 192.168.1.5:10819").UnreachableListener.Should().BeEqualTo("--bind");
+        // With Tor or Psiphon inside the tunnel the app dials theirs, and the core's own may listen anywhere.
+        await OfCommand("aether --wg --tor --bind 192.168.1.5:10820 --tor-bind 127.0.0.1:10819").UnreachableListener.Should().BeNull();
+        await OfCommand("aether --wg --tor --tor-bind [::1]:10819").UnreachableListener.Should().BeEqualTo(AetherArguments.TorBind);
+        await OfCommand("aether --wg --psiphon --psiphon-bind 10.0.0.1:10819").UnreachableListener.Should().BeEqualTo(AetherArguments.PsiphonBind);
+        // An HTTP proxy may listen on a network's address; nobody in the app dials it.
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy 192.168.1.5:8118").UnreachableListener.Should().BeNull();
+        // An address the core does not take is another problem, and one the command leaves out the app gives on 127.0.0.1.
+        await OfCommand("aether --wg --bind localhost:20808").UnreachableListener.Should().BeNull();
+        await OfCommand("aether --wg --http-proxy 192.168.1.5:8118").UnreachableListener.Should().BeNull();
+        await AetherCore.Of(Copy(Pinned(), extra => extra with { AetherTor = "chain" }), ListenPort).UnreachableListener.Should().BeNull();
+    }
+
+    [Test]
     public async Task TheListenerTheAppDialsIsReadTrimmedAsTheCoreReadsIt()
     {
         // Tor inside the tunnel, dialled on its listener, which the core reads trimmed: the app dials the same port.
@@ -422,6 +446,7 @@ public class AetherCoreTests
         await tor.Port.Should().BeEqualTo(10820);
         await ShouldBe(tor.Ports, 1819, 10820);
         await tor.InvalidListener.Should().BeNull();
+        await tor.UnreachableListener.Should().BeNull();
         // The core's own listener is read as written, so a space keeps the app from reading its port at all.
         await AetherCore.OfCommand("aether --wg --bind '127.0.0.1:10819 '", ListenPort).Should().BeNull();
     }

@@ -137,8 +137,8 @@ public static class AetherCoreLoad
         var waited = Stopwatch.StartNew();
         // A port no listener can have, an address the core does not take, or a port two listeners are told to share, is
         // not released by waiting (D3-1).
-        while (problem != null && InvalidPort(core) == null && core.InvalidListener == null && core.SharedPort == null
-               && waited.Elapsed + PortPoll <= steps.PortRelease)
+        while (problem != null && InvalidPort(core) == null && core.InvalidListener == null && core.UnreachableListener == null
+               && core.SharedPort == null && waited.Elapsed + PortPoll <= steps.PortRelease)
         {
             await Task.Delay(PortPoll);
             problem = PortsProblem(core, secondaryPort, steps.CanListen);
@@ -157,8 +157,8 @@ public static class AetherCoreLoad
     /// on, as <paramref name="canListen" /> finds them (<see cref="CanListen" />), naming the first port that cannot; null
     /// when every one can. A port of the core outside 1..65535, which a command written by hand may name (D3-1), comes
     /// first, with what it is; then the option of a listener whose address the core does not take, where it would quietly
-    /// listen on its default instead (PattNG launchCore); then a port two listeners of such a command share, which the
-    /// core would bind once, named.
+    /// listen on its default instead (PattNG launchCore), and that of the listener the app dials where it does not reach
+    /// it; then a port two listeners of such a command share, which the core would bind once, named.
     /// </summary>
     public static string? PortsProblem(AetherCore core, int? secondaryPort, Func<int, bool, bool> canListen)
     {
@@ -169,6 +169,11 @@ public static class AetherCoreLoad
         if (core.InvalidListener is { } option)
         {
             return string.Format(ResUI.MsgAetherListenAddressInvalid, option);
+        }
+        // Nor a listener the app dials where it does not reach it: the session would stay connecting.
+        if (core.UnreachableListener is { } unreachable)
+        {
+            return string.Format(ResUI.MsgAetherListenAddressUnreachable, unreachable);
         }
         if (core.SharedPort is { } shared)
         {

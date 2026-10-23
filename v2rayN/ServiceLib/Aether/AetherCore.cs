@@ -31,6 +31,9 @@ public sealed record AetherCore
     /// <summary>The HTTP proxies among <see cref="Listeners" />, which a blank address or "off" turns off.</summary>
     private static readonly HashSet<string> HttpListeners = [AetherArguments.HttpProxy, AetherArguments.TorHttp, AetherArguments.PsiphonHttp];
 
+    /// <summary>Whether the system opens an IPv6 socket to IPv4 as well, see <see cref="AetherArguments.ReachesLoopback" />: all but Windows.</summary>
+    private static readonly bool DualStack = !OperatingSystem.IsWindows();
+
     private readonly IReadOnlyList<string> _arguments = [];
 
     public AetherCore(IReadOnlyList<string> arguments, AetherExit? exit = null)
@@ -99,6 +102,27 @@ public sealed record AetherCore
         AetherArguments.ListenerAddressAfter(Arguments, flag) is { } address
         && !AetherArguments.IsSocketAddress(address)
         && !(HttpListeners.Contains(flag) && address is "" or "off"));
+
+    /// <summary>
+    /// The option of the listener the app dials, see <see cref="AetherArguments.ListenerFlagOf" />, when the core takes its
+    /// address but the app does not reach it there (PattNG AetherCore.unreachableListener); null when it does, or when the
+    /// command names none and the app gives it one. The app dials the core on 127.0.0.1 (the Xray outbound, the readiness
+    /// probe, the port checks), which a listener on 0.0.0.0 answers as well, and one on :: outside Windows, see
+    /// <see cref="AetherArguments.ReachesLoopback" />, but one on 127.0.0.2, ::1 or a network's address does not: the
+    /// session would stay connecting.
+    /// </summary>
+    public string? UnreachableListener
+    {
+        get
+        {
+            var flag = AetherArguments.ListenerFlagOf(Arguments);
+            if (AetherArguments.ListenerAddressAfter(Arguments, flag) is not { } address || !AetherArguments.IsSocketAddress(address))
+            {
+                return null;
+            }
+            return AetherArguments.ReachesLoopback(address[..address.LastIndexOf(':')], DualStack) ? null : flag;
+        }
+    }
 
     /// <summary>
     /// The ports of <paramref name="listeners" />, in their order, but 0, which asks for any port: the port the arguments
