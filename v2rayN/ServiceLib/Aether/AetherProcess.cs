@@ -462,7 +462,8 @@ public static class AetherLeftovers
             {
                 using var process = Process.GetProcessById(entry.Pid);
                 long? started = process.StartTime.ToUniversalTime().Ticks;
-                var path = process.MainModule?.FileName;
+                // On Windows as the process names it, which works right after its start (ProcUtils.WindowsProgramOf)
+                var path = OperatingSystem.IsWindows() ? ProcUtils.WindowsProgramOf(entry.Pid) : process.MainModule?.FileName;
                 if (IsLeftover(entry, started, path, coreFile, BootTicksOf(entry.Pid)))
                 {
                     Logging.SaveLog($"AetherCore: killing a leftover core process, pid={entry.Pid}");
