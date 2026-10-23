@@ -60,9 +60,9 @@ public sealed class CoreInfoManager
     /// <summary>
     /// PattN: the file the core <paramref name="exeFile" /> of <paramref name="coreInfo" /> runs from, whatever it runs
     /// for: a session, a test, a scan, a key run, or a version check. That is the file itself, except for Xray on
-    /// Windows, which always runs from its copy p-xray-p.exe beside it, made equal to xray.exe first, and never as
-    /// xray.exe (<see cref="XrayRunFile" />). Empty, with <paramref name="msg" />, when that copy can be neither made nor
-    /// found.
+    /// Windows, which always runs from its copy p-xray-p.exe beside it, checked against xray.exe and made equal to it
+    /// first, and never as xray.exe (<see cref="XrayRunFile" />). Empty, with <paramref name="msg" />, when that copy
+    /// cannot be made equal to xray.exe.
     /// </summary>
     public static string RunFileOf(CoreInfo? coreInfo, string exeFile, out string msg)
     {
@@ -82,8 +82,10 @@ public sealed class CoreInfoManager
 
     /// <summary>
     /// PattN: makes the copy of <paramref name="xrayExe" /> (<see cref="XrayCopyOf" />) equal to it but for its name: where
-    /// the copy is missing, or differs, as once an update replaced xray.exe, xray.exe is copied over it. False, with
-    /// <paramref name="msg" />, when that cannot be done, as while Xray runs from the copy.
+    /// the copy is missing, or differs, as once an update replaced xray.exe, xray.exe is copied over it. The two are told
+    /// equal by their bytes (size, then SHA-256), which says more than their versions do, and asks neither of them: xray.exe
+    /// is never run, and its Windows build carries no version that could be read without running it. False, with
+    /// <paramref name="msg" />, when the copy cannot be made equal, as while an older one runs.
     /// </summary>
     public static bool SyncXrayCopy(string xrayExe, out string msg)
     {
@@ -106,22 +108,16 @@ public sealed class CoreInfoManager
     }
 
     /// <summary>
-    /// PattN: the file Xray runs from on Windows: the copy of <paramref name="xrayExe" />, made equal to it first
-    /// (<see cref="SyncXrayCopy" />), also where it is missing. A copy that cannot be made equal, as Xray runs from it now,
-    /// is used as it is. Empty, with <paramref name="msg" />, when there is no copy and none can be made: Xray is then not
-    /// run at all, never as xray.exe.
+    /// PattN: the file Xray runs from on Windows: the copy of <paramref name="xrayExe" />, checked against it before every
+    /// run and made equal to it where it is missing or differs (<see cref="SyncXrayCopy" />). Empty, with
+    /// <paramref name="msg" />, when it cannot be made equal, as while another Xray runs from an older copy: Xray is then
+    /// not run at all, neither as xray.exe nor from a copy that differs from it. Copies equal to xray.exe run side by side.
     /// </summary>
     public static string XrayRunFile(string xrayExe, out string msg)
     {
-        var copy = XrayCopyOf(xrayExe);
         if (SyncXrayCopy(xrayExe, out msg))
         {
-            return copy;
-        }
-        if (File.Exists(copy))
-        {
-            msg = string.Empty;
-            return copy;
+            return XrayCopyOf(xrayExe);
         }
         Logging.SaveLog(msg);
         return string.Empty;

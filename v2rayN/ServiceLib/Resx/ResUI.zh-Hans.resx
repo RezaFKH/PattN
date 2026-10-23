@@ -2540,6 +2540,6 @@
     <value>Aether 内核许可证</value>
   </data>
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
-    <value>在 Windows 上，PattN 以 xray.exe 的副本 {0} 运行 Xray 内核，但无法创建该副本：{1}</value>
+    <value>在 Windows 上，PattN 以 xray.exe 的副本 {0} 运行 Xray 内核，但无法使该副本与 xray.exe 一致：{1}</value>
   </data>
 </root>

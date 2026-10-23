@@ -2548,6 +2548,6 @@
     <value>Лицензии ядра Aether</value>
   </data>
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
-    <value>В Windows PattN запускает ядро Xray как {0}, копию xray.exe, а эту копию не удалось создать: {1}</value>
+    <value>В Windows PattN запускает ядро Xray как {0}, копию xray.exe, а эту копию не удалось сделать такой же, как xray.exe: {1}</value>
   </data>
 </root>

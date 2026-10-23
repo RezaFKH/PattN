@@ -2434,6 +2434,6 @@ Tindakan "Ambil sertifikat" mungkin gagal jika sertifikat self-signed digunakan 
     <value>Aether core licenses</value>
   </data>
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
-    <value>On Windows PattN runs Xray-core as {0}, a copy of xray.exe, and that copy could not be made: {1}</value>
+    <value>On Windows PattN runs Xray-core as {0}, a copy of xray.exe, and that copy could not be made the same as xray.exe: {1}</value>
   </data>
 </root>
