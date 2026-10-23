@@ -1,5 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using Microsoft.Win32.SafeHandles;
 
 namespace v2rayN.WebAPI.Services;
 
@@ -228,7 +231,9 @@ internal static class CoreProcessTracker
         {
             var path = OperatingSystem.IsLinux()
                 ? new FileInfo($"/proc/{process.Id}/exe").ResolveLinkTarget(returnFinalTarget: false)?.FullName
-                : process.MainModule?.FileName;
+                : OperatingSystem.IsWindows()
+                    ? WindowsImagePath(process.Id)
+                    : process.MainModule?.FileName;
             return path is null ? null : NormalizeExecutablePath(path);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception or NotSupportedException or ArgumentException)
@@ -236,6 +241,33 @@ internal static class CoreProcessTracker
             return null;
         }
     }
+
+    /// <summary>
+    /// PattN: the program a Windows process runs, as the process itself names it. MainModule reads the list of modules the
+    /// process has loaded, which Windows cannot give for a few milliseconds after the process starts (ERROR_PARTIAL_COPY),
+    /// so a core captured right after its start was missed; this needs only the right to query limited information.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    private static string? WindowsImagePath(int processId)
+    {
+        using var handle = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        if (handle.IsInvalid)
+        {
+            return null;
+        }
+        var buffer = new char[32768];
+        var length = buffer.Length;
+        return QueryFullProcessImageName(handle, 0, buffer, ref length) ? new string(buffer, 0, length) : null;
+    }
+
+    private const int ProcessQueryLimitedInformation = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern SafeProcessHandle OpenProcess(int desiredAccess, bool inheritHandle, int processId);
+
+    [DllImport("kernel32.dll", EntryPoint = "QueryFullProcessImageNameW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool QueryFullProcessImageName(SafeProcessHandle process, int flags, [Out] char[] exeName, ref int size);
 
     private static string? NormalizeExecutablePath(string? path)
     {
