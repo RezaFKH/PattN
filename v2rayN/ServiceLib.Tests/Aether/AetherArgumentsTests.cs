@@ -575,7 +575,7 @@ public class AetherArgumentsTests
         var reverse = Build(Profile(copy: it => it with { AetherTor = "reverse" }), 10819);
         await reverse.Contains("--tor-reverse").Should().BeTrue();
         await ValueAfter(reverse, "--bind").Should().BeEqualTo("127.0.0.1:10819");
-        // Unlike Psiphon's, Tor's listener gets a real port, which cores before 2.3.5 need, see AetherArguments.Build.
+        // Unlike Psiphon's, Tor's listener gets a real port, which cores before 2.3.5 needed, see AetherArguments.Build.
         await ValueAfter(reverse, "--tor-bind").Should().BeEqualTo("127.0.0.1:10820");
         await AetherArguments.ListenerPortOf(reverse).Should().BeEqualTo(10819);
     }

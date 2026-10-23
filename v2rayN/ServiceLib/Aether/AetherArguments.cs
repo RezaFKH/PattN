@@ -134,10 +134,11 @@ public static class AetherArguments
         // ports after it, in this order: the tunnel's own, then Tor's, then Psiphon's. Psiphon around the
         // tunnel is the exception: nothing of the app dials its listener and the core takes the port
         // Psiphon reports, so an ephemeral port keeps a scan core from colliding with the session's.
-        // Tor around the tunnel gets a real port: Aether before 2.3.5, which PattN may still run, makes
-        // the address Tor was told to listen on the tunnel's upstream, and with port 0 there sets it
-        // aside and dials around Tor. (long: no port the app passes runs past an int, and none may throw
-        // here.)
+        // Tor around the tunnel gets a real port: Aether before 2.3.5 made the address Tor was told to
+        // listen on the tunnel's upstream, and with port 0 there set it aside and dialled around Tor.
+        // PattN ships 2.3.5 or later, which dials the port Tor bound, so an ephemeral one would do now;
+        // the ports stay as the app has always handed them out. (long: no port the app passes runs past
+        // an int, and none may throw here.)
         var dialsPsiphon = psiphon == AetherPsiphon.Chain;
         var dialsTor = tor == AetherTor.Chain && !dialsPsiphon;
         var next = (long)port + 1;

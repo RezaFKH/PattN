@@ -133,9 +133,8 @@ public static class AetherPorts
 
     /// <summary>
     /// The port a scan of <paramref name="profile" /> binds: none, since nothing dials it, unless Tor around the
-    /// tunnel comes along, whose own listener follows the tunnel's and needs a real port: Aether before 2.3.5, which
-    /// PattN may still run, makes the address Tor was told to listen on the tunnel's upstream, and with port 0 there
-    /// dials around Tor. That port, X, comes from <paramref name="pick" /> (the system, by default:
+    /// tunnel comes along, whose own listener follows the tunnel's and so takes a real port as well, see
+    /// <see cref="AetherArguments.Build" />. That port, X, comes from <paramref name="pick" /> (the system, by default:
     /// <see cref="PickLoopbackPort" />), and neither X nor Tor's X+1 is the Aether listen port
     /// <paramref name="listenPort" /> or one of the three after it, which a session started beside the scan needs (PattN:
     /// as for every other port it picks, design 2.6.5); the last port picked when none other comes.
