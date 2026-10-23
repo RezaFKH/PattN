@@ -60,8 +60,9 @@ public static partial class AetherLogLine
 
     /// <summary>
     /// True when <paramref name="line" /> is the core's word that the listener the app dials carries traffic now:
-    /// "psiphon is ready". Psiphon's listener answers the SOCKS greeting as soon as it is bound and closes every
-    /// connection until then, so the greeting alone says nothing where the app dials Psiphon.
+    /// "psiphon is ready". Psiphon's own listener answers the SOCKS greeting as soon as it is bound and closes every
+    /// connection until then, so the greeting alone says nothing where the app dials Psiphon. An aether-core since 2.3.4
+    /// holds that listener itself and passes clients on to Psiphon only once it has said this word.
     /// </summary>
     public static bool IsReadyWord(string line)
     {
@@ -81,11 +82,11 @@ public static partial class AetherLogLine
     /// The core's words, as "tor: ..." or "psiphon: ...", when <paramref name="line" /> says that Tor or Psiphon inside
     /// the tunnel, whose listener a session started with <paramref name="arguments" /> is dialled on, has ended or could
     /// not start; null for any other line, and for a session dialled on the core's own listener (PattNG chainEndWords).
-    /// The core logs it and goes on without that listener (aether lib.rs, run_chain: "[-] tor: {e}" and
-    /// "[-] psiphon: {e}" at the error level, from the crate's root, the target "aether"), where another program may
-    /// listen then and get what Xray sends there. The notices of the Psiphon client that the core passes on, under the
-    /// same "[-] psiphon: ", come from its psiphon module, "aether::psiphon". The label of the error's kind, "other: " or
-    /// "io: ", is left out of the words.
+    /// The core logs it as "[-] tor: {e}" or "[-] psiphon: {e}" at the error level under the target "aether" (aether
+    /// lib.rs). An aether-core before 2.3.4 goes on without that listener then, where another program may listen and get
+    /// what Xray sends there; a later one ends as well. The notices of the Psiphon client that the core passes on, under
+    /// the same "[-] psiphon: ", come from its psiphon module, "aether::psiphon". The label of the error's kind, "other: "
+    /// or "io: ", is left out of the words.
     /// </summary>
     public static string? ChainEndWords(string line, IReadOnlyList<string> arguments)
     {

@@ -449,7 +449,7 @@ public class AetherCoreManagerTests : IDisposable
     private const string TorTakenText = "the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
                                         + "another program already listens there, so stop it or choose another port with --bind";
 
-    /// <summary>The core's line when Tor cannot take its listener (aether lib.rs, run_chain), as it writes it.</summary>
+    /// <summary>The core's line when Tor cannot take its listener, as an aether-core before 2.3.4 writes it.</summary>
     private const string TorTakenLine = "[2026-10-23T10:00:00.000Z ERROR aether] [-] tor: other: " + TorTakenText;
 
     /// <summary>The words of <see cref="TorTakenLine" /> the stop message gives.</summary>
@@ -467,13 +467,34 @@ public class AetherCoreManagerTests : IDisposable
         var ends = rig.WatchEnds();
 
         await rig.Manager.StartSessionAsync(TorInside(), generation: 7);
-        // The core goes on without the listener Xray dials, which another program holds (aether lib.rs, run_chain).
+        // An aether-core before 2.3.4 goes on without the listener Xray dials, which another program holds.
         rig.Core(0).Write(TorTakenLine);
 
         var ended = await Next(ends);
         await rig.Core(0).Killed.Should().BeTrue();
         await ended.Generation.Should().BeEqualTo(7);
         await ended.Message.Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, TorTakenWords));
+        await rig.Manager.Session.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ACoreThatEndsItselfAsTorInsideTheTunnelEndedIsReportedSo()
+    {
+        // An aether-core since 2.3.4 ends on its own after that line, with the error it names, which also tells the
+        // option that sets the port.
+        const string text = "the tor socks5 listener cannot use 127.0.0.1:10819: Address already in use (os error 98); "
+                            + "another program already listens there, so stop it or choose another port with --tor-bind";
+        var rig = new Rig(_root);
+        var ends = rig.WatchEnds();
+
+        await rig.Manager.StartSessionAsync(TorInside(), generation: 8);
+        rig.Core(0).Write("[2026-10-23T10:00:00.000Z ERROR aether] [-] tor: other: " + text);
+        rig.Core(0).Write("Error: Other(\"" + text + "\")");
+        rig.Core(0).Exit(1);
+
+        var ended = await Next(ends);
+        await ended.Generation.Should().BeEqualTo(8);
+        await ended.Message.Should().BeEqualTo(string.Format(ResUI.MsgAetherCoreStoppedChainEnded, "tor: " + text));
         await rig.Manager.Session.Should().BeNull();
     }
 

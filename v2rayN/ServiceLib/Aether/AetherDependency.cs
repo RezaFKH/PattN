@@ -109,10 +109,11 @@ public abstract record AetherDependency
 
     /// <summary>
     /// True when an inbound of the configuration <paramref name="content" />, as it is handed to Xray, listens on
-    /// <paramref name="port" />. The Aether core has to listen there on the loopback address, and Xray comes first: the
-    /// core only binds once its tunnel is up, and the Aether outbound would then dial an inbound of its own
-    /// configuration until the core gives up. PattN: this reads what the generated inbounds cannot show, the inbounds a
-    /// full-configuration template brings, written by hand in any form Xray reads a port in.
+    /// <paramref name="port" />. The Aether core has to listen there on the loopback address, and Xray comes first: an
+    /// aether-core since 2.3.4 finds the port taken as it starts and stops, and an older one binds only once its tunnel
+    /// is up, while the Aether outbound dials an inbound of its own configuration until the core gives up. PattN: this
+    /// reads what the generated inbounds cannot show, the inbounds a full-configuration template brings, written by hand
+    /// in any form Xray reads a port in.
     /// </summary>
     public static bool InboundListensOn(string content, int port)
     {

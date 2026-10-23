@@ -212,8 +212,9 @@ public sealed class AetherSession
     public AetherProtocol Protocol => Core.Protocol;
 
     /// <summary>
-    /// Whether the listener the app dials is Psiphon's, which answers the SOCKS greeting before it carries anything, so
-    /// that readiness needs the core's word as well; false when the core writes no info line to say it.
+    /// Whether the listener the app dials is Psiphon's, which may answer the SOCKS greeting before it carries anything
+    /// (<see cref="AetherLogLine.IsReadyWord" />), so that readiness needs the core's word as well; false when the core
+    /// writes no info line to say it.
     /// </summary>
     public bool NeedsWord { get; }
 
@@ -565,10 +566,11 @@ public sealed class AetherCoreManager
     }
 
     /// <summary>
-    /// Ends the core <paramref name="process" /> of <paramref name="session" />, which goes on without the listener Xray
-    /// dials once Tor or Psiphon inside the tunnel ended (<see cref="AetherSession.ChainEnd" />). Its exit then ends the
-    /// session as an exit on its own does, Xray with it (<see cref="WatchAsync" />; PattNG AetherCoreManager.watch). A
-    /// session PattN stopped, or one a new start replaced, has had its core ended already.
+    /// Ends the core <paramref name="process" /> of <paramref name="session" /> once Tor or Psiphon inside the tunnel ended
+    /// (<see cref="AetherSession.ChainEnd" />): an aether-core before 2.3.4 goes on without the listener Xray dials then,
+    /// and a later one ends on its own as well. Its exit then ends the session as an exit on its own does, Xray with it
+    /// (<see cref="WatchAsync" />; PattNG AetherCoreManager.watch). A session PattN stopped, or one a new start replaced,
+    /// has had its core ended already.
     /// </summary>
     private void EndForChain(AetherSession session, IAetherCoreProcess process)
     {

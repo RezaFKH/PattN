@@ -396,8 +396,8 @@ public static class AetherArguments
     }
 
     /// <summary>
-    /// True when the listener the app dials is Psiphon's, inside the tunnel or alone: it answers the greeting before it
-    /// carries anything, so readiness needs the core's word as well.
+    /// True when the listener the app dials is Psiphon's, inside the tunnel or alone: it may answer the greeting before it
+    /// carries anything (<see cref="AetherLogLine.IsReadyWord" />), so readiness needs the core's word as well.
     /// </summary>
     public static bool ReadyNeedsWord(IReadOnlyList<string> arguments)
     {
