@@ -185,10 +185,12 @@ public class AetherKeysViewModelTests
         await vm.KindOptions.Single(option => option.IsChecked).Kind.Should().BeEqualTo(AetherKeyKind.Gool);
         await vm.FingerprintLabels[vm.FingerprintIndex].Should().BeEqualTo("Firefox");
         await vm.Ech.Should().BeTrue();
-        // Blank, the core's own: the address of the server name, which follows the host.
+        // Blank, the core's own: the address of the server name, which follows the host; the two names of the API to pick.
         await vm.ApiAddress.Should().BeEqualTo(string.Empty);
         await vm.ApiSni.Should().BeEqualTo(string.Empty);
         await vm.ApiHost.Should().BeEqualTo(string.Empty);
+        await vm.ApiNameOptions.Should()
+            .BeEquivalentTo([AetherKeys.DefaultApiHost, AetherKeys.FallbackApiHost], CollectionOrdering.Matching);
         await vm.EchDns.Should().BeEqualTo("udp://1.1.1.1");
         await vm.EchDomain.Should().BeEqualTo("cloudflare-ech.com");
         await vm.ExitNode.IsFreedom.Should().BeTrue();

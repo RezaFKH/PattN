@@ -64,12 +64,13 @@
                             VerticalAlignment="Center"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiAddress}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiAddress"
+                        <ComboBox
+                            x:Name="cmbApiAddress"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             HorizontalAlignment="Left"
+                            IsEditable="True"
                             PlaceholderText="{x:Static resx:ResUI.TbAetherKeysApiAddressHint}" />
                     </Grid>
 
@@ -81,12 +82,13 @@
                             VerticalAlignment="Center"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiSni}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiSni"
+                        <ComboBox
+                            x:Name="cmbApiSni"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             HorizontalAlignment="Left"
+                            IsEditable="True"
                             PlaceholderText="{x:Static resx:ResUI.TbAetherKeysApiSniHint}" />
                     </Grid>
 
@@ -99,13 +101,14 @@
                             VerticalAlignment="Center"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiHost}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiHost"
+                        <ComboBox
+                            x:Name="cmbApiHost"
                             Grid.Row="0"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
-                            HorizontalAlignment="Left" />
+                            HorizontalAlignment="Left"
+                            IsEditable="True" />
                         <TextBlock
                             Grid.Row="1"
                             Grid.Column="1"

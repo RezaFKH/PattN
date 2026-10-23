@@ -77,15 +77,22 @@ public enum AetherKeysProblem
 public static class AetherKeys
 {
     /// <summary>
-    /// The HTTP host of the core's calls to the WARP API, which register and enroll the keys, unless told otherwise
-    /// (PattNG AppConfig.AETHER_API_HOST): the name the Cloudflare One client calls since its 2026.6.0. The server name
-    /// follows the host and the address the server name, unless told otherwise; with neither the server name nor the
-    /// host set, the core goes by <see cref="FallbackApiHost" /> next when this name gets no answer.
+    /// The HTTP host of the core's calls to the WARP API, which register and enroll the keys, unless told otherwise: the
+    /// name the Cloudflare One client calls since its 2026.6.0. The server name follows the host and the address the
+    /// server name, unless told otherwise; with neither the server name nor the host set, the core goes by
+    /// <see cref="FallbackApiHost" /> next when this name does not serve a call.
     /// </summary>
     public const string DefaultApiHost = "api.devices.cloudflare.com";
 
-    /// <summary>The WARP API's older name, which the core goes by when <see cref="DefaultApiHost" /> gets no answer.</summary>
+    /// <summary>The WARP API's older name, which the core goes by when <see cref="DefaultApiHost" /> does not serve a call.</summary>
     public const string FallbackApiHost = "api.cloudflareclient.com";
+
+    /// <summary>
+    /// What the API address, server name and host of the WARP keys window offer to pick, each of them blank, the core's
+    /// own, until one is picked or written (PattNG arrays.xml aether_api_name_options): the two names of the API, the one
+    /// the core goes by first, then the other.
+    /// </summary>
+    public static IReadOnlyList<string> ApiNameOptions { get; } = [DefaultApiHost, FallbackApiHost];
 
     /// <summary>The option that has the core register keys and end, with the word naming which.</summary>
     internal const string RegisterFlag = "--register";

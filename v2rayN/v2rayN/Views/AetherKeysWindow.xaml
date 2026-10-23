@@ -80,13 +80,15 @@
                             Style="{StaticResource ToolbarTextBlock}"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiAddress}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiAddress"
+                        <ComboBox
+                            x:Name="cmbApiAddress"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiAddressHint}"
-                            Style="{StaticResource DefTextBox}" />
+                            IsEditable="True"
+                            IsTextSearchEnabled="False"
+                            Style="{StaticResource DefComboBox}" />
                     </Grid>
 
                     <!--  2b. API server name, which a blank leaves to the host  -->
@@ -102,13 +104,15 @@
                             Style="{StaticResource ToolbarTextBlock}"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiSni}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiSni"
+                        <ComboBox
+                            x:Name="cmbApiSni"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiSniHint}"
-                            Style="{StaticResource DefTextBox}" />
+                            IsEditable="True"
+                            IsTextSearchEnabled="False"
+                            Style="{StaticResource DefComboBox}" />
                     </Grid>
 
                     <!--  2c. API host, the core's own while blank  -->
@@ -129,13 +133,15 @@
                             Style="{StaticResource ToolbarTextBlock}"
                             Text="{x:Static resx:ResUI.TbAetherKeysApiHost}"
                             TextWrapping="Wrap" />
-                        <TextBox
-                            x:Name="txtApiHost"
+                        <ComboBox
+                            x:Name="cmbApiHost"
                             Grid.Row="0"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
-                            Style="{StaticResource DefTextBox}" />
+                            IsEditable="True"
+                            IsTextSearchEnabled="False"
+                            Style="{StaticResource DefComboBox}" />
                         <TextBlock
                             Grid.Row="1"
                             Grid.Column="1"

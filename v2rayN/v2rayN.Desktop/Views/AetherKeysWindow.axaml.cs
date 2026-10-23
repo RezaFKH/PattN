@@ -30,6 +30,9 @@ public partial class AetherKeysWindow : WindowBase<AetherKeysViewModel>
                 .KeepNotNull()
                 .Subscribe(vm =>
                 {
+                    cmbApiAddress.ItemsSource = vm.ApiNameOptions;
+                    cmbApiSni.ItemsSource = vm.ApiNameOptions;
+                    cmbApiHost.ItemsSource = vm.ApiNameOptions;
                     cmbEchDns.ItemsSource = vm.EchDnsOptions;
                     cmbEchDomain.ItemsSource = vm.EchDomainOptions;
                     cmbFingerprint.ItemsSource = vm.FingerprintLabels;
@@ -37,9 +40,9 @@ public partial class AetherKeysWindow : WindowBase<AetherKeysViewModel>
                 .DisposeWith(disposables);
 
             // The fields, in PattNG's order.
-            this.Bind(ViewModel, vm => vm.ApiAddress, v => v.txtApiAddress.Text).DisposeWith(disposables);
-            this.Bind(ViewModel, vm => vm.ApiSni, v => v.txtApiSni.Text).DisposeWith(disposables);
-            this.Bind(ViewModel, vm => vm.ApiHost, v => v.txtApiHost.Text).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.ApiAddress, v => v.cmbApiAddress.Text).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.ApiSni, v => v.cmbApiSni.Text).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.ApiHost, v => v.cmbApiHost.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.Fragment, v => v.togFragment.IsChecked).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.FragmentSize, v => v.txtFragmentSize.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.FragmentDelay, v => v.txtFragmentDelay.Text).DisposeWith(disposables);

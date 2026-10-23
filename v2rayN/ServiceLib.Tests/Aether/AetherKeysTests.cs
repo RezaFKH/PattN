@@ -170,6 +170,29 @@ public class AetherKeysTests
     }
 
     [Test]
+    public async Task TheApiFieldsOfferTheTwoNamesOfTheApiAndStartBlank()
+    {
+        // What the API address, server name and host offer to pick: the name the core goes by first, then the other one.
+        await AetherKeys.ApiNameOptions.Should()
+            .BeEquivalentTo(["api.devices.cloudflare.com", "api.cloudflareclient.com"], CollectionOrdering.Matching);
+        // None of them is chosen until one is picked or written: blank is the core's own.
+        var defaults = new AetherKeysSettings();
+        await defaults.EnrollAddress.Should().BeEqualTo(string.Empty);
+        await defaults.ApiSni.Should().BeEqualTo(string.Empty);
+        await defaults.ApiHost.Should().BeEqualTo(string.Empty);
+        // Each name picked goes to the core as it is.
+        foreach (var name in AetherKeys.ApiNameOptions)
+        {
+            var picked = new AetherKeysSettings { EnrollAddress = name, ApiSni = name, ApiHost = name };
+            await AetherKeys.Problem(picked).Should().BeNull().Because(name);
+            var arguments = AetherKeys.Arguments(picked);
+            await ValueAfter(arguments, "--api-address").Should().BeEqualTo(name);
+            await ValueAfter(arguments, "--api-sni").Should().BeEqualTo(name);
+            await ValueAfter(arguments, "--api-host").Should().BeEqualTo(name);
+        }
+    }
+
+    [Test]
     public async Task TheApiServerNameAndHostGoTrimmedAndBlankLeavesTheCoresOwn()
     {
         var blank = AetherKeys.Arguments(new AetherKeysSettings { ApiSni = " ", ApiHost = "" });

@@ -219,6 +219,10 @@ public partial class AetherKeysViewModel : MyReactiveObject
     #region lists
 
     public IReadOnlyList<string> FingerprintLabels { get; } = AetherLabels.Fingerprints;
+
+    /// <summary>What the API address, server name and host offer to pick (PattNG aether_api_name_options).</summary>
+    public IReadOnlyList<string> ApiNameOptions { get; } = AetherKeys.ApiNameOptions;
+
     public IReadOnlyList<string> EchDnsOptions { get; } = Global.AetherEchDnsOptions;
     public IReadOnlyList<string> EchDomainOptions { get; } = Global.AetherEchDomainOptions;
 
