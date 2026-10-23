@@ -2512,6 +2512,21 @@
   <data name="TbAetherKeysApiAddress" xml:space="preserve">
     <value>API 位址</value>
   </data>
+  <data name="TbAetherKeysApiAddressHint" xml:space="preserve">
+    <value>留空則使用 API 伺服器名稱的位址</value>
+  </data>
+  <data name="TbAetherKeysApiSni" xml:space="preserve">
+    <value>API 伺服器名稱 (SNI)</value>
+  </data>
+  <data name="TbAetherKeysApiSniHint" xml:space="preserve">
+    <value>留空則使用 API 主機</value>
+  </data>
+  <data name="TbAetherKeysApiHost" xml:space="preserve">
+    <value>API 主機</value>
+  </data>
+  <data name="TbAetherKeysApiHostHint" xml:space="preserve">
+    <value>留空則使用 api.devices.cloudflare.com；若其無回應且伺服器名稱也留空，則改用 api.cloudflareclient.com。Cloudflare 會拒絕與主機不同的伺服器名稱</value>
+  </data>
   <data name="TbAetherKeysFragmentHint" xml:space="preserve">
     <value>將 WARP API 請求的 ClientHello 分片傳送，用於會過濾 API 名稱的網路</value>
   </data>
@@ -2538,6 +2553,12 @@
   </data>
   <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
     <value>API 位址必須是 IP 位址或網域名稱，可帶連接埠，例如 188.114.97.6:443 或 [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiSni" xml:space="preserve">
+    <value>API 伺服器名稱必須是網域名稱，例如 api.devices.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiHost" xml:space="preserve">
+    <value>API 主機必須是網域名稱，例如 api.devices.cloudflare.com</value>
   </data>
   <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
     <value>命令必須註冊金鑰：--register 後接 all、wg、masque、mim、gool-classic（WARP-in-WARP）或 gool（WireGuard over MASQUE）</value>

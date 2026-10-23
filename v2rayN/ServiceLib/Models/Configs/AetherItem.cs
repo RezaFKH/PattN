@@ -22,6 +22,12 @@ public class AetherItem
     /// <summary>The API address; empty for none (PattNG pref_aether_keys_enroll_address).</summary>
     public string? KeysApiAddress { get; set; }
 
+    /// <summary>The API server name, --api-sni; empty for none (PattNG pref_aether_keys_api_sni).</summary>
+    public string? KeysApiSni { get; set; }
+
+    /// <summary>The API host, --api-host; empty for none (PattNG pref_aether_keys_api_host).</summary>
+    public string? KeysApiHost { get; set; }
+
     public bool KeysFragment { get; set; }
     public string? KeysFragmentSize { get; set; }
     public string? KeysFragmentDelay { get; set; }

@@ -185,7 +185,10 @@ public class AetherKeysViewModelTests
         await vm.KindOptions.Single(option => option.IsChecked).Kind.Should().BeEqualTo(AetherKeyKind.Gool);
         await vm.FingerprintLabels[vm.FingerprintIndex].Should().BeEqualTo("Firefox");
         await vm.Ech.Should().BeTrue();
-        await vm.ApiAddress.Should().BeEqualTo(AetherKeys.DefaultEnrollAddress);
+        // Blank, the core's own: the address of the server name, which follows the host.
+        await vm.ApiAddress.Should().BeEqualTo(string.Empty);
+        await vm.ApiSni.Should().BeEqualTo(string.Empty);
+        await vm.ApiHost.Should().BeEqualTo(string.Empty);
         await vm.EchDns.Should().BeEqualTo("udp://1.1.1.1");
         await vm.EchDomain.Should().BeEqualTo("cloudflare-ech.com");
         await vm.ExitNode.IsFreedom.Should().BeTrue();
@@ -202,6 +205,8 @@ public class AetherKeysViewModelTests
 
         vm.Kind = AetherKeyKind.Mim;
         vm.ApiAddress = "188.114.97.6:443";
+        vm.ApiSni = "api.devices.cloudflare.com";
+        vm.ApiHost = "api.devices.cloudflare.com";
         vm.Ech = true;
         vm.EchDns = "https://1.1.1.1/dns-query";
         vm.EchDomain = "example.com";
@@ -213,6 +218,8 @@ public class AetherKeysViewModelTests
         {
             Kind = AetherKeyKind.Mim,
             EnrollAddress = "188.114.97.6:443",
+            ApiSni = "api.devices.cloudflare.com",
+            ApiHost = "api.devices.cloudflare.com",
             Ech = true,
             EchDns = "https://1.1.1.1/dns-query",
             EchDomain = "example.com",
@@ -221,14 +228,15 @@ public class AetherKeysViewModelTests
             DialMode = "ForceIP",
         };
         await vm.Settings.Should().BeEqualTo(expected);
-        await source.Saved.Count.Should().BeEqualTo(8);
+        await source.Saved.Count.Should().BeEqualTo(10);
         await source.Saved.Last().Should().BeEqualTo(expected);
 
         // A change to what is already there saves nothing, nor does a list that picks nothing for a moment.
         vm.Kind = AetherKeyKind.Mim;
         vm.FingerprintIndex = -1;
         vm.ApiAddress = "188.114.97.6:443";
-        await source.Saved.Count.Should().BeEqualTo(8);
+        vm.ApiHost = "api.devices.cloudflare.com";
+        await source.Saved.Count.Should().BeEqualTo(10);
     }
 
     [Test]
@@ -409,6 +417,16 @@ public class AetherKeysViewModelTests
         await shown.Should().Contain(ResUI.MsgAetherKeysInvalidApiAddress);
 
         vm.ApiAddress = string.Empty;
+        vm.ApiSni = "162.159.137.105";
+        shown = await Notices(vm.GetKeysAsync);
+        await shown.Should().Contain(ResUI.MsgAetherKeysInvalidApiSni);
+
+        vm.ApiSni = string.Empty;
+        vm.ApiHost = "https://api.devices.cloudflare.com";
+        shown = await Notices(vm.GetKeysAsync);
+        await shown.Should().Contain(ResUI.MsgAetherKeysInvalidApiHost);
+
+        vm.ApiHost = string.Empty;
         vm.CommandText = "aether --protocol wg";
         shown = await Notices(vm.GetKeysAsync);
         await shown.Should().Contain(ResUI.MsgAetherKeysInvalidCommand);
@@ -422,6 +440,8 @@ public class AetherKeysViewModelTests
     public async Task EachProblemHasItsMessage()
     {
         await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidEnrollAddress).Should().BeEqualTo(ResUI.MsgAetherKeysInvalidApiAddress);
+        await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidApiSni).Should().BeEqualTo(ResUI.MsgAetherKeysInvalidApiSni);
+        await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidApiHost).Should().BeEqualTo(ResUI.MsgAetherKeysInvalidApiHost);
         await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidFragment).Should().BeEqualTo(ResUI.MsgAetherInvalidFragment);
         await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidEchDns).Should().BeEqualTo(ResUI.MsgAetherInvalidEchDns);
         await AetherKeysViewModel.MessageOf(AetherKeysProblem.InvalidEchDomain).Should().BeEqualTo(ResUI.MsgAetherInvalidEchDomain);
@@ -620,6 +640,8 @@ public class AetherKeysViewModelTests
         {
             Kind = AetherKeyKind.WgOverMasque,
             EnrollAddress = string.Empty,
+            ApiSni = " front.example.com ",
+            ApiHost = "api.devices.cloudflare.com",
             Fragment = true,
             FragmentSize = "8-16",
             FragmentDelay = " 5 ",
@@ -637,8 +659,11 @@ public class AetherKeysViewModelTests
 
         await item.KeysKind.Should().BeEqualTo("wg-over-masque");
         await item.KeysFingerprint.Should().BeEqualTo("go");
-        // A blank API address stays blank, which sends none: it is not the default read back.
+        // A blank API address stays blank, which sends none: the core's own address.
         await item.KeysApiAddress.Should().BeEqualTo(string.Empty);
+        // The server name and the host are kept as written, as the API address is.
+        await item.KeysApiSni.Should().BeEqualTo(" front.example.com ");
+        await item.KeysApiHost.Should().BeEqualTo("api.devices.cloudflare.com");
         await item.KeysFragmentDelay.Should().BeEqualTo(" 5 ");
         // The ECH DNS and domain are stored trimmed, and the default not at all, so that it follows the default.
         await item.KeysEchDns.Should().BeNull();

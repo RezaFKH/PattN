@@ -85,7 +85,65 @@
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
+                            materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiAddressHint}"
                             Style="{StaticResource DefTextBox}" />
+                    </Grid>
+
+                    <!--  2b. API server name, which a blank leaves to the host  -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Grid.Column="0"
+                            Margin="{StaticResource Margin4}"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Text="{x:Static resx:ResUI.TbAetherKeysApiSni}"
+                            TextWrapping="Wrap" />
+                        <TextBox
+                            x:Name="txtApiSni"
+                            Grid.Column="1"
+                            Width="400"
+                            Margin="{StaticResource Margin4}"
+                            materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiSniHint}"
+                            Style="{StaticResource DefTextBox}" />
+                    </Grid>
+
+                    <!--  2c. API host, the core's own while blank  -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Margin="{StaticResource Margin4}"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Text="{x:Static resx:ResUI.TbAetherKeysApiHost}"
+                            TextWrapping="Wrap" />
+                        <TextBox
+                            x:Name="txtApiHost"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Width="400"
+                            Margin="{StaticResource Margin4}"
+                            Style="{StaticResource DefTextBox}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="400"
+                            Margin="{StaticResource Margin4}"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Text="{x:Static resx:ResUI.TbAetherKeysApiHostHint}"
+                            TextWrapping="Wrap" />
                     </Grid>
 
                     <!--  3. Fragment ClientHello of the calls to the WARP API  -->

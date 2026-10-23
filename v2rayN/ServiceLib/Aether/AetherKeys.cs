@@ -12,8 +12,20 @@ public sealed record AetherKeysSettings
 {
     public AetherKeyKind Kind { get; init; } = AetherKeyKind.AllKeys;
 
-    /// <summary>The API address (PattNG's enrollAddress, the name its stored setting keeps).</summary>
-    public string EnrollAddress { get; init; } = AetherKeys.DefaultEnrollAddress;
+    /// <summary>
+    /// The API address, --api-address (PattNG's enrollAddress, the name its stored setting keeps); blank, the core's own:
+    /// the address of the server name.
+    /// </summary>
+    public string EnrollAddress { get; init; } = string.Empty;
+
+    /// <summary>The server name of the calls to the WARP API, --api-sni; blank, the core's own: the host.</summary>
+    public string ApiSni { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The HTTP host of the calls to the WARP API, --api-host; blank, the core's own: <see cref="AetherKeys.DefaultApiHost" />,
+    /// then api.cloudflareclient.com.
+    /// </summary>
+    public string ApiHost { get; init; } = string.Empty;
 
     public bool Fragment { get; init; }
     public string FragmentSize { get; init; } = string.Empty;
@@ -48,6 +60,8 @@ public sealed record AetherKeysSettings
 public enum AetherKeysProblem
 {
     InvalidEnrollAddress,
+    InvalidApiSni,
+    InvalidApiHost,
     InvalidFragment,
     InvalidEchDns,
     InvalidEchDomain,
@@ -62,19 +76,27 @@ public enum AetherKeysProblem
 /// </summary>
 public static class AetherKeys
 {
-    /// <summary>Where the core sends the calls to the WARP API, which register and enroll the keys, unless told otherwise (PattNG AppConfig.AETHER_ENROLL_ADDRESS).</summary>
-    public const string DefaultEnrollAddress = "api.cloudflareclient.com";
+    /// <summary>
+    /// The HTTP host of the core's calls to the WARP API, which register and enroll the keys, unless told otherwise
+    /// (PattNG AppConfig.AETHER_API_HOST): the name the Cloudflare One client calls since its 2026.6.0. The server name
+    /// follows the host and the address the server name, unless told otherwise; with neither the server name nor the
+    /// host set, the core goes by <see cref="FallbackApiHost" /> next when this name gets no answer.
+    /// </summary>
+    public const string DefaultApiHost = "api.devices.cloudflare.com";
+
+    /// <summary>The WARP API's older name, which the core goes by when <see cref="DefaultApiHost" /> gets no answer.</summary>
+    public const string FallbackApiHost = "api.cloudflareclient.com";
 
     /// <summary>The option that has the core register keys and end, with the word naming which.</summary>
     internal const string RegisterFlag = "--register";
 
     /// <summary>
     /// The arguments <paramref name="settings" /> give: the keys to register first, the address the calls to the WARP
-    /// API go to unless it is left blank, the ClientHello of those calls in pieces when fragmenting is on (--fragment,
-    /// which a run that only registers keys applies to those calls alone), sized and spaced as set or as the core has
-    /// them by default, and whole without the flag, Encrypted Client Hello on those calls with the key of the ECH
-    /// domain, asked of the ECH DNS, and the TLS 1.2 cipher suites of the fingerprint, with GREASE left out where the
-    /// fingerprint has none.
+    /// API go to, the server name of their ClientHello and their HTTP host, each unless it is left blank, the
+    /// ClientHello of those calls in pieces when fragmenting is on (--fragment, which a run that only registers keys
+    /// applies to those calls alone), sized and spaced as set or as the core has them by default, and whole without the
+    /// flag, Encrypted Client Hello on those calls with the key of the ECH domain, asked of the ECH DNS, and the TLS 1.2
+    /// cipher suites of the fingerprint, with GREASE left out where the fingerprint has none.
     /// </summary>
     public static List<string> Arguments(AetherKeysSettings settings)
     {
@@ -83,6 +105,16 @@ public static class AetherKeys
         if (address.Length > 0)
         {
             arguments.AddRange(["--api-address", address]);
+        }
+        var sni = Trim(settings.ApiSni);
+        if (sni.Length > 0)
+        {
+            arguments.AddRange(["--api-sni", sni]);
+        }
+        var host = Trim(settings.ApiHost);
+        if (host.Length > 0)
+        {
+            arguments.AddRange(["--api-host", host]);
         }
         if (settings.Fragment)
         {
@@ -163,6 +195,17 @@ public static class AetherKeys
         if (address.Length > 0 && !IsEnrollAddress(address))
         {
             return AetherKeysProblem.InvalidEnrollAddress;
+        }
+        // The core checks --api-sni and --api-host as it checks --masque-sni.
+        var sni = Trim(settings.ApiSni);
+        if (sni.Length > 0 && !AetherFmt.IsMasqueSni(sni))
+        {
+            return AetherKeysProblem.InvalidApiSni;
+        }
+        var host = Trim(settings.ApiHost);
+        if (host.Length > 0 && !AetherFmt.IsMasqueSni(host))
+        {
+            return AetherKeysProblem.InvalidApiHost;
         }
         if (settings.Fragment
             && !(TakesRange(settings.FragmentSize, AetherRange.FragmentSize) && TakesRange(settings.FragmentDelay, AetherRange.FragmentDelay)))

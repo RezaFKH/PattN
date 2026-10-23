@@ -8,8 +8,14 @@ namespace ServiceLib.Aether;
 /// </summary>
 public static class AetherBootstrapNames
 {
-    /// <summary>The WARP API, which the core calls for a key it does not have, unless its command names another address.</summary>
-    public const string WarpApi = "api.cloudflareclient.com";
+    /// <summary>
+    /// The WARP API, which the core calls for a key it does not have, by the name it goes by first, unless its command
+    /// names an address, a server name or a host of its own.
+    /// </summary>
+    public const string WarpApi = AetherKeys.DefaultApiHost;
+
+    /// <summary>The WARP API's other name, which the core goes by next when <see cref="WarpApi" /> gets no answer.</summary>
+    public const string WarpApiFallback = AetherKeys.FallbackApiHost;
 
     /// <summary>Where Psiphon fetches its remote server list from before it has a tunnel.</summary>
     public const string PsiphonRemoteList = "s3.amazonaws.com";
@@ -41,10 +47,12 @@ public static class AetherBootstrapNames
 
     /// <summary>
     /// The domain names a core started with <paramref name="arguments" /> asks Xray for before its tunnel is up, when it
-    /// dials out by the freedom exit-node: the WARP API (and the address its command sends the calls to, when that is a
-    /// name, with or without a port); the host the DNS-over-HTTPS resolver of its ECH key lookup is reached at (the
-    /// @address= name when it has one, the host of its URL otherwise), or the ECH domain itself when the key is asked of
-    /// a plain DNS resolver, whose query a sing-box TUN in front of Xray answers by its DNS rules; when Tor runs around
+    /// dials out by the freedom exit-node: the names of the WARP API, and the address, the server name and the host its
+    /// command sends the calls to, when they are names, the address with or without a port (the calls go to the address,
+    /// or else to the server name, which follows the host; a name given that the core then does not look up does no
+    /// harm here); the host the DNS-over-HTTPS resolver of its ECH key lookup is reached at (the @address= name when it
+    /// has one, the host of its URL otherwise), or the ECH domain itself when the key is asked of a plain DNS resolver,
+    /// whose query a sing-box TUN in front of Xray answers by its DNS rules; when Tor runs around
     /// the tunnel or alone, the bootstrap names of Tor and the hosts the profile's own bridge lines dial; and Psiphon's
     /// remote server list when Psiphon runs around the tunnel or alone (inside the tunnel, Psiphon fetches it through
     /// the tunnel, as Tor inside it reaches its names). IP addresses need no lookup and are left out. Names Psiphon's
@@ -53,8 +61,10 @@ public static class AetherBootstrapNames
     /// </summary>
     public static List<string> Of(IReadOnlyList<string> arguments)
     {
-        var names = new List<string> { WarpApi };
+        var names = new List<string> { WarpApi, WarpApiFallback };
         AddDomain(names, HostOf(AetherArguments.ValueAfter(arguments, "--api-address")));
+        AddApiName(names, AetherArguments.ValueAfter(arguments, "--api-sni"));
+        AddApiName(names, AetherArguments.ValueAfter(arguments, "--api-host"));
         AddDomain(names, DohHostOf(AetherArguments.ValueAfter(arguments, "--ech-dns")));
         if (LooksUpEchKeyOverPlainDns(arguments))
         {
@@ -196,6 +206,22 @@ public static class AetherBootstrapNames
         }
         // Two colons or more without brackets: an IPv6 address alone.
         return text.IndexOf(':', colon + 1) >= 0 ? text : text[..colon];
+    }
+
+    /// <summary>
+    /// Adds the name <paramref name="value" />, of the core's --api-sni or --api-host, gives the calls to the WARP API, as
+    /// the core reads it: trimmed and without a trailing dot, when it is a name the core takes, which it checks as it
+    /// checks --masque-sni (see AetherFmt.IsMasqueSni). Such a name may be none <see cref="Utils.IsDomain" /> takes, as
+    /// one with an underscore.
+    /// </summary>
+    private static void AddApiName(List<string> names, string? value)
+    {
+        var text = value?.Trim();
+        if (string.IsNullOrEmpty(text) || !AetherFmt.IsMasqueSni(text))
+        {
+            return;
+        }
+        names.Add(text.EndsWith('.') ? text[..^1] : text);
     }
 
     /// <summary>

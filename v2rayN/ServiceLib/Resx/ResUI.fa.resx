@@ -2382,6 +2382,21 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="TbAetherKeysApiAddress" xml:space="preserve">
     <value>نشانی API</value>
   </data>
+  <data name="TbAetherKeysApiAddressHint" xml:space="preserve">
+    <value>خالی بگذارید تا نشانی نام سرور API استفاده شود</value>
+  </data>
+  <data name="TbAetherKeysApiSni" xml:space="preserve">
+    <value>نام سرور API (SNI)</value>
+  </data>
+  <data name="TbAetherKeysApiSniHint" xml:space="preserve">
+    <value>خالی بگذارید تا میزبان API استفاده شود</value>
+  </data>
+  <data name="TbAetherKeysApiHost" xml:space="preserve">
+    <value>میزبان API</value>
+  </data>
+  <data name="TbAetherKeysApiHostHint" xml:space="preserve">
+    <value>خالی بگذارید تا api.devices.cloudflare.com استفاده شود؛ اگر پاسخی ندهد و نام سرور هم خالی باشد، api.cloudflareclient.com استفاده می‌شود. Cloudflare نام سروری را که با میزبان فرق داشته باشد نمی‌پذیرد</value>
+  </data>
   <data name="TbAetherKeysFragmentHint" xml:space="preserve">
     <value>ClientHello درخواست‌های WARP API را تکه‌تکه می‌فرستد، برای شبکه‌هایی که نام API را فیلتر می‌کنند</value>
   </data>
@@ -2408,6 +2423,12 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   </data>
   <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
     <value>نشانی API باید یک نشانی IP یا نام دامنه باشد، با پورت یا بدون آن، مثل 188.114.97.6:443 یا [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiSni" xml:space="preserve">
+    <value>نام سرور API باید نام دامنه باشد، مانند api.devices.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiHost" xml:space="preserve">
+    <value>میزبان API باید نام دامنه باشد، مانند api.devices.cloudflare.com</value>
   </data>
   <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
     <value>فرمان باید کلید ثبت کند: --register و پس از آن all، wg، masque، mim، gool-classic (WARP-in-WARP) یا gool (WireGuard over MASQUE)</value>

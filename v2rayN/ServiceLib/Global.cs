@@ -795,8 +795,8 @@ public class Global
         { ECoreType.mieru, "enfein/mieru" },
         { ECoreType.v2rayN, "patterniha/PattN" },
 
-        // PattN: the fork, not upstream CluvexStudio/Aether: only the fork's core takes --psiphon-server-entries and
-        // --api-address
+        // PattN: the fork, not upstream CluvexStudio/Aether: only the fork's core takes --psiphon-server-entries,
+        // --api-address, --api-sni and --api-host
         { ECoreType.aether, "patterniha/Aether" },
     };
 

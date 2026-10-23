@@ -119,6 +119,20 @@ public partial class AetherKeysViewModel : MyReactiveObject
         set => Update(settings => settings with { EnrollAddress = value ?? string.Empty });
     }
 
+    /// <summary>The server name of the calls to the WARP API (PattNG apiSni); blank, the core's own.</summary>
+    public string ApiSni
+    {
+        get => Settings.ApiSni;
+        set => Update(settings => settings with { ApiSni = value ?? string.Empty });
+    }
+
+    /// <summary>The HTTP host of the calls to the WARP API (PattNG apiHost); blank, the core's own.</summary>
+    public string ApiHost
+    {
+        get => Settings.ApiHost;
+        set => Update(settings => settings with { ApiHost = value ?? string.Empty });
+    }
+
     public bool Fragment
     {
         get => Settings.Fragment;
@@ -368,6 +382,8 @@ public partial class AetherKeysViewModel : MyReactiveObject
         return problem switch
         {
             AetherKeysProblem.InvalidEnrollAddress => ResUI.MsgAetherKeysInvalidApiAddress,
+            AetherKeysProblem.InvalidApiSni => ResUI.MsgAetherKeysInvalidApiSni,
+            AetherKeysProblem.InvalidApiHost => ResUI.MsgAetherKeysInvalidApiHost,
             AetherKeysProblem.InvalidFragment => ResUI.MsgAetherInvalidFragment,
             AetherKeysProblem.InvalidEchDns => ResUI.MsgAetherInvalidEchDns,
             AetherKeysProblem.InvalidEchDomain => ResUI.MsgAetherInvalidEchDomain,
@@ -483,6 +499,8 @@ public partial class AetherKeysViewModel : MyReactiveObject
         }
         this.RaisePropertyChanged(nameof(Kind));
         this.RaisePropertyChanged(nameof(ApiAddress));
+        this.RaisePropertyChanged(nameof(ApiSni));
+        this.RaisePropertyChanged(nameof(ApiHost));
         this.RaisePropertyChanged(nameof(Fragment));
         this.RaisePropertyChanged(nameof(FragmentSize));
         this.RaisePropertyChanged(nameof(FragmentDelay));

@@ -2508,6 +2508,21 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="TbAetherKeysApiAddress" xml:space="preserve">
     <value>API ünvanı</value>
   </data>
+  <data name="TbAetherKeysApiAddressHint" xml:space="preserve">
+    <value>API server adının ünvanı üçün boş buraxın</value>
+  </data>
+  <data name="TbAetherKeysApiSni" xml:space="preserve">
+    <value>API server adı (SNI)</value>
+  </data>
+  <data name="TbAetherKeysApiSniHint" xml:space="preserve">
+    <value>API hostu üçün boş buraxın</value>
+  </data>
+  <data name="TbAetherKeysApiHost" xml:space="preserve">
+    <value>API hostu</value>
+  </data>
+  <data name="TbAetherKeysApiHostHint" xml:space="preserve">
+    <value>api.devices.cloudflare.com üçün boş buraxın; o cavab verməsə və server adı da boşdursa, api.cloudflareclient.com işlədilir. Cloudflare hostdan fərqli server adını qəbul etmir</value>
+  </data>
   <data name="TbAetherKeysFragmentHint" xml:space="preserve">
     <value>API adını filtrləyən şəbəkələr üçün WARP API sorğularının ClientHello-sunu hissə-hissə göndərir</value>
   </data>
@@ -2534,6 +2549,12 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   </data>
   <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
     <value>API ünvanı portlu və ya portsuz IP ünvanı və ya domen adı olmalıdır, məsələn 188.114.97.6:443 və ya [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiSni" xml:space="preserve">
+    <value>API server adı domen adı olmalıdır, məsələn api.devices.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiHost" xml:space="preserve">
+    <value>API hostu domen adı olmalıdır, məsələn api.devices.cloudflare.com</value>
   </data>
   <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
     <value>Əmr açarları qeydiyyatdan keçirməlidir: --register, ardınca all, wg, masque, mim, gool-classic (WARP-in-WARP) və ya gool (WireGuard over MASQUE)</value>

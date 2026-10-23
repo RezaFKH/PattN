@@ -2428,6 +2428,24 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 The API host must be a domain name, such as api.devices.cloudflare.com 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherKeysInvalidApiHost {
+            get {
+                return ResourceManager.GetString("MsgAetherKeysInvalidApiHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 The API server name must be a domain name, such as api.devices.cloudflare.com 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherKeysInvalidApiSni {
+            get {
+                return ResourceManager.GetString("MsgAetherKeysInvalidApiSni", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 The command has to register keys: --register followed by all, wg, masque, mim, gool-classic (WARP-in-WARP) or gool (WireGuard over MASQUE) 的本地化字符串。
         /// </summary>
         public static string MsgAetherKeysInvalidCommand {
@@ -3981,6 +3999,51 @@ namespace ServiceLib.Resx {
         public static string TbAetherKeysApiAddress {
             get {
                 return ResourceManager.GetString("TbAetherKeysApiAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Leave blank for the address of the API server name 的本地化字符串。
+        /// </summary>
+        public static string TbAetherKeysApiAddressHint {
+            get {
+                return ResourceManager.GetString("TbAetherKeysApiAddressHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 API host 的本地化字符串。
+        /// </summary>
+        public static string TbAetherKeysApiHost {
+            get {
+                return ResourceManager.GetString("TbAetherKeysApiHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Leave blank for api.devices.cloudflare.com, then api.cloudflareclient.com if it gets no answer and the server name is blank too. Cloudflare refuses a server name that differs from the host 的本地化字符串。
+        /// </summary>
+        public static string TbAetherKeysApiHostHint {
+            get {
+                return ResourceManager.GetString("TbAetherKeysApiHostHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 API server name (SNI) 的本地化字符串。
+        /// </summary>
+        public static string TbAetherKeysApiSni {
+            get {
+                return ResourceManager.GetString("TbAetherKeysApiSni", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Leave blank for the API host 的本地化字符串。
+        /// </summary>
+        public static string TbAetherKeysApiSniHint {
+            get {
+                return ResourceManager.GetString("TbAetherKeysApiSniHint", resourceCulture);
             }
         }
         

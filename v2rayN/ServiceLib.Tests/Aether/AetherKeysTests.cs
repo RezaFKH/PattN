@@ -100,14 +100,17 @@ public class AetherKeysTests
     }
 
     [Test]
-    public async Task TheDefaultsGetEveryKeyFromTheApisOwnAddressWithChromesRule()
+    public async Task TheDefaultsGetEveryKeyTheWayTheCoreCallsTheApiWithChromesRule()
     {
+        // No address, server name or host: the core's own, api.devices.cloudflare.com, then api.cloudflareclient.com when
+        // that one gets no answer.
         await ShouldBe(AetherKeys.Arguments(new AetherKeysSettings()),
             "--register", "all",
-            "--api-address", "api.cloudflareclient.com",
             "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
         await AetherKeys.BuiltCommand(new AetherKeysSettings())
-            .Should().BeEqualTo("aether --register all --api-address api.cloudflareclient.com --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES");
+            .Should().BeEqualTo("aether --register all --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES");
+        await AetherKeys.DefaultApiHost.Should().BeEqualTo("api.devices.cloudflare.com");
+        await AetherKeys.FallbackApiHost.Should().BeEqualTo("api.cloudflareclient.com");
         // A plain exit-node.
         await new AetherKeysSettings().Exit.Should().BeEqualTo(new AetherExit());
     }
@@ -167,6 +170,32 @@ public class AetherKeysTests
     }
 
     [Test]
+    public async Task TheApiServerNameAndHostGoTrimmedAndBlankLeavesTheCoresOwn()
+    {
+        var blank = AetherKeys.Arguments(new AetherKeysSettings { ApiSni = " ", ApiHost = "" });
+        await blank.Contains("--api-sni").Should().BeFalse();
+        await blank.Contains("--api-host").Should().BeFalse();
+        // Each one apart, after the address, as the core takes them; the same name for both, as Cloudflare wants.
+        await ShouldBe(
+            AetherKeys.Arguments(new AetherKeysSettings
+            {
+                EnrollAddress = "162.159.137.105",
+                ApiSni = " api.cloudflareclient.com ",
+                ApiHost = "api.cloudflareclient.com ",
+            }),
+            "--register", "all",
+            "--api-address", "162.159.137.105",
+            "--api-sni", "api.cloudflareclient.com",
+            "--api-host", "api.cloudflareclient.com",
+            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
+        // One alone leaves the others to the core.
+        var hostOnly = AetherKeys.Arguments(new AetherKeysSettings { ApiHost = "api.cloudflareclient.com" });
+        await ValueAfter(hostOnly, "--api-host").Should().BeEqualTo("api.cloudflareclient.com");
+        await hostOnly.Contains("--api-sni").Should().BeFalse();
+        await hostOnly.Contains("--api-address").Should().BeFalse();
+    }
+
+    [Test]
     public async Task TheRequestAddressIsWhatTheCoreTakes()
     {
         foreach (var address in new[]
@@ -197,6 +226,22 @@ public class AetherKeysTests
         await AetherKeys.Problem(fine).Should().BeNull();
         await AetherKeys.Problem(fine with { EnrollAddress = "-x" }).Should().BeEqualTo(AetherKeysProblem.InvalidEnrollAddress);
         await AetherKeys.Problem(fine with { EnrollAddress = "" }).Should().BeNull();
+        // The server name and the host are domain names, as the core takes them, though no label starts or ends with '-',
+        // which the core would take, so that no value reads as an option; blank, the core's own.
+        foreach (var name in new[] { "", "  ", "api.devices.cloudflare.com", " api.cloudflareclient.com. " })
+        {
+            await AetherKeys.Problem(fine with { ApiSni = name }).Should().BeNull().Because(name);
+            await AetherKeys.Problem(fine with { ApiHost = name }).Should().BeNull().Because(name);
+        }
+        foreach (var name in new[]
+                 {
+                     "162.159.137.105", "2606:4700:7::a29f:8969", "https://api.devices.cloudflare.com", "api.devices.cloudflare.com:443",
+                     "-x", "a b",
+                 })
+        {
+            await AetherKeys.Problem(fine with { ApiSni = name }).Should().BeEqualTo(AetherKeysProblem.InvalidApiSni).Because(name);
+            await AetherKeys.Problem(fine with { ApiHost = name }).Should().BeEqualTo(AetherKeysProblem.InvalidApiHost).Because(name);
+        }
         // The ECH fields count while ECH is on.
         await AetherKeys.Problem(fine with { EchDns = "dns.google" }).Should().BeNull();
         await AetherKeys.Problem(fine with { Ech = true, EchDns = "dns.google" }).Should().BeEqualTo(AetherKeysProblem.InvalidEchDns);
@@ -231,7 +276,6 @@ public class AetherKeysTests
         var on = new AetherKeysSettings { Fragment = true };
         await ShouldBe(AetherKeys.Arguments(on),
             "--register", "all",
-            "--api-address", "api.cloudflareclient.com",
             "--fragment",
             "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
         var shaped = AetherKeys.Arguments(on with { FragmentSize = " 16 - 8 ", FragmentDelay = "5" });

@@ -112,6 +112,8 @@ public sealed class AetherKeysSource(Config config, Func<Config, Task<int>>? sav
         {
             Kind = AetherKeyKind.FromString(item.KeysKind),
             EnrollAddress = item.KeysApiAddress ?? defaults.EnrollAddress,
+            ApiSni = item.KeysApiSni ?? defaults.ApiSni,
+            ApiHost = item.KeysApiHost ?? defaults.ApiHost,
             Fragment = item.KeysFragment,
             FragmentSize = item.KeysFragmentSize ?? defaults.FragmentSize,
             FragmentDelay = item.KeysFragmentDelay ?? defaults.FragmentDelay,
@@ -135,6 +137,8 @@ public sealed class AetherKeysSource(Config config, Func<Config, Task<int>>? sav
     {
         item.KeysKind = settings.Kind.Type;
         item.KeysApiAddress = settings.EnrollAddress;
+        item.KeysApiSni = settings.ApiSni;
+        item.KeysApiHost = settings.ApiHost;
         item.KeysFragment = settings.Fragment;
         item.KeysFragmentSize = settings.FragmentSize;
         item.KeysFragmentDelay = settings.FragmentDelay;

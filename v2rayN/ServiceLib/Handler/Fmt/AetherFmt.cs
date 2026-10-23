@@ -547,9 +547,11 @@ public partial class AetherFmt : BaseFmt
     }
 
     /// <summary>
-    /// Whether <paramref name="value" /> is a server name the core's --masque-sni takes, which it checks as it starts: a
-    /// domain name, with a trailing dot or without, and no IP address, which the core's parser reads as Go's netip does,
-    /// see <see cref="IsNetipAddress" />. A label cannot start or end with '-' either, as for <see cref="IsEchDomain" />.
+    /// Whether <paramref name="value" /> is a server name the core's --masque-sni takes, as do its --api-sni and
+    /// --api-host, which it checks as it starts: a domain name, with a trailing dot or without, and no IP address, see
+    /// <see cref="IsNetipAddress" />, which tells one as the core's Rust parser does for every text a domain name could be
+    /// (PattNG AetherFmt.isMasqueSni). A label cannot start or end with '-' either, as for <see cref="IsEchDomain" />,
+    /// which the core would take.
     /// </summary>
     public static bool IsMasqueSni(string value)
     {

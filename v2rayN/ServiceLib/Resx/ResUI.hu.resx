@@ -2376,6 +2376,21 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="TbAetherKeysApiAddress" xml:space="preserve">
     <value>API address</value>
   </data>
+  <data name="TbAetherKeysApiAddressHint" xml:space="preserve">
+    <value>Leave blank for the address of the API server name</value>
+  </data>
+  <data name="TbAetherKeysApiSni" xml:space="preserve">
+    <value>API server name (SNI)</value>
+  </data>
+  <data name="TbAetherKeysApiSniHint" xml:space="preserve">
+    <value>Leave blank for the API host</value>
+  </data>
+  <data name="TbAetherKeysApiHost" xml:space="preserve">
+    <value>API host</value>
+  </data>
+  <data name="TbAetherKeysApiHostHint" xml:space="preserve">
+    <value>Leave blank for api.devices.cloudflare.com, then api.cloudflareclient.com if it gets no answer and the server name is blank too. Cloudflare refuses a server name that differs from the host</value>
+  </data>
   <data name="TbAetherKeysFragmentHint" xml:space="preserve">
     <value>Sends the ClientHello of the calls to the WARP API in pieces, for networks that filter the name of the API</value>
   </data>
@@ -2402,6 +2417,12 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   </data>
   <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
     <value>The API address must be an IP address or a domain name, with or without a port, such as 188.114.97.6:443 or [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiSni" xml:space="preserve">
+    <value>The API server name must be a domain name, such as api.devices.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiHost" xml:space="preserve">
+    <value>The API host must be a domain name, such as api.devices.cloudflare.com</value>
   </data>
   <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
     <value>The command has to register keys: --register followed by all, wg, masque, mim, gool-classic (WARP-in-WARP) or gool (WireGuard over MASQUE)</value>

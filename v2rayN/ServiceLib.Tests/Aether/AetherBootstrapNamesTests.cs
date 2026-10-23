@@ -7,6 +7,9 @@ namespace ServiceLib.Tests.Aether;
 // has to answer directly.
 public class AetherBootstrapNamesTests
 {
+    /// <summary>The names of the WARP API every core may call: the first one, then the other.</summary>
+    private static readonly string[] Api = [AetherBootstrapNames.WarpApi, AetherBootstrapNames.WarpApiFallback];
+
     private static List<string> Of(string command)
     {
         return AetherBootstrapNames.Of(AetherCore.ArgumentsOf(command));
@@ -15,22 +18,36 @@ public class AetherBootstrapNamesTests
     [Test]
     public async Task EveryCoreMayCallTheWarpApi()
     {
+        // Both names the core goes by, the second when the first gets no answer.
+        await Api.Should().BeEquivalentTo(["api.devices.cloudflare.com", "api.cloudflareclient.com"], CollectionOrdering.Matching);
+        List<string> api = [.. Api];
         await Of("aether --bind 127.0.0.1:10819 --protocol masque").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
         // An address the command sends the calls to, when it is a name; an IP address needs no lookup.
         await Of("aether --protocol wg --api-address api.example.net").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "api.example.net"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. api, "api.example.net"], CollectionOrdering.Matching);
         await Of("aether --protocol wg --api-address 162.159.192.1").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
         // With a port after it (the core's --api-address <ip|name[:port]>), an IPv6 address then in brackets.
         await Of("aether --protocol wg --api-address api.example.net:8443").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "api.example.net"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. api, "api.example.net"], CollectionOrdering.Matching);
         await Of("aether --protocol wg --api-address 188.114.97.6:443").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
         await Of("aether --protocol wg --api-address [2606:4700::1]:8443").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
         await Of("aether --protocol wg --api-address 2606:4700::1").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
+        // Without an address, the calls go to the server name, which follows the host: each name given goes in as the
+        // core reads it, trimmed and without a trailing dot, the one it does not look up as well, which does no harm.
+        await Of("aether --protocol wg --api-host api.example.net.").Should()
+            .BeEquivalentTo([.. api, "api.example.net"], CollectionOrdering.Matching);
+        await Of("aether --protocol wg --api-sni front.example.net --api-host api.example.net").Should()
+            .BeEquivalentTo([.. api, "front.example.net", "api.example.net"], CollectionOrdering.Matching);
+        // Any name the core takes, as it takes --masque-sni, even one with an underscore; none it refuses.
+        await Of("aether --protocol wg --api-sni _front.example.net").Should()
+            .BeEquivalentTo([.. api, "_front.example.net"], CollectionOrdering.Matching);
+        await Of("aether --protocol wg --api-sni 162.159.137.105").Should()
+            .BeEquivalentTo(api, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -56,16 +73,16 @@ public class AetherBootstrapNamesTests
         foreach (var dns in new[] { "", "--ech-dns udp://1.1.1.1", "--ech-dns tcp://8.8.8.8:53" })
         {
             await Of($"aether --masque --ech auto {dns} --ech-domain ech.example.com").Should()
-                .BeEquivalentTo([AetherBootstrapNames.WarpApi, "ech.example.com"], CollectionOrdering.Matching).Because(dns);
+                .BeEquivalentTo([.. Api, "ech.example.com"], CollectionOrdering.Matching).Because(dns);
         }
         // Without a domain named, the core's default.
         await Of("aether --masque --ech auto").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, AetherArguments.DefaultEchDomain], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. Api, AetherArguments.DefaultEchDomain], CollectionOrdering.Matching);
         // A DNS-over-HTTPS resolver is reached at its host, and asked over HTTPS; a key given in the command is asked of nobody.
         await Of("aether --masque --ech auto --ech-dns https://dns.example/dns-query --ech-domain ech.example.com").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "dns.example"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. Api, "dns.example"], CollectionOrdering.Matching);
         await Of("aether --masque --ech AEX+DQ== --ech-domain ech.example.com").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(Api, CollectionOrdering.Matching);
         // As the profile's settings build it.
         var profile = CoreConfigTestFactory.CreateAetherNode("warp-ech", "WARP ECH", AetherProtocol.Masque.Type, extra => extra with { AetherEch = true });
         await AetherBootstrapNames.Of(AetherCore.Of(profile, AetherPorts.DefaultListenPort).Arguments).Should().Contain(AetherArguments.DefaultEchDomain);
@@ -100,11 +117,11 @@ public class AetherBootstrapNamesTests
     {
         // The @address= name when there is one, the URL's host otherwise; the resolvers of other schemes are addresses.
         await Of("aether --ech auto --ech-dns https://dns.example/dns-query --ech-domain cloudflare-ech.com").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "dns.example"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. Api, "dns.example"], CollectionOrdering.Matching);
         await Of("aether --ech auto --ech-dns https://dns.example:8443/dns-query").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "dns.example"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. Api, "dns.example"], CollectionOrdering.Matching);
         await Of("aether --ech auto --ech-dns https://doq.dns4all.eu/dns-query@address=front.example@sni=www.example.com").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi, "front.example"], CollectionOrdering.Matching);
+            .BeEquivalentTo([.. Api, "front.example"], CollectionOrdering.Matching);
         // A plain resolver is an address as well; its query asks for the ECH domain (AnEchKeyAskedOfAPlainResolverHasItsDomainProtected).
         foreach (var dns in new[]
                  {
@@ -113,20 +130,20 @@ public class AetherBootstrapNamesTests
                  })
         {
             await Of($"aether --ech auto --ech-dns {dns}").Should()
-                .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching).Because(dns);
+                .BeEquivalentTo(Api, CollectionOrdering.Matching).Because(dns);
         }
     }
 
     [Test]
     public async Task TorAroundTheTunnelOrAloneReachesItsBridgesBeforeAnyTunnel()
     {
-        List<string> withTor = [AetherBootstrapNames.WarpApi, .. AetherBootstrapNames.TorBootstrap];
+        List<string> withTor = [.. Api, .. AetherBootstrapNames.TorBootstrap];
         await Of("aether --protocol masque --tor-reverse --tor-bind 127.0.0.1:10820").Should()
             .BeEquivalentTo(withTor, CollectionOrdering.Matching);
         await Of("aether --tor-only").Should().BeEquivalentTo(withTor, CollectionOrdering.Matching);
         // Tor inside the tunnel starts once the tunnel is up, and its names go through it.
         await Of("aether --protocol masque --tor --tor-bind 127.0.0.1:10819").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(Api, CollectionOrdering.Matching);
         await AetherBootstrapNames.TorBootstrap.Should().Contain("bridges.torproject.org");
         await AetherBootstrapNames.TorBootstrap.Should().Contain("stun.m-online.net");
     }
@@ -137,13 +154,13 @@ public class AetherBootstrapNamesTests
         foreach (var flag in new[] { "--psiphon-reverse", "--psiphon-only" })
         {
             await Of($"aether --protocol masque {flag}").Should()
-                .BeEquivalentTo([AetherBootstrapNames.WarpApi, AetherBootstrapNames.PsiphonRemoteList], CollectionOrdering.Matching)
+                .BeEquivalentTo([.. Api, AetherBootstrapNames.PsiphonRemoteList], CollectionOrdering.Matching)
                 .Because(flag);
         }
         // Psiphon inside the tunnel starts once the tunnel is up and fetches its list through it (the fork's psiphon.rs
         // run_chain): no name of it is asked of Xray, and every app's s3.amazonaws.com stays with the remote DNS.
         await Of("aether --protocol masque --psiphon").Should()
-            .BeEquivalentTo([AetherBootstrapNames.WarpApi], CollectionOrdering.Matching);
+            .BeEquivalentTo(Api, CollectionOrdering.Matching);
         // Psiphon before the tunnel dials names its client builds in, which nothing protects.
         await AetherBootstrapNames.PsiphonBeforeTheTunnel(AetherCore.ArgumentsOf("aether --psiphon-reverse")).Should().BeTrue();
         await AetherBootstrapNames.PsiphonBeforeTheTunnel(AetherCore.ArgumentsOf("aether --psiphon-only")).Should().BeTrue();

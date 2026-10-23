@@ -2514,6 +2514,21 @@
   <data name="TbAetherKeysApiAddress" xml:space="preserve">
     <value>Адрес API</value>
   </data>
+  <data name="TbAetherKeysApiAddressHint" xml:space="preserve">
+    <value>Оставьте пустым, чтобы использовать адрес имени сервера API</value>
+  </data>
+  <data name="TbAetherKeysApiSni" xml:space="preserve">
+    <value>Имя сервера API (SNI)</value>
+  </data>
+  <data name="TbAetherKeysApiSniHint" xml:space="preserve">
+    <value>Оставьте пустым, чтобы использовать хост API</value>
+  </data>
+  <data name="TbAetherKeysApiHost" xml:space="preserve">
+    <value>Хост API</value>
+  </data>
+  <data name="TbAetherKeysApiHostHint" xml:space="preserve">
+    <value>Оставьте пустым, чтобы использовать api.devices.cloudflare.com, а если он не отвечает и имя сервера тоже пустое — api.cloudflareclient.com. Cloudflare отклоняет имя сервера, отличное от хоста</value>
+  </data>
   <data name="TbAetherKeysFragmentHint" xml:space="preserve">
     <value>Отправляет ClientHello запросов к WARP API по частям, для сетей, которые фильтруют имя API</value>
   </data>
@@ -2540,6 +2555,12 @@
   </data>
   <data name="MsgAetherKeysInvalidApiAddress" xml:space="preserve">
     <value>Адрес API должен быть IP-адресом или доменным именем, с портом или без, например 188.114.97.6:443 или [2606:4700::1]:8443</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiSni" xml:space="preserve">
+    <value>Имя сервера API должно быть доменным именем, например api.devices.cloudflare.com</value>
+  </data>
+  <data name="MsgAetherKeysInvalidApiHost" xml:space="preserve">
+    <value>Хост API должен быть доменным именем, например api.devices.cloudflare.com</value>
   </data>
   <data name="MsgAetherKeysInvalidCommand" xml:space="preserve">
     <value>Команда должна регистрировать ключи: --register, а за ним all, wg, masque, mim, gool-classic (WARP-in-WARP) или gool (WireGuard over MASQUE)</value>
