@@ -1975,7 +1975,7 @@
     <value>echOutbound профиля exit-node «{0}» нельзя использовать; исправьте его в этом профиле, выберите другой или freedom</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>Ядро не может слушать порт локального прокси приложения или порт на три выше порта прослушивания Aether; измените порт прослушивания Aether в настройках или порты команды</value>
+    <value>Порт {0}, нужный ядру Aether, уже занят самим приложением, например его локальным прокси; измените порт прослушивания Aether в настройках или порты команды</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>Один из входящих (inbound) этой конфигурации уже слушает порт {0} — порт на три выше порта прослушивания Aether, через который ядро Aether выходит наружу; измените порт прослушивания Aether в настройках</value>
@@ -2043,8 +2043,11 @@
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Команда профиля Aether велит ядру слушать {0}, но это не порт (от 1 до 65535); измените порты команды</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>Команда профиля Aether даёт {0} адрес, который ядро не принимает; укажите после него IP-адрес и порт, например 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>Команда профиля Aether велит ядру слушать один порт двумя своими слушателями; дайте каждому слушателю свой порт</value>
+    <value>Команда профиля Aether велит ядру слушать {0} двумя своими слушателями (слушатель, которого команда не указывает, всё равно слушает: тот, к которому подключается приложение, — порт прослушивания Aether, остальные — порт ядра по умолчанию: 1819, 1820 или 1821); дайте каждому слушателю свой порт</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>Профиль с именем «{0}» не найден</value>

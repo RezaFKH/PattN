@@ -2482,6 +2482,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 The command of the Aether profile gives {0} an address the core does not take; write an IP address and a port after it, such as 127.0.0.1:20808 的本地化字符串。
+        /// </summary>
+        public static string MsgAetherListenAddressInvalid {
+            get {
+                return ResourceManager.GetString("MsgAetherListenAddressInvalid", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 Port {0}, which the Aether core listens on, is taken by another program or reserved by the system; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
         /// </summary>
         public static string MsgAetherListenPortInUse {
@@ -2509,7 +2518,7 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
-        ///   查找类似 The command of the Aether profile tells the core to listen on one port with two of its listeners; give each listener a port of its own 的本地化字符串。
+        ///   查找类似 The command of the Aether profile tells the core to listen on {0} with two of its listeners (a listener the command leaves out still listens: the one the app dials on the Aether listen port, any other on the core's default, 1819, 1820 or 1821); give each listener a port of its own 的本地化字符串。
         /// </summary>
         public static string MsgAetherListenPortShared {
             get {
@@ -2518,7 +2527,7 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
-        ///   查找类似 The core cannot listen on the local proxy port of the app, nor on the port three above the Aether listen port; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
+        ///   查找类似 Port {0}, which the Aether core needs, is already used by the app itself, for example by its local proxy; change the Aether listen port in the settings, or the ports of the command 的本地化字符串。
         /// </summary>
         public static string MsgAetherListenPortTaken {
             get {

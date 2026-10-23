@@ -552,7 +552,7 @@ public partial class AddServerAetherViewModel : MyReactiveObject, ICloseable
             // The core cannot listen where the local proxy of the app does, nor where the inbound it dials out through does.
             if (AetherFmt.Normalize(profile, _source.TakenPorts, ListenPort) is { } problem)
             {
-                NoticeManager.Instance.Enqueue(MessageOf(problem));
+                NoticeManager.Instance.Enqueue(MessageOf(problem, profile, _source.TakenPorts, ListenPort));
                 return;
             }
             // The profile named as the exit-node may be renamed or gone since the editor opened, or share its name with
@@ -618,8 +618,13 @@ public partial class AddServerAetherViewModel : MyReactiveObject, ICloseable
         }
     }
 
-    /// <summary>The message a save shows for <paramref name="problem" />, a problem of the Aether settings.</summary>
-    public static string MessageOf(AetherProblem problem)
+    /// <summary>
+    /// The message a save shows for <paramref name="problem" />, a problem of the Aether settings of
+    /// <paramref name="profile" /> with <paramref name="takenPorts" /> held, on the Aether listen port
+    /// <paramref name="listenPort" />, as <see cref="AetherFmt.Normalize" /> left them: those about the listeners of a
+    /// command name the port or the option, and the listen port where nothing else is to be named.
+    /// </summary>
+    public static string MessageOf(AetherProblem problem, ProfileItem profile, IEnumerable<int>? takenPorts, int listenPort)
     {
         return problem switch
         {
@@ -632,8 +637,14 @@ public partial class AddServerAetherViewModel : MyReactiveObject, ICloseable
             AetherProblem.InvalidExitLoc => ResUI.MsgAetherInvalidExitLoc,
             AetherProblem.InvalidEchDns => ResUI.MsgAetherInvalidEchDns,
             AetherProblem.InvalidEchDomain => ResUI.MsgAetherInvalidEchDomain,
-            AetherProblem.ListenPortTaken => ResUI.MsgAetherListenPortTaken,
-            AetherProblem.ListenPortShared => ResUI.MsgAetherListenPortShared,
+            AetherProblem.ListenPortTaken =>
+                string.Format(ResUI.MsgAetherListenPortTaken, AetherFmt.TakenListenPort(profile, takenPorts, listenPort) ?? listenPort),
+            AetherProblem.ListenPortShared =>
+                string.Format(ResUI.MsgAetherListenPortShared, AetherFmt.SharedListenPort(profile, listenPort) ?? listenPort),
+            AetherProblem.ListenPortInvalid =>
+                string.Format(ResUI.MsgAetherListenPortInvalid, AetherFmt.InvalidListenPort(profile, listenPort) ?? listenPort),
+            AetherProblem.ListenAddressInvalid =>
+                string.Format(ResUI.MsgAetherListenAddressInvalid, AetherFmt.InvalidListener(profile, listenPort) ?? string.Empty),
             AetherProblem.PsiphonNeedsMasque => ResUI.MsgAetherPsiphonNeedsMasque,
             AetherProblem.NextPortTaken => ResUI.MsgAetherNextPortTaken,
             AetherProblem.TorNeedsMasque => ResUI.MsgAetherTorNeedsMasque,

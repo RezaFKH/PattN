@@ -239,7 +239,8 @@ public class AetherCoreLoadTests
     {
         // A command stored before the editor refused it: the core would bind the port once and fail on the second listener.
         var core = AetherCore.OfCommand("aether --masque --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:10819", AetherPorts.DefaultListenPort)!;
-        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(ResUI.MsgAetherListenPortShared);
+        var refusal = string.Format(ResUI.MsgAetherListenPortShared, 10819);
+        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(refusal);
         var steps = new Steps(core) { Secondary = null, PortRelease = TimeSpan.FromSeconds(5), CanListen = (_, _) => true };
 
         var waited = Stopwatch.StartNew();
@@ -247,8 +248,37 @@ public class AetherCoreLoadTests
 
         await (waited.Elapsed < TimeSpan.FromSeconds(2)).Should().BeTrue();
         await steps.Events.Should().BeEquivalentTo(
-            ["new generation", "cancel probes", "stop the old cores", $"report True {ResUI.MsgAetherListenPortShared}"],
+            ["new generation", "cancel probes", "stop the old cores", $"report True {refusal}"],
             CollectionOrdering.Matching);
+        // The port of a listener the command leaves out is the core's default, which the message names.
+        var onDefault = AetherCore.OfCommand("aether --wg --tor --tor-bind 127.0.0.1:10819 --tor-http 127.0.0.1:1819", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(onDefault, null, (_, _) => true).Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortShared, 1819));
+    }
+
+    [Test]
+    public async Task AnAddressTheCoreDoesNotTakeIsRefusedWithoutAWait()
+    {
+        // A command stored before the editor refused it: the core would quietly listen on 1819, where the app dials 20808.
+        var core = AetherCore.OfCommand("aether --masque --bind localhost:20808", AetherPorts.DefaultListenPort)!;
+        // Named by its option, which the log may carry.
+        var refusal = string.Format(ResUI.MsgAetherListenAddressInvalid, "--bind");
+        await AetherCoreLoad.PortsProblem(core, null, (_, _) => true).Should().BeEqualTo(refusal);
+        // Before the port two listeners share.
+        var shared = AetherCore.OfCommand("aether --masque --bind localhost:20808 --http-proxy 127.0.0.1:20808", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(shared, null, (_, _) => true).Should().BeEqualTo(refusal);
+        // A port the old cores held would be looked at again for a while; this one is not.
+        var steps = new Steps(core) { Secondary = null, PortRelease = TimeSpan.FromSeconds(5), CanListen = (_, _) => false };
+
+        var waited = Stopwatch.StartNew();
+        await Load(steps);
+
+        await (waited.Elapsed < TimeSpan.FromSeconds(2)).Should().BeTrue();
+        await steps.Events.Should().BeEquivalentTo(
+            ["new generation", "cancel probes", "stop the old cores", $"report True {refusal}"],
+            CollectionOrdering.Matching);
+        // A number that is no port comes first.
+        var noPort = AetherCore.OfCommand("aether --masque --bind localhost:70000", AetherPorts.DefaultListenPort)!;
+        await AetherCoreLoad.PortsProblem(noPort, null, (_, _) => true).Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 70000));
     }
 
     [Test]

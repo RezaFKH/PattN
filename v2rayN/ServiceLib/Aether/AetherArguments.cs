@@ -668,6 +668,90 @@ public static class AetherArguments
     }
 
     /// <summary>
+    /// Whether the core takes <paramref name="address" /> for a listener, as Rust's SocketAddr reads it (PattNG
+    /// AetherCoreManager.isSocketAddress): an IPv4 address, or an IPv6 one in brackets, then a colon and a port from 0 to
+    /// 65535, leading zeros allowed. A host name is no such address, and only ASCII digits count.
+    /// </summary>
+    public static bool IsSocketAddress(string address)
+    {
+        var colon = address.LastIndexOf(':');
+        if (colon <= 0 || !IsDecimalUpTo(address[(colon + 1)..], 65_535))
+        {
+            return false;
+        }
+        var host = address[..colon];
+        return host.StartsWith('[') && host.EndsWith(']') && host.Length >= 2
+            ? IsIpv6Literal(host[1..^1])
+            : IsIpv4Literal(host);
+    }
+
+    /// <summary>Four numbers from 0 to 255, joined by dots, none with a leading zero, as Rust reads an IPv4 address.</summary>
+    public static bool IsIpv4Literal(string text)
+    {
+        var parts = text.Split('.');
+        return parts.Length == 4 && parts.All(part =>
+            part.Length is >= 1 and <= 3 && part.All(char.IsAsciiDigit) && (part == "0" || !part.StartsWith('0'))
+            && int.Parse(part, CultureInfo.InvariantCulture) <= 255);
+    }
+
+    /// <summary>
+    /// An IPv6 address as Rust reads one: up to eight groups of one to four hex digits joined by colons, one "::" at most
+    /// standing for one or more groups of zeros, an IPv4 address in place of the last two groups, and a scope after a
+    /// "%", a number a u32 holds.
+    /// </summary>
+    public static bool IsIpv6Literal(string text)
+    {
+        var percent = text.IndexOf('%');
+        var address = percent < 0 ? text : text[..percent];
+        if (percent >= 0 && !IsDecimalUpTo(text[(percent + 1)..], uint.MaxValue))
+        {
+            return false;
+        }
+        var halves = address.Split("::");
+        if (halves.Length > 2)
+        {
+            return false;
+        }
+        var head = halves[0].Length == 0 ? Array.Empty<string>() : halves[0].Split(':');
+        var tail = halves.Length < 2 || halves[1].Length == 0 ? Array.Empty<string>() : halves[1].Split(':');
+        var groups = head.Concat(tail).ToList();
+        var count = 0;
+        for (var index = 0; index < groups.Count; index++)
+        {
+            var group = groups[index];
+            if (group.Contains('.'))
+            {
+                // An IPv4 address stands for the last two groups, never before the "::".
+                if (index != groups.Count - 1 || !IsIpv4Literal(group) || (halves.Length == 2 && tail.Length == 0))
+                {
+                    return false;
+                }
+                count += 2;
+            }
+            else if (group.Length is >= 1 and <= 4 && group.All(char.IsAsciiHexDigit))
+            {
+                count++;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return halves.Length == 2 ? count <= 7 : count == 8;
+    }
+
+    /// <summary>One or more ASCII digits whose value, leading zeros and all, is at most <paramref name="max" />, as Rust reads a port or a scope.</summary>
+    private static bool IsDecimalUpTo(string text, long max)
+    {
+        if (text.Length == 0 || !text.All(char.IsAsciiDigit))
+        {
+            return false;
+        }
+        var significant = text.TrimStart('0');
+        return significant.Length <= 10 && (significant.Length == 0 || long.Parse(significant, CultureInfo.InvariantCulture) <= max);
+    }
+
+    /// <summary>
     /// The protocol <paramref name="argv" /> selects, read the way the core reads it: the last of --protocol and the
     /// protocol flags wins, a hop named without any of them selects the two-hop protocol it belongs to, warp-in-warp
     /// before masque-in-masque, and nothing at all is masque. Gool is WireGuard over MASQUE unless --gool-classic or a
@@ -883,7 +967,7 @@ public static class AetherArguments
     }
 
     /// <summary>The port of <paramref name="address" />, the text after its last ':'; null when there is none or it is no number.</summary>
-    private static int? PortOf(string? address)
+    public static int? PortOf(string? address)
     {
         if (address == null)
         {

@@ -1278,7 +1278,89 @@ public class AetherFmtTests
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --http-proxy 127.0.0.1:20808" }), listenPort: 20808)
             .Should().BeEqualTo(AetherProblem.ListenPortShared);
         await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:20809" })).Should().BeNull();
-        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortShared).Should().BeEqualTo(ResUI.MsgAetherListenPortShared);
+    }
+
+    [Test]
+    public async Task TheMessageOfASharedPortNamesIt()
+    {
+        var shared = Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:20808" });
+        await Normalize(shared).Should().BeEqualTo(AetherProblem.ListenPortShared);
+        await AetherFmt.SharedListenPort(shared, AetherPorts.DefaultListenPort).Should().BeEqualTo(20808);
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortShared, shared, null, AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortShared, 20808));
+        // The core's own listener, left out, listens on its default, which the command writes only for Tor's HTTP proxy.
+        var onDefault = Profile(it => it with { AetherCommand = "aether --wg --tor --tor-bind 127.0.0.1:10819 --tor-http 127.0.0.1:1819" });
+        await Normalize(onDefault).Should().BeEqualTo(AetherProblem.ListenPortShared);
+        await AetherFmt.SharedListenPort(onDefault, AetherPorts.DefaultListenPort).Should().BeEqualTo(1819);
+        await AetherFmt.SharedListenPort(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:20809" }),
+            AetherPorts.DefaultListenPort).Should().BeNull();
+        await AetherFmt.SharedListenPort(Profile(), AetherPorts.DefaultListenPort).Should().BeNull();
+    }
+
+    [Test]
+    public async Task ACommandListeningWhereTheCoreCannotIsRefusedAsAStartRefusesIt()
+    {
+        // A number that is no port comes first, then an address the core does not take, then ports two listeners share.
+        var noPort = Profile(it => it with { AetherCommand = "aether --wg --bind localhost:70000 --http-proxy 127.0.0.1:70000" });
+        await Normalize(noPort).Should().BeEqualTo(AetherProblem.ListenPortInvalid);
+        await AetherFmt.InvalidListenPort(noPort, AetherPorts.DefaultListenPort).Should().BeEqualTo(70000);
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortInvalid, noPort, null, AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 70000));
+        var noAddress = Profile(it => it with { AetherCommand = "aether --wg --bind localhost:20808 --http-proxy 127.0.0.1:20808" });
+        await Normalize(noAddress, takenPorts: Ports(20808)).Should().BeEqualTo(AetherProblem.ListenAddressInvalid);
+        await AetherFmt.InvalidListener(noAddress, AetherPorts.DefaultListenPort).Should().BeEqualTo("--bind");
+        await AetherFmt.InvalidListenPort(noAddress, AetherPorts.DefaultListenPort).Should().BeNull();
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenAddressInvalid, noAddress, null, AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenAddressInvalid, "--bind"));
+        // A listener the app does not dial, on port 0, takes any port, which the core can bind.
+        var anyPort = Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:0" });
+        await Normalize(anyPort).Should().BeNull();
+        await AetherFmt.InvalidListenPort(anyPort, AetherPorts.DefaultListenPort).Should().BeNull();
+        await AetherFmt.InvalidListener(anyPort, AetherPorts.DefaultListenPort).Should().BeNull();
+        // The app's own listener on port 0 is no port it can dial.
+        await Normalize(Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:0" })).Should().BeEqualTo(AetherProblem.ListenPortInvalid);
+        // Nothing to name for a profile built from its settings, nor for a blank command.
+        await AetherFmt.InvalidListenPort(Profile(), AetherPorts.DefaultListenPort).Should().BeNull();
+        await AetherFmt.InvalidListener(Profile(it => it with { AetherCommand = "   " }), AetherPorts.DefaultListenPort).Should().BeNull();
+    }
+
+    [Test]
+    public async Task WithNothingElseToNameAMessageNamesTheListenPort()
+    {
+        // A profile built from its settings listens on the listen port alone, and has no command to name another.
+        var settings = Profile();
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortTaken, settings, null, 20808)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortTaken, 20808));
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortShared, settings, null, 20808)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortShared, 20808));
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortInvalid, settings, null, 20808)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortInvalid, 20808));
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenAddressInvalid, settings, null, 20808)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenAddressInvalid, string.Empty));
+    }
+
+    [Test]
+    public async Task TheMessageOfATakenPortNamesIt()
+    {
+        // A profile built from its settings: its listen port.
+        await AetherFmt.TakenListenPort(Profile(), Ports(10808, 10819), AetherPorts.DefaultListenPort).Should().BeEqualTo(10819);
+        await AetherFmt.TakenListenPort(Profile(), Ports(20808), 20808).Should().BeEqualTo(20808);
+        // A command written by hand: the first of its ports that is taken, its HTTP proxy's too; a blank one is none.
+        var command = Profile(it => it with { AetherCommand = "aether --wg --bind 127.0.0.1:20808 --http-proxy 127.0.0.1:10808" });
+        await Normalize(command, Ports(10808)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
+        await AetherFmt.TakenListenPort(command, Ports(10808), AetherPorts.DefaultListenPort).Should().BeEqualTo(10808);
+        await ServiceLib.ViewModels.AddServerAetherViewModel.MessageOf(AetherProblem.ListenPortTaken, command, Ports(10808), AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(string.Format(ResUI.MsgAetherListenPortTaken, 10808));
+        await AetherFmt.TakenListenPort(Profile(it => it with { AetherCommand = "   " }), Ports(10819), AetherPorts.DefaultListenPort)
+            .Should().BeEqualTo(10819);
+        // The core's own listener, left out, listens on its default, 1819, which the command never writes.
+        var torInside = Profile(it => it with { AetherCommand = "aether --wg --tor --tor-bind 127.0.0.1:10819" });
+        await Normalize(torInside, Ports(1819)).Should().BeEqualTo(AetherProblem.ListenPortTaken);
+        await AetherFmt.TakenListenPort(torInside, Ports(1819), AetherPorts.DefaultListenPort).Should().BeEqualTo(1819);
+        // Nothing taken: no port to name.
+        await AetherFmt.TakenListenPort(Profile(), Ports(10808), AetherPorts.DefaultListenPort).Should().BeNull();
+        await AetherFmt.TakenListenPort(command, Ports(10809), AetherPorts.DefaultListenPort).Should().BeNull();
+        await AetherFmt.TakenListenPort(command, null, AetherPorts.DefaultListenPort).Should().BeNull();
     }
 
     [Test]

@@ -1843,7 +1843,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
     <value>echOutbound پروفایل exit-node «{0}» قابل استفاده نیست؛ آن را در همان پروفایل درست کنید، یا پروفایل دیگری یا freedom را انتخاب کنید</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>هسته نمی‌تواند روی پورت پروکسی محلی برنامه، یا روی پورتی که سه تا بالاتر از پورت شنود Aether است گوش دهد؛ پورت شنود Aether را در تنظیمات، یا پورت‌های فرمان را تغییر دهید</value>
+    <value>پورت {0}، که هستهٔ Aether به آن نیاز دارد، از قبل در اختیار خود برنامه است، برای نمونه پروکسی محلی آن؛ پورت شنود Aether را در تنظیمات، یا پورت‌های فرمان را تغییر دهید</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>یکی از inboundهای این پیکربندی همین حالا روی {0} گوش می‌دهد، که سه تا بالاتر از پورت شنود Aether است و هستهٔ Aether از راه آن به بیرون وصل می‌شود؛ پورت شنود Aether را در تنظیمات تغییر دهید</value>
@@ -1911,8 +1911,11 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>فرمان پروفایل Aether به هسته می‌گوید روی {0} گوش دهد که پورت نیست (1 تا 65535)؛ پورت‌های فرمان را تغییر دهید</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>فرمان پروفایل Aether به {0} نشانی‌ای می‌دهد که هسته نمی‌پذیرد؛ پس از آن یک نشانی IP و یک پورت بنویسید، مانند 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>فرمان پروفایل Aether به هسته می‌گوید با دو شنونده روی یک پورت گوش دهد؛ به هر شنونده پورت جداگانه‌ای بدهید</value>
+    <value>فرمان پروفایل Aether به هسته می‌گوید با دو شنونده روی {0} گوش دهد (شنونده‌ای که فرمان نامی از آن نمی‌برد باز هم گوش می‌دهد: آنکه برنامه به آن وصل می‌شود روی پورت شنود Aether، و بقیه روی پورت پیش‌فرض هسته: 1819، 1820 یا 1821)؛ به هر شنونده پورت جداگانه‌ای بدهید</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>هیچ پروفایلی با نام «{0}» پیدا نشد</value>

@@ -528,7 +528,7 @@ public partial class CoreConfigV2rayService
         if (statePort != 0)
         {
             Logging.SaveLog($"{_tag}: the Aether core would listen on {statePort}, a port the app holds");
-            return ResUI.MsgAetherListenPortTaken;
+            return string.Format(ResUI.MsgAetherListenPortTaken, statePort);
         }
         if (!routed)
         {
@@ -647,7 +647,7 @@ public partial class CoreConfigV2rayService
             && core.Ports.FirstOrDefault(listened => AetherDependency.InboundListensOn(content, listened)) is var port and not 0)
         {
             Logging.SaveLog($"{_tag}: an inbound of the configuration listens on the Aether port {port}");
-            failure = ResUI.MsgAetherListenPortTaken;
+            failure = string.Format(ResUI.MsgAetherListenPortTaken, port);
         }
         if (failure != null)
         {

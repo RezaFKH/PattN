@@ -394,6 +394,38 @@ public class AetherCoreTests
     }
 
     [Test]
+    public async Task AListenerWhoseAddressTheCoreDoesNotTakeIsFound()
+    {
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy [::1]:8118").InvalidListener.Should().BeNull();
+        // The core would quietly listen on its default instead, where the app would dial 20808.
+        await OfCommand("aether --wg --bind localhost:20808").InvalidListener.Should().BeEqualTo("--bind");
+        await OfCommand("aether --masque --tor-reverse --bind 127.0.0.1:10819 --tor-bind 1830").InvalidListener
+            .Should().BeEqualTo(AetherArguments.TorBind);
+        // The core reads its own listener's address as written, and the others trimmed.
+        await OfCommand("aether --wg --bind ' 127.0.0.1:10819'").InvalidListener.Should().BeEqualTo("--bind");
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy ' 127.0.0.1:8118 '").InvalidListener.Should().BeNull();
+        // An HTTP proxy written blank or "off" is off, and a listener of a mode that does not run binds nothing.
+        await OfCommand("aether --wg --tor --bind 127.0.0.1:10820 --tor-bind 127.0.0.1:10819 --tor-http off").InvalidListener.Should().BeNull();
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy ''").InvalidListener.Should().BeNull();
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --tor-bind nowhere").InvalidListener.Should().BeNull();
+        // Digits of another script make a port for the app, not for the core.
+        await OfCommand("aether --wg --bind 127.0.0.1:۲۰۸۰۸").InvalidListener.Should().BeEqualTo("--bind");
+        // The app's own commands write addresses the core takes.
+        await AetherCore.Of(Copy(Pinned(), extra => extra with { AetherTor = "chain" }), ListenPort).InvalidListener.Should().BeNull();
+    }
+
+    [Test]
+    public async Task TheListenersOtherThanItsOwnAreCountedTrimmedAsTheCoreReadsThem()
+    {
+        await ShouldBe(OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy '127.0.0.1:8118 '").Ports, 10819, 8118);
+        await OfCommand("aether --wg --bind 127.0.0.1:8118 --http-proxy '127.0.0.1:8118 '").SharedPort.Should().BeEqualTo(8118);
+        // By Rust's whitespace, which is .NET's: a next line (U+0085) is trimmed, an information separator (U+001C) is not.
+        await OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy '127.0.0.1:8118\u0085'").InvalidListener.Should().BeNull();
+        await OfCommand("aether --masque --tor-reverse --bind 127.0.0.1:10819 --tor-bind '127.0.0.1:9050\u001C'").InvalidListener
+            .Should().BeEqualTo(AetherArguments.TorBind);
+    }
+
+    [Test]
     public async Task ARegistrationOfKeysListensOnlyWhereACarrierAroundTheTunnelDoes()
     {
         // The core registers and ends: no listener of its own, though the command names none to leave to a default.

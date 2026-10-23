@@ -1969,7 +1969,7 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>"{0}" exit-node profilinin echOutbound-u istifadə edilə bilmir; onu həmin profildə düzəldin, başqasını və ya freedom seçin</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>Nüvə tətbiqin yerli proksi portunda və Aether dinləmə portundan üç yuxarı olan portda dinləyə bilməz; Parametrlərdə Aether dinləmə portunu dəyişin və ya Aether profilinin əmrindəki portları dəyişin</value>
+    <value>Aether nüvəsinin ehtiyac duyduğu {0} portundan artıq tətbiqin özü istifadə edir, məsələn, onun yerli proksisi; Parametrlərdə Aether dinləmə portunu dəyişin və ya Aether profilinin əmrindəki portları dəyişin</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>Bu konfiqurasiyanın bir girişi artıq {0} portunda dinləyir; bu, Aether dinləmə portundan üç yuxarı olan və Aether nüvəsinin xaricə qoşulduğu portdur; Parametrlərdə Aether dinləmə portunu dəyişin</value>
@@ -2037,8 +2037,11 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Aether profilinin əmri nüvəyə {0} üzərində dinləməyi bildirir, lakin bu, port deyil (1-dən 65535-ə qədər); əmrin portlarını dəyişin</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>Aether profilinin əmri {0} üçün nüvənin qəbul etmədiyi ünvan yazır; ondan sonra IP ünvanı və port yazın, məsələn, 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>Aether profilinin əmri nüvəyə iki dinləyicisi ilə eyni portda dinləməyi bildirir; hər dinləyiciyə ayrıca port verin</value>
+    <value>Aether profilinin əmri nüvəyə iki dinləyicisi ilə {0} portunda dinləməyi bildirir (əmrin göstərmədiyi dinləyici yenə də dinləyir: tətbiqin qoşulduğu dinləyici Aether dinləmə portunda, digərləri nüvənin standart portunda: 1819, 1820 və ya 1821); hər dinləyiciyə ayrıca port verin</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>"{0}" adlı profil tapılmadı</value>

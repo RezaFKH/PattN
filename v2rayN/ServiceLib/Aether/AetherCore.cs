@@ -28,6 +28,9 @@ public sealed record AetherCore
         AetherArguments.PsiphonHttp,
     ];
 
+    /// <summary>The HTTP proxies among <see cref="Listeners" />, which a blank address or "off" turns off.</summary>
+    private static readonly HashSet<string> HttpListeners = [AetherArguments.HttpProxy, AetherArguments.TorHttp, AetherArguments.PsiphonHttp];
+
     private readonly IReadOnlyList<string> _arguments = [];
 
     public AetherCore(IReadOnlyList<string> arguments, AetherExit? exit = null)
@@ -86,6 +89,18 @@ public sealed record AetherCore
     }
 
     /// <summary>
+    /// The first option of a listener the core binds whose address the core does not take; null when it takes each
+    /// (PattNG AetherCore.invalidListener). The core reads each as an IP address and a port, and where it cannot read one
+    /// it quietly listens on its default, for its own, Tor's or Psiphon's listener, or not at all, for an HTTP proxy,
+    /// while the app would go by the address written (aether lib.rs, tor.rs and psiphon.rs). A blank address, or "off",
+    /// turns an HTTP proxy off. A message names the option, not the address, which is free text the log must not carry.
+    /// </summary>
+    public string? InvalidListener => BoundListeners().FirstOrDefault(flag =>
+        AddressAfter(flag) is { } address
+        && !AetherArguments.IsSocketAddress(address)
+        && !(HttpListeners.Contains(flag) && address is "" or "off"));
+
+    /// <summary>
     /// The ports of <paramref name="listeners" />, in their order, but 0, which asks for any port: the port the arguments
     /// name, or the core's default for a listener they leave out, see <see cref="AetherArguments.DefaultListenerPorts" />.
     /// A command written by hand that names only Tor's listener still has the core's own on 1819.
@@ -95,13 +110,23 @@ public sealed record AetherCore
         foreach (var flag in listeners)
         {
             int? port = Arguments.Contains(flag)
-                ? AetherArguments.PortAfter(Arguments, flag)
+                ? AetherArguments.PortOf(AddressAfter(flag))
                 : AetherArguments.DefaultListenerPorts.TryGetValue(flag, out var fallback) ? fallback : null;
             if (port is { } value and not 0)
             {
                 yield return value;
             }
         }
+    }
+
+    /// <summary>
+    /// The address written after <paramref name="flag" />, as the core reads it: its own listener's as written, the others
+    /// trimmed as the core trims them, by Rust's whitespace, which is .NET's (see <see cref="KotlinText" />).
+    /// </summary>
+    private string? AddressAfter(string flag)
+    {
+        var written = AetherArguments.ValueAfter(Arguments, flag);
+        return written == null || flag == "--bind" ? written : written.Trim();
     }
 
     /// <summary>Every listener option the core binds as its arguments run it, in the order of <see cref="Listeners" />, see <see cref="ListenerGroups" />.</summary>

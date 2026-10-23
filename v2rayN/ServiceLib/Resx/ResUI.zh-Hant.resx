@@ -1973,7 +1973,7 @@
     <value>exit-node 設定檔「{0}」的 echOutbound 無法使用；請在該設定檔中修正，或另選一個，或選擇 freedom</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>核心不能監聽應用程式的本機代理埠，也不能監聽比 Aether 監聽連接埠大 3 的連接埠；請在設定中變更 Aether 監聽連接埠，或變更命令中的連接埠</value>
+    <value>Aether 核心需要的連接埠 {0} 已被應用程式本身佔用，例如其本機代理；請在設定中變更 Aether 監聽連接埠，或變更命令中的連接埠</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>此設定的某個入站已在 {0} 上監聽，而這是比 Aether 監聽連接埠大 3 的連接埠，Aether 核心經由它向外連線；請在設定中變更 Aether 監聽連接埠</value>
@@ -2041,8 +2041,11 @@
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Aether 設定檔的命令讓核心監聽 {0}，這不是有效的連接埠（1 到 65535）；請變更命令中的連接埠</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>Aether 設定檔的命令給 {0} 寫了核心不接受的位址；請在它後面寫 IP 位址和連接埠，例如 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>Aether 設定檔的命令讓核心以兩個監聽器監聽同一個連接埠；請為每個監聽器指定各自的連接埠</value>
+    <value>Aether 設定檔的命令讓核心以兩個監聽器監聽 {0}（命令未寫出的監聽器仍會監聽：應用程式連線的那個在 Aether 監聽連接埠上，其他的在核心的預設連接埠上：1819、1820 或 1821）；請為每個監聽器指定各自的連接埠</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>找不到名為「{0}」的設定檔</value>

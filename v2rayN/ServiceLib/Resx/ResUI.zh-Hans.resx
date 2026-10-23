@@ -1967,7 +1967,7 @@
     <value>exit-node 配置“{0}”的 echOutbound 无法使用；请在该配置中修正，或另选一个，或选择 freedom</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>内核不能监听应用的本地代理端口，也不能监听比 Aether 监听端口大 3 的端口；请在设置中更改 Aether 监听端口，或更改命令中的端口</value>
+    <value>Aether 内核需要的端口 {0} 已被应用自身占用，例如其本地代理；请在设置中更改 Aether 监听端口，或更改命令中的端口</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>此配置的某个入站已在 {0} 上监听，而这是比 Aether 监听端口大 3 的端口，Aether 内核经由它向外连接；请在设置中更改 Aether 监听端口</value>
@@ -2035,8 +2035,11 @@
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>Aether 配置的命令让内核监听 {0}，这不是有效端口（1 到 65535）；请更改命令中的端口</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>Aether 配置的命令给 {0} 写了内核不接受的地址；请在它后面写 IP 地址和端口，例如 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>Aether 配置的命令让内核用两个监听器监听同一个端口；请为每个监听器指定各自的端口</value>
+    <value>Aether 配置的命令让内核用两个监听器监听 {0}（命令未写出的监听器仍会监听：应用连接的那个在 Aether 监听端口上，其他的在内核的默认端口上：1819、1820 或 1821）；请为每个监听器指定各自的端口</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>找不到名为“{0}”的配置</value>

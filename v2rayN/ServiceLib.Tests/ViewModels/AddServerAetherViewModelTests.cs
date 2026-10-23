@@ -1642,7 +1642,7 @@ public class AddServerAetherViewModelTests
 
         var shown = await Notices(vm.SaveAsync);
 
-        await shown.Should().Contain(ResUI.MsgAetherListenPortTaken);
+        await shown.Should().Contain(string.Format(ResUI.MsgAetherListenPortTaken, 10819));
         await source.Saved.Count.Should().BeEqualTo(0);
     }
 

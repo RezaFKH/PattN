@@ -135,8 +135,10 @@ public static class AetherCoreLoad
         var secondaryPort = steps.SecondaryPort();
         var problem = PortsProblem(core, secondaryPort, steps.CanListen);
         var waited = Stopwatch.StartNew();
-        // A port no listener can have, or one two of them are told to share, is not released by waiting (D3-1).
-        while (problem != null && InvalidPort(core) == null && core.SharedPort == null && waited.Elapsed + PortPoll <= steps.PortRelease)
+        // A port no listener can have, an address the core does not take, or a port two listeners are told to share, is
+        // not released by waiting (D3-1).
+        while (problem != null && InvalidPort(core) == null && core.InvalidListener == null && core.SharedPort == null
+               && waited.Elapsed + PortPoll <= steps.PortRelease)
         {
             await Task.Delay(PortPoll);
             problem = PortsProblem(core, secondaryPort, steps.CanListen);
@@ -154,7 +156,9 @@ public static class AetherCoreLoad
     /// Why the ports of <paramref name="core" />, and <paramref name="secondaryPort" /> (by TCP and UDP), cannot be listened
     /// on, as <paramref name="canListen" /> finds them (<see cref="CanListen" />), naming the first port that cannot; null
     /// when every one can. A port of the core outside 1..65535, which a command written by hand may name (D3-1), comes
-    /// first, with what it is, and then a port two listeners of such a command share, which the core would bind once.
+    /// first, with what it is; then the option of a listener whose address the core does not take, where it would quietly
+    /// listen on its default instead (PattNG launchCore); then a port two listeners of such a command share, which the
+    /// core would bind once, named.
     /// </summary>
     public static string? PortsProblem(AetherCore core, int? secondaryPort, Func<int, bool, bool> canListen)
     {
@@ -162,9 +166,13 @@ public static class AetherCoreLoad
         {
             return string.Format(ResUI.MsgAetherListenPortInvalid, invalid);
         }
-        if (core.SharedPort != null)
+        if (core.InvalidListener is { } option)
         {
-            return ResUI.MsgAetherListenPortShared;
+            return string.Format(ResUI.MsgAetherListenAddressInvalid, option);
+        }
+        if (core.SharedPort is { } shared)
+        {
+            return string.Format(ResUI.MsgAetherListenPortShared, shared);
         }
         foreach (var port in core.Ports)
         {
@@ -184,7 +192,7 @@ public static class AetherCoreLoad
     /// The first port <paramref name="core" /> is told to listen on that is no port, outside 1..65535; null when there is
     /// none. The listener the app dials cannot take 0 either, which has the core listen on a port the app does not know.
     /// </summary>
-    private static int? InvalidPort(AetherCore core)
+    public static int? InvalidPort(AetherCore core)
     {
         if (core.Port is < 1 or > IPEndPoint.MaxPort)
         {

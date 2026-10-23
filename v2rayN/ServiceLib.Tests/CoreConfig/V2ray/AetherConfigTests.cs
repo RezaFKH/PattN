@@ -571,8 +571,10 @@ public class AetherConfigTests
     [Test]
     public async Task AnInboundOnAPortOfTheCoreRefusesTheConfiguration()
     {
-        // The local proxy port on the Aether listen port: Xray would take it first.
-        await Refused(AetherContext(NewConfig(config => config.Inbound[0].LocalPort = P), Warp()), ResUI.MsgAetherListenPortTaken);
+        // The local proxy port on the Aether listen port: Xray would take it first. The app's PAC port, three above the
+        // local proxy port, then sits on the port Xray opens for the core three above the listen port, a port the app holds,
+        // which is looked at first and named.
+        await Refused(AetherContext(NewConfig(config => config.Inbound[0].LocalPort = P), Warp()), string.Format(ResUI.MsgAetherListenPortTaken, Secondary));
         // On the port three above it, which the core dials out through.
         await Refused(AetherContext(NewConfig(config => config.Inbound[0].LocalPort = Secondary), Warp()),
             string.Format(ResUI.MsgAetherSecondaryPortTaken, Secondary));
@@ -595,7 +597,7 @@ public class AetherConfigTests
             foreach (var port in new[] { listenPort, listenPort + AetherPorts.SecondaryOffset })
             {
                 field.SetValue(AppManager.Instance, port);
-                await Refused(AetherContext(config, Warp()), ResUI.MsgAetherListenPortTaken);
+                await Refused(AetherContext(config, Warp()), string.Format(ResUI.MsgAetherListenPortTaken, port));
             }
             // The two ports between are Tor's and Psiphon's, which this core does not take.
             field.SetValue(AppManager.Instance, listenPort + 1);
@@ -634,7 +636,7 @@ public class AetherConfigTests
                 return config;
             }
             await (P - 3 + (int)EInboundProtocol.pac).Should().BeEqualTo(P);
-            await Refused(AetherContext(WithLocalPort(P - 3), Warp()), ResUI.MsgAetherListenPortTaken);
+            await Refused(AetherContext(WithLocalPort(P - 3), Warp()), string.Format(ResUI.MsgAetherListenPortTaken, P));
 
             // One above the listen port, where this core has no listener, it is no matter.
             await Succeeds(AetherContext(WithLocalPort(P - 2), Warp()));
@@ -814,7 +816,7 @@ public class AetherConfigTests
         // A range, as Xray reads a port, over the listen port.
         var onRange = TemplateConfig.Replace("10808", "\"10800-10820\"");
         await Refused(CoreConfigTestFactory.CreateContext(NewConfig(), Warp(), ECoreType.Xray, fullConfigTemplate: Template(onRange)),
-            ResUI.MsgAetherListenPortTaken);
+            string.Format(ResUI.MsgAetherListenPortTaken, P));
     }
 
     // PattN (proxy chains and templates review): a freedom exit-node carries the Aether core's own connection to its

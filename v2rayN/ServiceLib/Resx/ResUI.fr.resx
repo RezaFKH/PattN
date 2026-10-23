@@ -1834,7 +1834,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
     <value>The echOutbound of the exit-node profile "{0}" cannot be used; fix it in that profile, or choose another one, or freedom</value>
   </data>
   <data name="MsgAetherListenPortTaken" xml:space="preserve">
-    <value>The core cannot listen on the local proxy port of the app, nor on the port three above the Aether listen port; change the Aether listen port in the settings, or the ports of the command</value>
+    <value>Port {0}, which the Aether core needs, is already used by the app itself, for example by its local proxy; change the Aether listen port in the settings, or the ports of the command</value>
   </data>
   <data name="MsgAetherSecondaryPortTaken" xml:space="preserve">
     <value>An inbound of this configuration already listens on {0}, the port three above the Aether listen port, which the Aether core dials out through; change the Aether listen port in the settings</value>
@@ -1902,8 +1902,11 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgAetherListenPortInvalid" xml:space="preserve">
     <value>The command of the Aether profile tells the core to listen on {0}, which is no port (1 to 65535); change the ports of the command</value>
   </data>
+  <data name="MsgAetherListenAddressInvalid" xml:space="preserve">
+    <value>The command of the Aether profile gives {0} an address the core does not take; write an IP address and a port after it, such as 127.0.0.1:20808</value>
+  </data>
   <data name="MsgAetherListenPortShared" xml:space="preserve">
-    <value>The command of the Aether profile tells the core to listen on one port with two of its listeners; give each listener a port of its own</value>
+    <value>The command of the Aether profile tells the core to listen on {0} with two of its listeners (a listener the command leaves out still listens: the one the app dials on the Aether listen port, any other on the core's default, 1819, 1820 or 1821); give each listener a port of its own</value>
   </data>
   <data name="MsgRoutingRuleTargetNotFound" xml:space="preserve">
     <value>No profile named "{0}" was found</value>

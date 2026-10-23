@@ -682,11 +682,73 @@ public partial class AetherFmt : BaseFmt
         {
             return AetherProblem.InvalidCommand;
         }
+        // As a start checks it (AetherCoreLoad.PortsProblem): a number that is no port, an address the core does not
+        // take, then ports.
+        if (AetherCoreLoad.InvalidPort(core) != null)
+        {
+            return AetherProblem.ListenPortInvalid;
+        }
+        if (core.InvalidListener != null)
+        {
+            return AetherProblem.ListenAddressInvalid;
+        }
         if (core.SharedPort != null)
         {
             return AetherProblem.ListenPortShared;
         }
         return core.Ports.Any(taken.Contains) ? AetherProblem.ListenPortTaken : null;
+    }
+
+    /// <summary>
+    /// The port <see cref="AetherProblem.ListenPortTaken" /> is about, for its message (PattNG AetherFmt.takenListenPort):
+    /// the Aether listen port of a profile built from its settings, or the first port of the command
+    /// <paramref name="config" /> carries that <paramref name="takenPorts" /> holds, as <see cref="Normalize" /> finds them;
+    /// null when none is taken.
+    /// </summary>
+    public static int? TakenListenPort(ProfileItem config, IEnumerable<int>? takenPorts, int listenPort)
+    {
+        HashSet<int> taken = takenPorts == null ? [] : [.. takenPorts];
+        var command = KotlinText.TrimOrNull(config.GetProtocolExtra().AetherCommand);
+        if (string.IsNullOrEmpty(command))
+        {
+            return taken.Contains(listenPort) ? listenPort : null;
+        }
+        return AetherCore.OfCommand(command, listenPort)?.Ports.Where(taken.Contains).Select(port => (int?)port).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// The port <see cref="AetherProblem.ListenPortShared" /> is about, for its message: the first port two listeners of
+    /// the command <paramref name="config" /> carries share, as <see cref="Normalize" /> finds it; null when none is shared.
+    /// </summary>
+    public static int? SharedListenPort(ProfileItem config, int listenPort)
+    {
+        return CommandCore(config, listenPort)?.SharedPort;
+    }
+
+    /// <summary>
+    /// The number <see cref="AetherProblem.ListenPortInvalid" /> is about, for its message: the first port of the command
+    /// <paramref name="config" /> carries that is no port, as <see cref="Normalize" /> finds it; null when there is none.
+    /// </summary>
+    public static int? InvalidListenPort(ProfileItem config, int listenPort)
+    {
+        return CommandCore(config, listenPort) is { } core ? AetherCoreLoad.InvalidPort(core) : null;
+    }
+
+    /// <summary>
+    /// The option <see cref="AetherProblem.ListenAddressInvalid" /> is about, for its message: the first listener option of
+    /// the command <paramref name="config" /> carries whose address the core does not take, as <see cref="Normalize" />
+    /// finds it; null when there is none.
+    /// </summary>
+    public static string? InvalidListener(ProfileItem config, int listenPort)
+    {
+        return CommandCore(config, listenPort)?.InvalidListener;
+    }
+
+    /// <summary>The core of the command <paramref name="config" /> carries in place of its settings, as <see cref="Normalize" /> reads it; null for none.</summary>
+    private static AetherCore? CommandCore(ProfileItem config, int listenPort)
+    {
+        var command = KotlinText.TrimOrNull(config.GetProtocolExtra().AetherCommand);
+        return string.IsNullOrEmpty(command) ? null : AetherCore.OfCommand(command, listenPort);
     }
 
     private static AetherProblem? NormalizeFragment(ProfileItem config)
@@ -938,6 +1000,8 @@ public enum AetherProblem
     InvalidEchDomain,
     ListenPortTaken,
     ListenPortShared,
+    ListenPortInvalid,
+    ListenAddressInvalid,
     PsiphonNeedsMasque,
     NextPortTaken,
     TorNeedsMasque,
