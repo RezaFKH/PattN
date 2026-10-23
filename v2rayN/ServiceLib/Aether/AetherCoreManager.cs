@@ -352,16 +352,8 @@ public sealed class AetherCoreManager
     /// <summary>A core that ends within this time without a word did not really start (design 2.4.4).</summary>
     public static readonly TimeSpan StartWindow = TimeSpan.FromSeconds(1);
 
-    private const byte SocksVersion = 5;
-
-    /// <summary>The SOCKS5 method "no authentication", the only one the greeting offers.</summary>
-    private const byte SocksNoAuthentication = 0;
-
-    /// <summary>The SOCKS5 answer "no acceptable method": a SOCKS server all the same.</summary>
-    private const byte SocksNoAcceptableMethod = 0xFF;
-
-    /// <summary>The SOCKS5 greeting, no authentication offered.</summary>
-    private static readonly byte[] SocksGreeting = [5, 1, 0];
+    /// <summary>The questions of <see cref="AnswersSocksAsync" />, with the connections they keep waiting, one per port, for the whole process.</summary>
+    private static readonly AetherSocksAnswers SocksAnswers = new(ProbeTimeout);
 
     private static readonly Lazy<AetherCoreManager> _instance = new(() => new AetherCoreManager(AetherCoreHost.Default()));
 
@@ -997,41 +989,17 @@ public sealed class AetherCoreManager
     /// taken and the greeting gets its reply. A listener bound before anything serves it, as Tor's is bound before Tor has
     /// bootstrapped, takes the connection into its backlog and says nothing, so it does not count until it does; one that
     /// closes every connection, as Psiphon's does until it has a tunnel, does not count either. The whole reply to the
-    /// greeting is read, the version and a method the greeting allows (PattNG reads the version alone): two probes of
-    /// loopback ports nothing listens on can be connected to each other by a simultaneous open when each was given the
-    /// other's port to dial from, and each then reads the other's greeting, which begins with the version as well. A
-    /// connection to itself (<see cref="AetherCoreLoad.IsSelfConnect" />, D6) is closed unasked, as no answer.
+    /// greeting is read, the version and a method the greeting allows: two probes of loopback ports nothing listens on can
+    /// be connected to each other by a simultaneous open when each was given the other's port to dial from, and each then
+    /// reads the other's greeting, which begins with the version as well. A connection to itself
+    /// (<see cref="AetherCoreLoad.IsSelfConnect" />, D6) is closed unasked, as no answer. A greeting that got no answer yet
+    /// is kept waiting for the next question about that port, and questions asked at the same time share one answer
+    /// (<see cref="AetherSocksAnswers" />): a backlog never fills with dead connections. A cancellation of
+    /// <paramref name="ct" /> throws.
     /// </summary>
-    public static async Task<bool> AnswersSocksAsync(int port, CancellationToken ct = default)
+    public static Task<bool> AnswersSocksAsync(int port, CancellationToken ct = default)
     {
-        try
-        {
-            using var client = new TcpClient();
-            using (var connecting = CancellationTokenSource.CreateLinkedTokenSource(ct))
-            {
-                connecting.CancelAfter(ProbeTimeout);
-                await client.ConnectAsync(Global.Loopback, port, connecting.Token).ConfigureAwait(false);
-            }
-            if (AetherCoreLoad.IsSelfConnect(client.Client.LocalEndPoint, client.Client.RemoteEndPoint))
-            {
-                return false;
-            }
-            using var answering = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            answering.CancelAfter(ProbeTimeout);
-            var stream = client.GetStream();
-            await stream.WriteAsync(SocksGreeting, answering.Token).ConfigureAwait(false);
-            var reply = new byte[2];
-            await stream.ReadExactlyAsync(reply, answering.Token).ConfigureAwait(false);
-            return reply[0] == SocksVersion && reply[1] is SocksNoAuthentication or SocksNoAcceptableMethod;
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return false;
-        }
-        catch (Exception ex) when (ex is SocketException or IOException or ObjectDisposedException)
-        {
-            return false;
-        }
+        return SocksAnswers.AnswersAsync(port, ct);
     }
 
     /// <summary>
