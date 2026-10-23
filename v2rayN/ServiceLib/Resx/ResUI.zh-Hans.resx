@@ -2539,4 +2539,7 @@
   <data name="menuAetherLicenses" xml:space="preserve">
     <value>Aether 内核许可证</value>
   </data>
+  <data name="MsgXrayRunCopyFailed" xml:space="preserve">
+    <value>Xray 内核未启动：在 Windows 上，PattN 以 xray.exe 的副本 {0} 运行它，但无法创建该副本：{1}</value>
+  </data>
 </root>

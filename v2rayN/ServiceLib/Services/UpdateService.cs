@@ -253,6 +253,13 @@ public partial class UpdateService(Config config, Func<bool, string, Task> updat
                 return new SemanticVersion("");
             }
 
+            // PattN: Xray on Windows never runs as xray.exe, not even to tell its version
+            filePath = CoreInfoManager.RunFileOf(coreInfo, filePath, out _);
+            if (filePath.IsNullOrEmpty())
+            {
+                return new SemanticVersion("");
+            }
+
             var result = await Utils.GetCliWrapOutput(filePath, coreInfo.VersionArg, cancellationToken);
             var echo = result ?? "";
             var version = SemVerRegex().Match(echo).Groups["version"].Value;

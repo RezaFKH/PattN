@@ -3238,6 +3238,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Xray-core was not started: on Windows PattN runs it as {0}, a copy of xray.exe, and that copy could not be made: {1} 的本地化字符串。
+        /// </summary>
+        public static string MsgXrayRunCopyFailed {
+            get {
+                return ResourceManager.GetString("MsgXrayRunCopyFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Successful operation. Click the settings menu to reboot the app. 的本地化字符串。
         /// </summary>
         public static string NeedRebootTips {

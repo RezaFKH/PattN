@@ -2547,4 +2547,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="menuAetherLicenses" xml:space="preserve">
     <value>Aether core licenses</value>
   </data>
+  <data name="MsgXrayRunCopyFailed" xml:space="preserve">
+    <value>Xray-core was not started: on Windows PattN runs it as {0}, a copy of xray.exe, and that copy could not be made: {1}</value>
+  </data>
 </root>

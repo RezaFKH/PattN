@@ -991,7 +991,14 @@ public sealed partial class V2rayRuntime
     {
         var versionArgument = coreInfo.VersionArg
             ?? throw new InvalidDataException($"{coreType} has no version-check command configured.");
-        var versionOutput = await Utils.GetCliWrapOutput(executablePath, versionArgument, cancellationToken);
+        // PattN: Xray on Windows never runs as xray.exe, not even to check a download; its copy p-xray-p.exe is made
+        // beside it and goes into the installed folder with it.
+        var runFile = CoreInfoManager.RunFileOf(coreInfo, executablePath, out var runFailure);
+        if (string.IsNullOrEmpty(runFile))
+        {
+            throw new InvalidDataException(runFailure);
+        }
+        var versionOutput = await Utils.GetCliWrapOutput(runFile, versionArgument, cancellationToken);
         var expectedName = coreInfo.Match ?? coreType.ToString();
         if (!CoreExecutableVersionCheck.IsValid(versionOutput, expectedName))
         {

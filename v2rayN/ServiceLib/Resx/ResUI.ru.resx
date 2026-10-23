@@ -2547,4 +2547,7 @@
   <data name="menuAetherLicenses" xml:space="preserve">
     <value>Лицензии ядра Aether</value>
   </data>
+  <data name="MsgXrayRunCopyFailed" xml:space="preserve">
+    <value>Ядро Xray не запущено: в Windows PattN запускает его как {0}, копию xray.exe, а эту копию не удалось создать: {1}</value>
+  </data>
 </root>

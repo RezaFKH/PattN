@@ -47,19 +47,38 @@ public sealed class CoreInfoManager
             msg = string.Format(ResUI.NotFoundCore, Utils.GetBinPath("", coreInfo?.CoreType.ToString()), coreInfo?.CoreExes?.LastOrDefault(), coreInfo?.Url);
             Logging.SaveLog(msg);
         }
-        else if (coreInfo.CoreType == ECoreType.Xray && Utils.IsWindows())
+        else
         {
-            fileName = GetXrayAliasExecFile(fileName);
+            fileName = RunFileOf(coreInfo, fileName, out msg);
         }
         return fileName;
     }
 
-    private const string XrayAliasExeName = "p-xray-p.exe";
+    /// <summary>The name of the copy of xray.exe that Xray runs from on Windows.</summary>
+    public const string XrayAliasExeName = "p-xray-p.exe";
 
-    // Windows treats a process named "xray.exe" as suspicious (XTLS/Xray-core#4427), so the core is run from a
-    // copy under another name; xray.exe itself is kept (and stays the update target) for third-party tools.
-    private static string GetXrayAliasExecFile(string xrayExe)
+    /// <summary>
+    /// PattN: the file the core <paramref name="exeFile" /> of <paramref name="coreInfo" /> runs from, whatever it runs
+    /// for: a session, a test, a scan, a key run, or a version check. That is the file itself, except for Xray on
+    /// Windows, which always runs from its copy p-xray-p.exe beside it and never as xray.exe (<see cref="XrayRunFile" />).
+    /// Empty, with <paramref name="msg" />, when that copy can be neither made nor found.
+    /// </summary>
+    public static string RunFileOf(CoreInfo? coreInfo, string exeFile, out string msg)
     {
+        msg = string.Empty;
+        return coreInfo?.CoreType == ECoreType.Xray && Utils.IsWindows() ? XrayRunFile(exeFile, out msg) : exeFile;
+    }
+
+    /// <summary>
+    /// PattN: the copy p-xray-p.exe beside <paramref name="xrayExe" /> that Xray runs from on Windows, made, or brought up
+    /// to date, first. Windows treats a process named "xray.exe" as suspicious (XTLS/Xray-core#4427), which breaks HTTP
+    /// request fragmentation, so Xray never runs under that name; xray.exe itself is kept, and stays the update target,
+    /// for third-party tools. A copy that cannot be brought up to date, as one runs from it, is used as it is. Empty, with
+    /// <paramref name="msg" />, when there is no copy and none can be made: Xray is then not run at all.
+    /// </summary>
+    public static string XrayRunFile(string xrayExe, out string msg)
+    {
+        msg = string.Empty;
         var aliasExe = Path.Combine(Path.GetDirectoryName(xrayExe) ?? string.Empty, XrayAliasExeName);
         try
         {
@@ -71,9 +90,14 @@ public sealed class CoreInfoManager
         }
         catch (Exception ex)
         {
-            // e.g. the copy is still running; keep using whichever file exists
             Logging.SaveLog("CoreInfoManager", ex);
-            return File.Exists(aliasExe) ? aliasExe : xrayExe;
+            if (File.Exists(aliasExe))
+            {
+                return aliasExe;
+            }
+            msg = string.Format(ResUI.MsgXrayRunCopyFailed, aliasExe, ex.Message);
+            Logging.SaveLog(msg);
+            return string.Empty;
         }
     }
 
