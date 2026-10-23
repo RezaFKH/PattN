@@ -2550,4 +2550,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>On Windows PattN runs Xray-core as {0}, a copy of xray.exe, and that copy could not be made the same as xray.exe: {1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>Xray-core was not updated: an Xray still runs from {0}, as a speed or latency test does; update again once it has ended</value>
+  </data>
 </root>

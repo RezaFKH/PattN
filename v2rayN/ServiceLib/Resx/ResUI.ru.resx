@@ -2550,4 +2550,7 @@
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>В Windows PattN запускает ядро Xray как {0}, копию xray.exe, а эту копию не удалось сделать такой же, как xray.exe: {1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>Ядро Xray не обновлено: Xray всё ещё запущен из {0}, как при тесте скорости или задержки; обновите снова, когда он завершится</value>
+  </data>
 </root>

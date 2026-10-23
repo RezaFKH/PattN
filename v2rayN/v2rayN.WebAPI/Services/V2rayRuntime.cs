@@ -848,7 +848,8 @@ public sealed partial class V2rayRuntime(
                     new { coreType = coreType.ToString() });
             }
             var coreInfo = CoreInfoManager.Instance.GetCoreInfo(coreType);
-            var executable = CoreInfoManager.Instance.GetCoreExecFile(coreInfo, out var missingCoreMessage);
+            // PattN: whether the core is there; Xray's copy is checked and made by the start, after the running core stops
+            var executable = CoreInfoManager.Instance.GetCoreRunPath(coreInfo, out var missingCoreMessage);
             if (!string.IsNullOrEmpty(executable))
             {
                 return null;
@@ -1482,8 +1483,9 @@ public sealed partial class V2rayRuntime(
 
         return coreTypes
             .Select(coreType => CoreInfoManager.Instance.GetCoreInfo(coreType))
-            .Select(info => info is null ? string.Empty : CoreInfoManager.Instance.GetCoreExecFile(info, out _))
-            .Where(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            // PattN: empty for a core that is not installed; Xray's copy on Windows, which the start makes if it is not there yet
+            .Select(info => info is null ? string.Empty : CoreInfoManager.Instance.GetCoreRunPath(info, out _))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
             .Select(Path.GetFullPath)
             .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
             .ToArray();

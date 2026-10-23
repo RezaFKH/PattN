@@ -2548,4 +2548,7 @@
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>在 Windows 上，PattN 以 xray.exe 的副本 {0} 執行 Xray 核心，但無法使該副本與 xray.exe 一致：{1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>Xray 核心未更新：仍有 Xray 從 {0} 執行，例如速度或延遲測試；請在其結束後再次更新</value>
+  </data>
 </root>

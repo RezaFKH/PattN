@@ -482,6 +482,21 @@ public partial class CheckUpdateViewModel : MyReactiveObject
             var coreTypeStr = item.CoreType?.ToString() ?? "";
             var toPath = Utils.GetBinPath("", coreTypeStr);
 
+            // PattN: on Windows Xray runs from its copy p-xray-p.exe, which changes with xray.exe: first xray.exe is
+            // replaced, then copied over p-xray-p.exe, in one hold in which no Xray starts; and only while no Xray runs from
+            // the copy, as a speed or latency test the stop above does not end: otherwise neither file is replaced, and the
+            // row says so
+            using var xrayFiles = item.CoreType == ECoreType.Xray && Utils.IsWindows()
+                ? await CoreInfoManager.HoldXrayFilesAsync()
+                : null;
+            if (xrayFiles != null
+                && CoreInfoManager.XrayCopyInUse(CoreInfoManager.Instance.FindInstalledXray() ?? Path.Combine(toPath, Utils.GetExeName("xray"))) is { } inUse)
+            {
+                await UpdateView(item.CoreType, inUse);
+                File.Delete(fileName);
+                continue;
+            }
+
             if (fileName.Contains(".tar.gz"))
             {
                 FileUtils.DecompressTarFile(fileName, toPath);
@@ -513,11 +528,9 @@ public partial class CheckUpdateViewModel : MyReactiveObject
                 }
             }
 
-            // PattN: on Windows Xray runs from its copy p-xray-p.exe, made equal to the new xray.exe right away, the cores
-            // being stopped by now; where something still runs from it, the row says so, and the copy is made equal
-            // before Xray next runs
+            // PattN: the new xray.exe is copied over p-xray-p.exe (see above)
             var outcome = ResUI.MsgUpdateV2rayCoreSuccessfully;
-            if (item.CoreType == ECoreType.Xray && Utils.IsWindows()
+            if (xrayFiles != null
                 && CoreInfoManager.Instance.FindInstalledXray() is { } xrayExe
                 && !CoreInfoManager.SyncXrayCopy(xrayExe, out var copyFailure))
             {

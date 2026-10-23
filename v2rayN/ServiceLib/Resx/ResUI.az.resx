@@ -2544,4 +2544,7 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>Windows-da PattN Xray nüvəsini xray.exe-nin surəti olan {0} kimi işə salır və bu surəti xray.exe ilə eyni etmək mümkün olmadı: {1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>Xray nüvəsi yenilənmədi: bir Xray hələ də {0} faylından işləyir, sürət və ya gecikmə testi kimi; o bitdikdən sonra yenidən yeniləyin</value>
+  </data>
 </root>

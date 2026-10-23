@@ -253,14 +253,25 @@ public partial class UpdateService(Config config, Func<bool, string, Task> updat
                 return new SemanticVersion("");
             }
 
-            // PattN: Xray on Windows never runs as xray.exe, not even to tell its version
-            filePath = CoreInfoManager.RunFileOf(coreInfo, filePath, out _);
+            // PattN: Xray on Windows never runs as xray.exe, not even to tell its version: its copy is checked against
+            // xray.exe, made equal to it and asked, in one hold (CoreInfoManager.HoldXrayFilesAsync)
+            using var xrayFiles = coreInfo.CoreType == ECoreType.Xray && Utils.IsWindows()
+                ? await CoreInfoManager.HoldXrayFilesAsync()
+                : null;
+            filePath = CoreInfoManager.RunFileOf(coreInfo, filePath, out var runFailure);
             if (filePath.IsNullOrEmpty())
             {
+                await UpdateFunc(false, runFailure);
                 return new SemanticVersion("");
             }
 
-            var result = await Utils.GetCliWrapOutput(filePath, coreInfo.VersionArg, cancellationToken);
+            // PattN: an Xray that does not answer in time is stopped, rather than hold the files Xray's starts wait for
+            using var versionWait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (xrayFiles != null)
+            {
+                versionWait.CancelAfter(TimeSpan.FromSeconds(10));
+            }
+            var result = await Utils.GetCliWrapOutput(filePath, coreInfo.VersionArg, versionWait.Token);
             var echo = result ?? "";
             var version = SemVerRegex().Match(echo).Groups["version"].Value;
             return new SemanticVersion(version);

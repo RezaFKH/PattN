@@ -97,7 +97,11 @@ public class CoreManager
         // hand, may have replaced xray.exe since PattN last ran
         if (Utils.IsWindows() && CoreInfoManager.Instance.FindInstalledXray() is { } xrayExe)
         {
-            var copyFailure = await Task.Run(() => CoreInfoManager.SyncXrayCopy(xrayExe, out var failure) ? null : failure);
+            string? copyFailure;
+            using (await CoreInfoManager.HoldXrayFilesAsync())
+            {
+                copyFailure = await Task.Run(() => CoreInfoManager.SyncXrayCopy(xrayExe, out var failure) ? null : failure);
+            }
             if (copyFailure != null)
             {
                 await UpdateFunc(false, copyFailure);
@@ -454,6 +458,12 @@ public class CoreManager
 
     private async Task<ProcessService?> RunProcess(CoreInfo? coreInfo, string configPath, bool displayLog, bool mayNeedSudo, bool isTunLaunch = false)
     {
+        // PattN: on Windows Xray's copy is checked against xray.exe, made equal to it and started in one hold, so that no
+        // update changes either file in between (CoreInfoManager.HoldXrayFilesAsync); the hold ends as soon as the process
+        // has started, as Windows then keeps the copy it runs from from being replaced
+        using var xrayFiles = coreInfo?.CoreType == ECoreType.Xray && Utils.IsWindows()
+            ? await CoreInfoManager.HoldXrayFilesAsync()
+            : null;
         var fileName = CoreInfoManager.Instance.GetCoreExecFile(coreInfo, out var msg);
         if (fileName.IsNullOrEmpty())
         {
@@ -471,7 +481,7 @@ public class CoreManager
                 return await CoreAdminManager.Instance.RunProcessAsLinuxSudo(fileName, coreInfo, configPath);
             }
 
-            return await RunProcessNormal(fileName, coreInfo, configPath, displayLog);
+            return await RunProcessNormal(fileName, coreInfo, configPath, displayLog, xrayFiles);
         }
         catch (Exception ex)
         {
@@ -481,7 +491,8 @@ public class CoreManager
         }
     }
 
-    private async Task<ProcessService?> RunProcessNormal(string fileName, CoreInfo? coreInfo, string configPath, bool displayLog)
+    // PattN: startHold, Xray's hold on its files on Windows, is let go of once the process has started
+    private async Task<ProcessService?> RunProcessNormal(string fileName, CoreInfo? coreInfo, string configPath, bool displayLog, IDisposable? startHold = null)
     {
         var environmentVars = new Dictionary<string, string>();
         foreach (var kv in coreInfo.Environment)
@@ -500,6 +511,7 @@ public class CoreManager
         );
 
         await procService.StartAsync();
+        startHold?.Dispose();
 
         await Task.Delay(100);
 

@@ -2542,4 +2542,7 @@
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>在 Windows 上，PattN 以 xray.exe 的副本 {0} 运行 Xray 内核，但无法使该副本与 xray.exe 一致：{1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>Xray 内核未更新：仍有 Xray 从 {0} 运行，例如速度或延迟测试；请在其结束后再次更新</value>
+  </data>
 </root>

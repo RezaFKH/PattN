@@ -271,7 +271,8 @@ public partial class CoreConfigV2rayService
             foreach (var baseExeName in coreConfig.CoreExes)
             {
                 //directExeSet.Add(Utils.GetExeName(baseExeName));
-                var exePath = CoreInfoManager.Instance.GetCoreExecFile(coreConfig, out _);
+                // PattN: the path alone; a start checks and makes what it runs
+                var exePath = CoreInfoManager.Instance.GetCoreRunPath(coreConfig, out _);
                 if (!exePath.IsNullOrEmpty())
                 {
                     directExeSet.Add(exePath);

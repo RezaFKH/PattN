@@ -327,7 +327,8 @@ public partial class CoreConfigSingboxService
             foreach (var baseExeName in coreConfig.CoreExes)
             {
                 //directExeSet.Add(Utils.GetExeName(baseExeName));
-                var exePath = CoreInfoManager.Instance.GetCoreExecFile(coreConfig, out _);
+                // PattN: the path alone, Xray's copy on Windows; a start checks and makes the copy
+                var exePath = CoreInfoManager.Instance.GetCoreRunPath(coreConfig, out _);
                 if (!exePath.IsNullOrEmpty())
                 {
                     directExeSet.Add(exePath);

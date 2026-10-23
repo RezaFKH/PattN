@@ -29,22 +29,18 @@ public sealed class CoreInfoManager
         return _coreInfo ?? [];
     }
 
+    /// <summary>
+    /// The file a start of the core of <paramref name="coreInfo" /> runs: for Xray on Windows, its copy, checked against
+    /// xray.exe and made equal to it first (<see cref="RunFileOf" />); a start holds <see cref="HoldXrayFilesAsync" /> from
+    /// this call until its Xray has started. Empty, with <paramref name="msg" />, when it cannot run.
+    /// </summary>
     public string GetCoreExecFile(CoreInfo? coreInfo, out string msg)
     {
-        var fileName = string.Empty;
+        var fileName = FindCoreExe(coreInfo);
         msg = string.Empty;
-        foreach (var name in coreInfo?.CoreExes)
-        {
-            var vName = Utils.GetBinPath(Utils.GetExeName(name), coreInfo.CoreType.ToString());
-            if (File.Exists(vName))
-            {
-                fileName = vName;
-                break;
-            }
-        }
         if (fileName.IsNullOrEmpty())
         {
-            msg = string.Format(ResUI.NotFoundCore, Utils.GetBinPath("", coreInfo?.CoreType.ToString()), coreInfo?.CoreExes?.LastOrDefault(), coreInfo?.Url);
+            msg = NotFoundMessage(coreInfo);
             Logging.SaveLog(msg);
         }
         else
@@ -52,6 +48,41 @@ public sealed class CoreInfoManager
             fileName = RunFileOf(coreInfo, fileName, out msg);
         }
         return fileName;
+    }
+
+    /// <summary>
+    /// PattN: the file the core of <paramref name="coreInfo" /> runs from, as a path alone, for a configuration that names
+    /// it or a check that it is there: for Xray on Windows its copy, which is neither checked nor made here (a start
+    /// does that, <see cref="GetCoreExecFile" />). Empty, with <paramref name="missing" />, when the core is not installed.
+    /// </summary>
+    public string GetCoreRunPath(CoreInfo? coreInfo, out string missing)
+    {
+        var fileName = FindCoreExe(coreInfo);
+        missing = fileName.IsNullOrEmpty() ? NotFoundMessage(coreInfo) : string.Empty;
+        if (fileName.IsNotEmpty() && coreInfo?.CoreType == ECoreType.Xray && Utils.IsWindows())
+        {
+            fileName = XrayCopyOf(fileName);
+        }
+        return fileName;
+    }
+
+    /// <summary>The program of the core of <paramref name="coreInfo" /> as installed, by its names; empty when there is none.</summary>
+    private static string FindCoreExe(CoreInfo? coreInfo)
+    {
+        foreach (var name in coreInfo?.CoreExes ?? [])
+        {
+            var vName = Utils.GetBinPath(Utils.GetExeName(name), coreInfo!.CoreType.ToString());
+            if (File.Exists(vName))
+            {
+                return vName;
+            }
+        }
+        return string.Empty;
+    }
+
+    private static string NotFoundMessage(CoreInfo? coreInfo)
+    {
+        return string.Format(ResUI.NotFoundCore, Utils.GetBinPath("", coreInfo?.CoreType.ToString()), coreInfo?.CoreExes?.LastOrDefault(), coreInfo?.Url);
     }
 
     /// <summary>The name of the copy of xray.exe that Xray runs from on Windows.</summary>
@@ -84,26 +115,99 @@ public sealed class CoreInfoManager
     /// PattN: makes the copy of <paramref name="xrayExe" /> (<see cref="XrayCopyOf" />) equal to it but for its name: where
     /// the copy is missing, or differs, as once an update replaced xray.exe, xray.exe is copied over it. The two are told
     /// equal by their bytes (size, then SHA-256), which says more than their versions do, and asks neither of them: xray.exe
-    /// is never run, and its Windows build carries no version that could be read without running it. False, with
-    /// <paramref name="msg" />, when the copy cannot be made equal, as while an older one runs.
+    /// is never run, and its Windows build carries no version that could be read without running it. One check or copy at
+    /// a time: Xray processes that start together, as a session and a latency test, wait for each other's copy rather
+    /// than fail on it. The copy is left writable, though xray.exe may be read-only, so that the next update can replace
+    /// it. False, with <paramref name="msg" />, when the copy cannot be made equal, as while an older one runs.
     /// </summary>
     public static bool SyncXrayCopy(string xrayExe, out string msg)
     {
         msg = string.Empty;
         var copy = XrayCopyOf(xrayExe);
+        lock (XrayCopyGate)
+        {
+            try
+            {
+                if (!File.Exists(copy) || !IsSameFileContent(xrayExe, copy))
+                {
+                    if (File.Exists(copy))
+                    {
+                        File.SetAttributes(copy, FileAttributes.Normal);
+                    }
+                    File.Copy(xrayExe, copy, true);
+                    File.SetAttributes(copy, FileAttributes.Normal);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logging.SaveLog("CoreInfoManager", ex);
+                msg = string.Format(ResUI.MsgXrayRunCopyFailed, copy, ex.Message);
+                return false;
+            }
+        }
+    }
+
+    private static readonly object XrayCopyGate = new();
+
+    private static readonly SemaphoreSlim XrayFilesGate = new(1, 1);
+
+    /// <summary>
+    /// PattN: holds xray.exe and its copy for one user of them at a time until the handle is disposed: an Xray start from
+    /// checking the copy until its Xray has started (Windows then keeps the copy that runs from being replaced), a
+    /// version check until it has its answer, and an update from checking that no Xray runs from the copy until both files
+    /// are new. So no Xray starts from a copy that differs from xray.exe, and an update replaces both or neither.
+    /// </summary>
+    public static async Task<IDisposable> HoldXrayFilesAsync()
+    {
+        await XrayFilesGate.WaitAsync().ConfigureAwait(false);
+        return new XrayFilesHold();
+    }
+
+    private sealed class XrayFilesHold : IDisposable
+    {
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                XrayFilesGate.Release();
+            }
+        }
+    }
+
+    /// <summary>
+    /// PattN: a message when an Xray runs from the copy of <paramref name="xrayExe" /> now, as a speed or latency test that
+    /// a core stop does not end, so that the copy cannot be replaced: an update then replaces neither file. Null when none
+    /// does, or there is no copy yet. Asked while <see cref="HoldXrayFilesAsync" /> is held, so that none starts meanwhile.
+    /// </summary>
+    public static string? XrayCopyInUse(string xrayExe)
+    {
+        var copy = XrayCopyOf(xrayExe);
+        if (!File.Exists(copy))
+        {
+            return null;
+        }
         try
         {
-            if (!File.Exists(copy) || !IsSameFileContent(xrayExe, copy))
-            {
-                File.Copy(xrayExe, copy, true);
-            }
-            return true;
+            // A file a program runs from can be read, even alone, but not written: Windows refuses that while it runs.
+            // Nothing is written here; a read-only copy, which no update could replace either, is made writable first.
+            File.SetAttributes(copy, FileAttributes.Normal);
+            using var writable = new FileStream(copy, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+            return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            Logging.SaveLog("CoreInfoManager", ex);
-            msg = string.Format(ResUI.MsgXrayRunCopyFailed, copy, ex.Message);
-            return false;
+            return null;
+        }
+        catch (IOException)
+        {
+            return string.Format(ResUI.MsgXrayCopyInUse, copy);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return string.Format(ResUI.MsgXrayRunCopyFailed, copy, ex.Message);
         }
     }
 

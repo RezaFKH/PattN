@@ -2418,4 +2418,7 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
     <value>PattN در ویندوز هسته Xray را با نام {0}، که کپی xray.exe است، اجرا می‌کند و این کپی با xray.exe یکسان نشد: {1}</value>
   </data>
+  <data name="MsgXrayCopyInUse" xml:space="preserve">
+    <value>هسته Xray به‌روز نشد: یک Xray هنوز از {0} اجرا می‌شود، مثل یک تست سرعت یا تأخیر؛ پس از پایان آن دوباره به‌روز کنید</value>
+  </data>
 </root>

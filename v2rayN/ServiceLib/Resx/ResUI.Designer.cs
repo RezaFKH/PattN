@@ -3238,6 +3238,15 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
+        ///   查找类似 Xray-core was not updated: an Xray still runs from {0}, as a speed or latency test does; update again once it has ended 的本地化字符串。
+        /// </summary>
+        public static string MsgXrayCopyInUse {
+            get {
+                return ResourceManager.GetString("MsgXrayCopyInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 On Windows PattN runs Xray-core as {0}, a copy of xray.exe, and that copy could not be made the same as xray.exe: {1} 的本地化字符串。
         /// </summary>
         public static string MsgXrayRunCopyFailed {
