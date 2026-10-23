@@ -96,7 +96,7 @@ public sealed record AetherCore
     /// turns an HTTP proxy off. A message names the option, not the address, which is free text the log must not carry.
     /// </summary>
     public string? InvalidListener => BoundListeners().FirstOrDefault(flag =>
-        AddressAfter(flag) is { } address
+        AetherArguments.ListenerAddressAfter(Arguments, flag) is { } address
         && !AetherArguments.IsSocketAddress(address)
         && !(HttpListeners.Contains(flag) && address is "" or "off"));
 
@@ -110,23 +110,13 @@ public sealed record AetherCore
         foreach (var flag in listeners)
         {
             int? port = Arguments.Contains(flag)
-                ? AetherArguments.PortOf(AddressAfter(flag))
+                ? AetherArguments.PortAfter(Arguments, flag)
                 : AetherArguments.DefaultListenerPorts.TryGetValue(flag, out var fallback) ? fallback : null;
             if (port is { } value and not 0)
             {
                 yield return value;
             }
         }
-    }
-
-    /// <summary>
-    /// The address written after <paramref name="flag" />, as the core reads it: its own listener's as written, the others
-    /// trimmed as the core trims them, by Rust's whitespace, which is .NET's (see <see cref="KotlinText" />).
-    /// </summary>
-    private string? AddressAfter(string flag)
-    {
-        var written = AetherArguments.ValueAfter(Arguments, flag);
-        return written == null || flag == "--bind" ? written : written.Trim();
     }
 
     /// <summary>Every listener option the core binds as its arguments run it, in the order of <see cref="Listeners" />, see <see cref="ListenerGroups" />.</summary>

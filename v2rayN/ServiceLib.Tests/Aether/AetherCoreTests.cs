@@ -415,6 +415,18 @@ public class AetherCoreTests
     }
 
     [Test]
+    public async Task TheListenerTheAppDialsIsReadTrimmedAsTheCoreReadsIt()
+    {
+        // Tor inside the tunnel, dialled on its listener, which the core reads trimmed: the app dials the same port.
+        var tor = OfCommand("aether --masque --tor --tor-bind '127.0.0.1:10820 '");
+        await tor.Port.Should().BeEqualTo(10820);
+        await ShouldBe(tor.Ports, 1819, 10820);
+        await tor.InvalidListener.Should().BeNull();
+        // The core's own listener is read as written, so a space keeps the app from reading its port at all.
+        await AetherCore.OfCommand("aether --wg --bind '127.0.0.1:10819 '", ListenPort).Should().BeNull();
+    }
+
+    [Test]
     public async Task TheListenersOtherThanItsOwnAreCountedTrimmedAsTheCoreReadsThem()
     {
         await ShouldBe(OfCommand("aether --wg --bind 127.0.0.1:10819 --http-proxy '127.0.0.1:8118 '").Ports, 10819, 8118);

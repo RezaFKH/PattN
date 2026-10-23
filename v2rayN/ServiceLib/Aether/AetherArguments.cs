@@ -649,10 +649,13 @@ public static class AetherArguments
         return PortAfter(argv, "--bind");
     }
 
-    /// <summary>The address of the listener the app dials, see <see cref="ListenerFlagOf" />; null when <paramref name="argv" /> names none.</summary>
+    /// <summary>
+    /// The address of the listener the app dials, see <see cref="ListenerFlagOf" />, as the core reads it, see
+    /// <see cref="ListenerAddressAfter" />; null when <paramref name="argv" /> names none.
+    /// </summary>
     public static string? ListenerAddressOf(IReadOnlyList<string> argv)
     {
-        return ValueAfter(argv, ListenerFlagOf(argv));
+        return ListenerAddressAfter(argv, ListenerFlagOf(argv));
     }
 
     /// <summary>The port of the listener the app dials, null when <paramref name="argv" /> names none.</summary>
@@ -661,10 +664,23 @@ public static class AetherArguments
         return PortOf(ListenerAddressOf(argv));
     }
 
-    /// <summary>The port of the address after <paramref name="flag" />, null when there is none or it cannot be read.</summary>
+    /// <summary>The port of the address after the listener option <paramref name="flag" />, as the core reads it; null when there is none or it cannot be read.</summary>
     public static int? PortAfter(IReadOnlyList<string> argv, string flag)
     {
-        return PortOf(ValueAfter(argv, flag));
+        return PortOf(ListenerAddressAfter(argv, flag));
+    }
+
+    /// <summary>
+    /// The address after the listener option <paramref name="flag" /> in <paramref name="argv" />, as the core reads it
+    /// (PattNG AetherCoreManager.listenerAddressAfter): its own listener's (--bind) as written, Tor's, Psiphon's and the
+    /// HTTP proxies' trimmed by Rust's whitespace, which is .NET's (aether lib.rs, tor.rs and psiphon.rs; see
+    /// <see cref="KotlinText" />); null when there is none. Every reader of a listener's address or port goes by it, so
+    /// that the app and the core agree on it.
+    /// </summary>
+    public static string? ListenerAddressAfter(IReadOnlyList<string> argv, string flag)
+    {
+        var written = ValueAfter(argv, flag);
+        return written == null || flag == "--bind" ? written : written.Trim();
     }
 
     /// <summary>

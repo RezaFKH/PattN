@@ -1150,6 +1150,23 @@ public class AetherArgumentsTests
         }
     }
 
+    // PattNG AetherCoreManagerTest.aListenerAddressIsReadAsTheCoreReadsIt.
+    [Test]
+    public async Task AListenerAddressIsReadAsTheCoreReadsIt()
+    {
+        // The core's own listener as written, every other trimmed, the one the app dials among them.
+        string[] argv = ["--tor", "--bind", " 127.0.0.1:10820 ", "--tor-bind", " 127.0.0.1:10819 ", "--http-proxy", "127.0.0.1:8118 "];
+        await AetherArguments.ListenerAddressAfter(argv, "--bind").Should().BeEqualTo(" 127.0.0.1:10820 ");
+        await AetherArguments.ListenerAddressAfter(argv, AetherArguments.TorBind).Should().BeEqualTo("127.0.0.1:10819");
+        await AetherArguments.ListenerAddressOf(argv).Should().BeEqualTo("127.0.0.1:10819");
+        await AetherArguments.ListenerPortOf(argv).Should().BeEqualTo(10819);
+        await AetherArguments.PortAfter(argv, AetherArguments.HttpProxy).Should().BeEqualTo(8118);
+        await AetherArguments.PortAfter(argv, "--bind").Should().BeNull();
+        await AetherArguments.ListenerAddressAfter(argv, AetherArguments.PsiphonBind).Should().BeNull();
+        // By Rust's whitespace, which is .NET's: a next line (U+0085) is trimmed.
+        await AetherArguments.PortAfter(["--tor-bind", "127.0.0.1:10819\u0085"], AetherArguments.TorBind).Should().BeEqualTo(10819);
+    }
+
     // PattNG AetherCoreManager.defaultListenerPorts: where the core listens when a command leaves a listener out.
     [Test]
     public async Task TheCoreListensOnItsDefaultsWhereACommandNamesNoListener()
