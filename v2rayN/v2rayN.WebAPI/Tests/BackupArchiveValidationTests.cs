@@ -169,6 +169,52 @@ public class BackupArchiveValidationTests
             .Should().BeEqualTo("old-config");
     }
 
+    // PattN: Utils.GetConfigPath makes guiConfigs whenever it is missing, so a request served between the two moves of a
+    // restore can leave an empty folder where the restored configuration goes.
+    [Test]
+    public async Task TheRestoredConfigMovesInOverAnEmptyFolderARequestMade()
+    {
+        using var directory = new TemporaryDirectory();
+        var current = Path.Combine(directory.Path, "guiConfigs");
+        var candidate = Path.Combine(directory.Path, "guiConfigs-restore");
+        Directory.CreateDirectory(current);
+        Directory.CreateDirectory(candidate);
+        await File.WriteAllTextAsync(Path.Combine(candidate, "guiNConfig.json"), "restored-config");
+
+        // The configuration in use was moved aside, and a request made the folder again.
+        DirectorySwap.MoveIntoPlace(candidate, current);
+
+        await (await File.ReadAllTextAsync(Path.Combine(current, "guiNConfig.json")))
+            .Should().BeEqualTo("restored-config");
+        await Directory.Exists(candidate).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task AFolderThatHoldsFilesIsNeverReplacedByAMove()
+    {
+        using var directory = new TemporaryDirectory();
+        var current = Path.Combine(directory.Path, "guiConfigs");
+        var candidate = Path.Combine(directory.Path, "guiConfigs-restore");
+        Directory.CreateDirectory(current);
+        Directory.CreateDirectory(candidate);
+        await File.WriteAllTextAsync(Path.Combine(current, "guiNConfig.json"), "in-use-config");
+        await File.WriteAllTextAsync(Path.Combine(candidate, "guiNConfig.json"), "restored-config");
+
+        var failed = false;
+        try
+        {
+            DirectorySwap.MoveIntoPlace(candidate, current);
+        }
+        catch (IOException)
+        {
+            failed = true;
+        }
+
+        await failed.Should().BeTrue();
+        await (await File.ReadAllTextAsync(Path.Combine(current, "guiNConfig.json"))).Should().BeEqualTo("in-use-config");
+        await (await File.ReadAllTextAsync(Path.Combine(candidate, "guiNConfig.json"))).Should().BeEqualTo("restored-config");
+    }
+
     private static string CreateArchive(params (string Name, object Content)[] files)
     {
         var path = Path.Combine(Path.GetTempPath(), $"v2rayn-WebAPI-test-{Guid.NewGuid():N}.zip");

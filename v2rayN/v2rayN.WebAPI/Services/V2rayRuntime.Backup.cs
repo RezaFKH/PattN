@@ -226,15 +226,26 @@ public sealed partial class V2rayRuntime
                     ?? throw new InvalidOperationException("The configuration directory has no parent directory.");
                 var candidatePath = Path.Combine(configParent, $".guiConfigs-restore-{Guid.NewGuid():N}");
                 var displacedPath = Path.Combine(configParent, $".guiConfigs-before-restore-{Guid.NewGuid():N}");
+                var replaced = false;
                 try
                 {
                     PrepareRestoredConfigDirectory(stagingRoot, configPath, candidatePath);
                     ReplaceConfigDirectory(candidatePath, configPath, displacedPath);
+                    replaced = true;
                 }
                 finally
                 {
                     TryDeleteRestoreDirectory(candidatePath, "restore candidate");
-                    TryDeleteRestoreDirectory(displacedPath, "displaced configuration");
+                    // PattN: the configuration that was in use is deleted only once the restored one has taken its place;
+                    // where a failed swap could not put it back, it is kept, and the log says where
+                    if (replaced)
+                    {
+                        TryDeleteRestoreDirectory(displacedPath, "displaced configuration");
+                    }
+                    else if (Directory.Exists(displacedPath))
+                    {
+                        AddLog("backup", $"The configuration in use before the restore could not be put back; it is kept at {displacedPath}.");
+                    }
                 }
 
                 _restoring = true;
@@ -794,13 +805,21 @@ public sealed partial class V2rayRuntime
 
         try
         {
-            Directory.Move(candidateDirectory, configDirectory);
+            // PattN: over an empty folder a request may have made meanwhile (DirectorySwap)
+            DirectorySwap.MoveIntoPlace(candidateDirectory, configDirectory);
         }
         catch
         {
-            if (hadCurrentDirectory && Directory.Exists(displacedDirectory) && !Directory.Exists(configDirectory))
+            if (hadCurrentDirectory && Directory.Exists(displacedDirectory))
             {
-                Directory.Move(displacedDirectory, configDirectory);
+                try
+                {
+                    DirectorySwap.MoveIntoPlace(displacedDirectory, configDirectory);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // Kept at displacedDirectory: the restore leaves it there and says so.
+                }
             }
             throw;
         }

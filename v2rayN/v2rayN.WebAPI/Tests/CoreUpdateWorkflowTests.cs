@@ -274,6 +274,77 @@ public class CoreUpdateWorkflowTests
         await (await File.ReadAllTextAsync(Path.Combine(install, "xray"))).Should().BeEqualTo("old-binary");
     }
 
+    // PattN: Utils.GetBinPath makes the folder of a core whenever it is asked for a path in it, so a request served
+    // between the two moves of an update can leave an empty folder where the new or the previous Core goes.
+    [Test]
+    public async Task TheNewCoreMovesInOverAnEmptyFolderARequestMadeBetweenTheMoves()
+    {
+        using var directory = new TemporaryDirectory();
+        var install = Path.Combine(directory.Path, "xray");
+        var candidate = Path.Combine(directory.Path, ".xray-candidate");
+        Directory.CreateDirectory(install);
+        Directory.CreateDirectory(candidate);
+        await File.WriteAllTextAsync(Path.Combine(candidate, "xray"), "new-binary");
+
+        DirectorySwap.MoveIntoPlace(candidate, install);
+
+        await (await File.ReadAllTextAsync(Path.Combine(install, "xray"))).Should().BeEqualTo("new-binary");
+        await Directory.Exists(candidate).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task TheRollbackPutsThePreviousCoreBackOverAnEmptyFolderARequestMade()
+    {
+        using var directory = new TemporaryDirectory();
+        var install = Path.Combine(directory.Path, "xray");
+        var backup = Path.Combine(directory.Path, ".xray-backup");
+        // The new Core never moved in: the place holds only the empty folder.
+        Directory.CreateDirectory(install);
+        Directory.CreateDirectory(backup);
+        await File.WriteAllTextAsync(Path.Combine(backup, "xray"), "old-binary");
+
+        var rollback = await CoreUpdateWorkflow.RollBackAndRestoreAsync(
+            () =>
+            {
+                CoreUpdateWorkflow.RestorePreviousDirectory(install, backup, candidateInstalled: false, hadInstalledCore: true);
+                return Task.CompletedTask;
+            },
+            () => Task.CompletedTask,
+            wasRunning: false,
+            restartPreviousCoreAsync: () => Task.FromResult(true));
+
+        await rollback.Completed.Should().BeTrue();
+        await (await File.ReadAllTextAsync(Path.Combine(install, "xray"))).Should().BeEqualTo("old-binary");
+        await Directory.Exists(backup).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ARollbackThatCannotPutThePreviousCoreBackFailsAndKeepsIt()
+    {
+        using var directory = new TemporaryDirectory();
+        var install = Path.Combine(directory.Path, "xray");
+        var backup = Path.Combine(directory.Path, ".xray-backup");
+        // Something wrote a file where the previous Core goes: it is neither deleted nor reported restored.
+        Directory.CreateDirectory(install);
+        Directory.CreateDirectory(backup);
+        await File.WriteAllTextAsync(Path.Combine(install, "geoip.dat"), "other");
+        await File.WriteAllTextAsync(Path.Combine(backup, "xray"), "old-binary");
+
+        IOException? failure = null;
+        try
+        {
+            CoreUpdateWorkflow.RestorePreviousDirectory(install, backup, candidateInstalled: false, hadInstalledCore: true);
+        }
+        catch (IOException exception)
+        {
+            failure = exception;
+        }
+
+        await failure.Should().NotBeNull();
+        await (await File.ReadAllTextAsync(Path.Combine(backup, "xray"))).Should().BeEqualTo("old-binary");
+        await (await File.ReadAllTextAsync(Path.Combine(install, "geoip.dat"))).Should().BeEqualTo("other");
+    }
+
     [Test]
     public async Task OnlyTheExactUpdatedCoreIsStoppedAndRestarted()
     {

@@ -807,14 +807,23 @@ public sealed partial class V2rayRuntime
             }
             try
             {
-                Directory.Move(candidatePath, installPath);
+                // PattN: over an empty folder a request may have made meanwhile (DirectorySwap)
+                DirectorySwap.MoveIntoPlace(candidatePath, installPath);
                 candidateInstalled = true;
             }
             catch
             {
-                if (hadInstalledCore && Directory.Exists(backupPath) && !Directory.Exists(installPath))
+                if (hadInstalledCore && Directory.Exists(backupPath))
                 {
-                    Directory.Move(backupPath, installPath);
+                    try
+                    {
+                        DirectorySwap.MoveIntoPlace(backupPath, installPath);
+                    }
+                    catch (Exception exception)
+                    {
+                        // The rollback below tries again, and says where the previous files are when it cannot.
+                        AddLog("update", $"{stage.CoreType} previous files could not be put back yet: {exception.Message}");
+                    }
                 }
                 throw;
             }
@@ -972,7 +981,10 @@ public sealed partial class V2rayRuntime
         }
         catch (Exception exception)
         {
-            AddLog("update", $"{coreType} rollback failed: {exception.Message}");
+            // PattN: and where the previous files are, when they could not be put back
+            AddLog("update", Directory.Exists(backupPath)
+                ? $"{coreType} rollback failed: {exception.Message} The previous files remain at {backupPath}."
+                : $"{coreType} rollback failed: {exception.Message}");
             SetCoreRuntime(CurrentCoreRuntime with
             {
                 State = CoreRuntimeState.Faulted,
@@ -1429,9 +1441,11 @@ internal static class CoreUpdateWorkflow
         {
             Directory.Delete(installPath, recursive: true);
         }
-        if (hadInstalledCore && Directory.Exists(backupPath) && !Directory.Exists(installPath))
+        // PattN: also over an empty folder a request made meanwhile; where the place holds files, this throws and the
+        // previous files stay at backupPath, rather than the rollback reporting them restored
+        if (hadInstalledCore && Directory.Exists(backupPath))
         {
-            Directory.Move(backupPath, installPath);
+            DirectorySwap.MoveIntoPlace(backupPath, installPath);
         }
     }
 
