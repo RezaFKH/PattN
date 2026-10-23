@@ -340,7 +340,8 @@ public class AetherCoreTests
         await OfCommand("aether --wg --http-proxy 127.0.0.1:10819").SharedPort.Should().BeEqualTo(10819);
         // Tor inside the tunnel on the core's own port.
         await OfCommand("aether --masque --tor --tor-bind 127.0.0.1:10820 --bind 127.0.0.1:10820").SharedPort.Should().BeEqualTo(10820);
-        // A carrier alone serves the core's own listener and its own HTTP proxy, and the core runs nothing else.
+        // A carrier alone serves the core's own listener; the core's own HTTP proxy, bound as it starts, and the carrier's,
+        // bound once that one is let go, may share a port. The core runs nothing else.
         var torAlone = OfCommand("aether --tor-only --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:8118 --tor-http 127.0.0.1:8118 "
                                  + "--psiphon --psiphon-bind 127.0.0.1:10819 --psiphon-http 127.0.0.1:8120");
         await torAlone.SharedPort.Should().BeNull();
@@ -361,6 +362,52 @@ public class AetherCoreTests
             AetherTor = AetherTor.Reverse.Type,
         });
         await AetherCore.Of(most, ListenPort).SharedPort.Should().BeNull();
+    }
+
+    [Test]
+    public async Task AListenerACommandDoesNotNameListensOnTheCoresDefaultPort()
+    {
+        // Tor inside the tunnel gets the app's port; the core's own listener, left out, is on 1819 all the same.
+        await ShouldBe(OfCommand("aether --wg --tor").Ports, 1819, 10819);
+        // Tor's and Psiphon's listeners around the tunnel, left out, are on 1820 and 1821.
+        await ShouldBe(OfCommand("aether --masque --tor-reverse --bind 127.0.0.1:10819").Ports, 10819, 1820);
+        await ShouldBe(OfCommand("aether --masque --psiphon-reverse --bind 127.0.0.1:10819").Ports, 10819, 1821);
+        // A default the command does not see can be the port it names for another listener.
+        await OfCommand("aether --wg --tor --tor-bind 127.0.0.1:1819").SharedPort.Should().BeEqualTo(1819);
+        await OfCommand("aether --masque --tor-reverse --bind 127.0.0.1:1820").SharedPort.Should().BeEqualTo(1820);
+        // An HTTP proxy left out is off, and a listener of a mode that does not run binds nothing.
+        await ShouldBe(OfCommand("aether --wg --bind 127.0.0.1:10819").Ports, 10819);
+        // The commands of the app name every listener they run.
+        await ShouldBe(AetherCore.Of(Copy(Pinned(), extra => extra with { AetherTor = "chain" }), ListenPort).Ports, 10820, 10819);
+    }
+
+    [Test]
+    public async Task AloneTheCoreHoldsItsOwnHttpProxyAsItStartsAndThenTheCarriersOne()
+    {
+        // The core binds its own HTTP proxy as it starts, beside its own listener: it counts, and cannot share that one.
+        await ShouldBe(OfCommand("aether --tor-only --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:8118").Ports, 10819, 8118);
+        await OfCommand("aether --tor-only --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:10819").SharedPort.Should().BeEqualTo(10819);
+        // It lets it go before Tor's HTTP proxy is bound, so those two may share a port; Tor's and the core's own listener may not.
+        await OfCommand("aether --tor-only --bind 127.0.0.1:10819 --http-proxy 127.0.0.1:8118 --tor-http 127.0.0.1:8118")
+            .SharedPort.Should().BeNull();
+        await OfCommand("aether --psiphon-only --bind 127.0.0.1:10819 --psiphon-http 127.0.0.1:10819").SharedPort.Should().BeEqualTo(10819);
+    }
+
+    [Test]
+    public async Task ARegistrationOfKeysListensOnlyWhereACarrierAroundTheTunnelDoes()
+    {
+        // The core registers and ends: no listener of its own, though the command names none to leave to a default.
+        await ShouldBe(new AetherCore(["--register", "wg", "--wg"]).Ports);
+        await ShouldBe(new AetherCore(["--register", "wg", "--wg", "--tor"]).Ports);
+        // A carrier around the tunnel carries its requests on its listener, the default where none is named.
+        await ShouldBe(new AetherCore(["--register", "masque", "--masque", "--tor-reverse"]).Ports, 1820);
+        await ShouldBe(new AetherCore(["--register", "masque", "--masque", "--psiphon-reverse", "--psiphon-bind", "127.0.0.1:20808"]).Ports, 20808);
+        // That carrier's HTTP proxy too, which it binds as it serves; the core's own is not bound.
+        await ShouldBe(new AetherCore(["--register", "masque", "--masque", "--tor-reverse", "--tor-http", "127.0.0.1:9000", "--http-proxy", "127.0.0.1:9001"]).Ports,
+            1820, 9000);
+        await new AetherCore(["--register", "masque", "--masque", "--tor-reverse", "--tor-bind", "127.0.0.1:9000", "--tor-http", "127.0.0.1:9000"])
+            .SharedPort.Should().BeEqualTo(9000);
+        await ShouldBe(new AetherCore(["--register", "masque", "--masque", "--psiphon-reverse", "--psiphon-http", "127.0.0.1:9002"]).Ports, 1821, 9002);
     }
 
     [Test]

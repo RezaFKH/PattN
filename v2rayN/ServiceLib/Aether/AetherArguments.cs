@@ -26,6 +26,18 @@ public static class AetherArguments
     /// <summary>The option that names Psiphon's HTTP proxy, which a command written by hand may open; see <see cref="HttpProxy" />.</summary>
     public const string PsiphonHttp = "--psiphon-http";
 
+    /// <summary>
+    /// The ports the core's SOCKS listeners take where a command written by hand does not name them (aether cli.rs,
+    /// PattNG AetherCoreManager.defaultListenerPorts): its own 1819, Tor's 1820 and Psiphon's 1821. The HTTP proxies are
+    /// off unless named, and the app's own commands name every listener they run.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, int> DefaultListenerPorts = new Dictionary<string, int>
+    {
+        ["--bind"] = 1819,
+        [TorBind] = 1820,
+        [PsiphonBind] = 1821,
+    };
+
     /// <summary>The option that names the proxy the core dials out through.</summary>
     public const string Upstream = "--upstream";
 

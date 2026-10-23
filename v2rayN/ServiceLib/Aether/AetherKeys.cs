@@ -66,7 +66,7 @@ public static class AetherKeys
     public const string DefaultEnrollAddress = "api.cloudflareclient.com";
 
     /// <summary>The option that has the core register keys and end, with the word naming which.</summary>
-    private const string RegisterFlag = "--register";
+    internal const string RegisterFlag = "--register";
 
     /// <summary>
     /// The arguments <paramref name="settings" /> give: the keys to register first, the address the calls to the WARP

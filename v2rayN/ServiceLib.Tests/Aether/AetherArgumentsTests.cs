@@ -1120,4 +1120,15 @@ public class AetherArgumentsTests
         await AetherArguments.SessionLogLevel(["--psiphon-only"], "debug").Should().BeEqualTo("debug");
         await AetherArguments.SessionLogLevel(["--wg", "--psiphon-reverse"], "error").Should().BeEqualTo("error");
     }
+
+    // PattNG AetherCoreManager.defaultListenerPorts: where the core listens when a command leaves a listener out.
+    [Test]
+    public async Task TheCoreListensOnItsDefaultsWhereACommandNamesNoListener()
+    {
+        await AetherArguments.DefaultListenerPorts["--bind"].Should().BeEqualTo(1819);
+        await AetherArguments.DefaultListenerPorts[AetherArguments.TorBind].Should().BeEqualTo(1820);
+        await AetherArguments.DefaultListenerPorts[AetherArguments.PsiphonBind].Should().BeEqualTo(1821);
+        // An HTTP proxy left out is off.
+        await AetherArguments.DefaultListenerPorts.ContainsKey(AetherArguments.HttpProxy).Should().BeFalse();
+    }
 }

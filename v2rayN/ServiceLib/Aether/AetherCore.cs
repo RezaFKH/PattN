@@ -54,65 +54,103 @@ public sealed record AetherCore
     public int Port => AetherArguments.ListenerPortOf(Arguments) ?? AetherPorts.DefaultListenPort;
 
     /// <summary>
-    /// Every port the core is told to listen on and binds as its modes run, its HTTP proxies' too, see
-    /// <see cref="BoundListeners" />; an inbound of the configuration cannot share one.
+    /// Every port the core listens on as its modes run, its HTTP proxies' too, see <see cref="ListenerGroups" />: the
+    /// ports it is told, and its defaults for the listeners it is not told about (PattNG AetherCore.ports); an inbound of
+    /// the configuration cannot share one.
     /// </summary>
-    public List<int> Ports => BoundPorts().Distinct().ToList();
+    public List<int> Ports => PortsOf(BoundListeners()).Distinct().ToList();
 
     /// <summary>
-    /// The first port two of the listeners the core binds share, as a command written by hand may name; null when each
-    /// has a port of its own (PattNG AetherCore.sharedPort). The core would bind one of them and fail on the other, once
-    /// its tunnel is up and Xray dials it. Ports are told apart by number, as everywhere else in the app.
+    /// The first port two of the listeners the core holds at one time share, as a command written by hand may name; null
+    /// when each has a port of its own (PattNG AetherCore.sharedPort). The core would bind one of them and fail on the
+    /// other. Ports are told apart by number, as everywhere else in the app. Tor or Psiphon alone lets the core's own HTTP
+    /// proxy go before that carrier's is bound, so those two may share a port, see <see cref="ListenerGroups" />.
     /// </summary>
     public int? SharedPort
     {
         get
         {
-            var seen = new HashSet<int>();
-            foreach (var port in BoundPorts())
+            foreach (var group in ListenerGroups())
             {
-                if (!seen.Add(port))
+                var seen = new HashSet<int>();
+                foreach (var port in PortsOf(group))
                 {
-                    return port;
+                    if (!seen.Add(port))
+                    {
+                        return port;
+                    }
                 }
             }
             return null;
         }
     }
 
-    /// <summary>The ports of <see cref="BoundListeners" />, in their order, but 0, which asks for any port.</summary>
-    private IEnumerable<int> BoundPorts()
+    /// <summary>
+    /// The ports of <paramref name="listeners" />, in their order, but 0, which asks for any port: the port the arguments
+    /// name, or the core's default for a listener they leave out, see <see cref="AetherArguments.DefaultListenerPorts" />.
+    /// A command written by hand that names only Tor's listener still has the core's own on 1819.
+    /// </summary>
+    private IEnumerable<int> PortsOf(IEnumerable<string> listeners)
     {
-        return BoundListeners()
-            .Select(flag => AetherArguments.PortAfter(Arguments, flag))
-            .OfType<int>()
-            .Where(port => port != 0);
+        foreach (var flag in listeners)
+        {
+            int? port = Arguments.Contains(flag)
+                ? AetherArguments.PortAfter(Arguments, flag)
+                : AetherArguments.DefaultListenerPorts.TryGetValue(flag, out var fallback) ? fallback : null;
+            if (port is { } value and not 0)
+            {
+                yield return value;
+            }
+        }
+    }
+
+    /// <summary>Every listener option the core binds as its arguments run it, in the order of <see cref="Listeners" />, see <see cref="ListenerGroups" />.</summary>
+    private IEnumerable<string> BoundListeners()
+    {
+        var bound = ListenerGroups().SelectMany(group => group).ToHashSet();
+        return Listeners.Where(bound.Contains);
     }
 
     /// <summary>
-    /// The listener options the core binds as its arguments run it (PattNG AetherCore.boundListeners): its own and its
-    /// HTTP proxy always, Tor's listener with Tor inside or around the tunnel and Tor's HTTP proxy with Tor run in any
-    /// way, and the same for Psiphon. An option of a mode that does not run binds nothing (aether lib.rs, tor.rs and
-    /// psiphon.rs). Tor or Psiphon alone serves the core's own listener and its own HTTP proxy, and the core runs nothing
-    /// else, not even its HTTP proxy, see <see cref="AetherArguments.AloneOf" />.
+    /// The listener options the core binds as its arguments run it, in the groups it holds at one time (PattNG
+    /// AetherCore.listenerGroups): its own and its HTTP proxy always, Tor's listener with Tor inside or around the tunnel
+    /// and Tor's HTTP proxy with Tor run in any way, and the same for Psiphon, all of them for the whole run. An option of
+    /// a mode that does not run binds nothing (aether lib.rs, tor.rs and psiphon.rs). Tor or Psiphon alone, see
+    /// <see cref="AetherArguments.AloneOf" />: the core binds its own listener and its own HTTP proxy as it starts, then
+    /// lets that HTTP proxy go and serves its own listener with Tor or Psiphon, which binds that carrier's HTTP proxy
+    /// (lib.rs, Listeners::bind and into_socks). A registration of keys serves no proxy of its own, and binds only the
+    /// listeners of a carrier around the tunnel, which carries its requests: that carrier's own and its HTTP proxy (lib.rs,
+    /// register_identities; tor.rs and psiphon.rs, start_reverse).
     /// </summary>
-    private IEnumerable<string> BoundListeners()
+    private List<List<string>> ListenerGroups()
     {
         var tor = AetherArguments.TorModeOf(Arguments);
         var psiphon = AetherArguments.PsiphonModeOf(Arguments);
+        if (Arguments.Contains(AetherKeys.RegisterFlag))
+        {
+            return
+            [
+                Listeners.Where(flag =>
+                    (tor == AetherTor.Reverse && flag is AetherArguments.TorBind or AetherArguments.TorHttp)
+                    || (psiphon == AetherPsiphon.Reverse && flag is AetherArguments.PsiphonBind or AetherArguments.PsiphonHttp)).ToList(),
+            ];
+        }
         if (AetherArguments.AloneOf(Arguments) != null)
         {
             var aloneHttp = tor == AetherTor.Only ? AetherArguments.TorHttp : AetherArguments.PsiphonHttp;
-            return Listeners.Where(flag => flag == "--bind" || flag == aloneHttp);
+            return [["--bind", AetherArguments.HttpProxy], ["--bind", aloneHttp]];
         }
-        return Listeners.Where(flag => flag switch
-        {
-            AetherArguments.TorBind => tor == AetherTor.Chain || tor == AetherTor.Reverse,
-            AetherArguments.TorHttp => tor != AetherTor.Off,
-            AetherArguments.PsiphonBind => psiphon == AetherPsiphon.Chain || psiphon == AetherPsiphon.Reverse,
-            AetherArguments.PsiphonHttp => psiphon != AetherPsiphon.Off,
-            _ => true,
-        });
+        return
+        [
+            Listeners.Where(flag => flag switch
+            {
+                AetherArguments.TorBind => tor == AetherTor.Chain || tor == AetherTor.Reverse,
+                AetherArguments.TorHttp => tor != AetherTor.Off,
+                AetherArguments.PsiphonBind => psiphon == AetherPsiphon.Chain || psiphon == AetherPsiphon.Reverse,
+                AetherArguments.PsiphonHttp => psiphon != AetherPsiphon.Off,
+                _ => true,
+            }).ToList(),
+        ];
     }
 
     /// <summary>The protocol, which tells whose identity files the core uses.</summary>
