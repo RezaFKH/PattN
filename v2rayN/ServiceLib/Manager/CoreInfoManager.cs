@@ -60,8 +60,9 @@ public sealed class CoreInfoManager
     /// <summary>
     /// PattN: the file the core <paramref name="exeFile" /> of <paramref name="coreInfo" /> runs from, whatever it runs
     /// for: a session, a test, a scan, a key run, or a version check. That is the file itself, except for Xray on
-    /// Windows, which always runs from its copy p-xray-p.exe beside it and never as xray.exe (<see cref="XrayRunFile" />).
-    /// Empty, with <paramref name="msg" />, when that copy can be neither made nor found.
+    /// Windows, which always runs from its copy p-xray-p.exe beside it, made equal to xray.exe first, and never as
+    /// xray.exe (<see cref="XrayRunFile" />). Empty, with <paramref name="msg" />, when that copy can be neither made nor
+    /// found.
     /// </summary>
     public static string RunFileOf(CoreInfo? coreInfo, string exeFile, out string msg)
     {
@@ -70,35 +71,69 @@ public sealed class CoreInfoManager
     }
 
     /// <summary>
-    /// PattN: the copy p-xray-p.exe beside <paramref name="xrayExe" /> that Xray runs from on Windows, made, or brought up
-    /// to date, first. Windows treats a process named "xray.exe" as suspicious (XTLS/Xray-core#4427), which breaks HTTP
-    /// request fragmentation, so Xray never runs under that name; xray.exe itself is kept, and stays the update target,
-    /// for third-party tools. A copy that cannot be brought up to date, as one runs from it, is used as it is. Empty, with
-    /// <paramref name="msg" />, when there is no copy and none can be made: Xray is then not run at all.
+    /// PattN: the copy p-xray-p.exe beside <paramref name="xrayExe" /> that Xray runs from on Windows. Windows treats a
+    /// process named "xray.exe" as suspicious (XTLS/Xray-core#4427), which breaks HTTP request fragmentation, so Xray never
+    /// runs under that name; xray.exe itself is kept, and stays the file updates replace, for third-party tools.
     /// </summary>
-    public static string XrayRunFile(string xrayExe, out string msg)
+    public static string XrayCopyOf(string xrayExe)
+    {
+        return Path.Combine(Path.GetDirectoryName(xrayExe) ?? string.Empty, XrayAliasExeName);
+    }
+
+    /// <summary>
+    /// PattN: makes the copy of <paramref name="xrayExe" /> (<see cref="XrayCopyOf" />) equal to it but for its name: where
+    /// the copy is missing, or differs, as once an update replaced xray.exe, xray.exe is copied over it. False, with
+    /// <paramref name="msg" />, when that cannot be done, as while Xray runs from the copy.
+    /// </summary>
+    public static bool SyncXrayCopy(string xrayExe, out string msg)
     {
         msg = string.Empty;
-        var aliasExe = Path.Combine(Path.GetDirectoryName(xrayExe) ?? string.Empty, XrayAliasExeName);
+        var copy = XrayCopyOf(xrayExe);
         try
         {
-            if (!File.Exists(aliasExe) || !IsSameFileContent(xrayExe, aliasExe))
+            if (!File.Exists(copy) || !IsSameFileContent(xrayExe, copy))
             {
-                File.Copy(xrayExe, aliasExe, true);
+                File.Copy(xrayExe, copy, true);
             }
-            return aliasExe;
+            return true;
         }
         catch (Exception ex)
         {
             Logging.SaveLog("CoreInfoManager", ex);
-            if (File.Exists(aliasExe))
-            {
-                return aliasExe;
-            }
-            msg = string.Format(ResUI.MsgXrayRunCopyFailed, aliasExe, ex.Message);
-            Logging.SaveLog(msg);
-            return string.Empty;
+            msg = string.Format(ResUI.MsgXrayRunCopyFailed, copy, ex.Message);
+            return false;
         }
+    }
+
+    /// <summary>
+    /// PattN: the file Xray runs from on Windows: the copy of <paramref name="xrayExe" />, made equal to it first
+    /// (<see cref="SyncXrayCopy" />), also where it is missing. A copy that cannot be made equal, as Xray runs from it now,
+    /// is used as it is. Empty, with <paramref name="msg" />, when there is no copy and none can be made: Xray is then not
+    /// run at all, never as xray.exe.
+    /// </summary>
+    public static string XrayRunFile(string xrayExe, out string msg)
+    {
+        var copy = XrayCopyOf(xrayExe);
+        if (SyncXrayCopy(xrayExe, out msg))
+        {
+            return copy;
+        }
+        if (File.Exists(copy))
+        {
+            msg = string.Empty;
+            return copy;
+        }
+        Logging.SaveLog(msg);
+        return string.Empty;
+    }
+
+    /// <summary>PattN: xray.exe as installed, in bin/xray, the file updates replace; null when there is none.</summary>
+    public string? FindInstalledXray()
+    {
+        var info = GetCoreInfo(ECoreType.Xray);
+        return info?.CoreExes?
+            .Select(name => Utils.GetBinPath(Utils.GetExeName(name), info.CoreType.ToString()))
+            .FirstOrDefault(File.Exists);
     }
 
     // Xray builds are reproducible (fixed timestamp) and sizes can repeat across versions, so compare by hash

@@ -93,6 +93,17 @@ public class CoreManager
         await Task.Run(() => PsiphonServerList.InstallBundled(
             AetherPaths.BundledPsiphonServersFile, AetherPaths.BundledPsiphonServersStampFile, AetherPaths.ActivePsiphonServersFile));
 
+        // PattN: on Windows Xray runs from its copy p-xray-p.exe, kept equal to xray.exe: an update of the program, or a
+        // hand, may have replaced xray.exe since PattN last ran
+        if (Utils.IsWindows() && CoreInfoManager.Instance.FindInstalledXray() is { } xrayExe)
+        {
+            var copyFailure = await Task.Run(() => CoreInfoManager.SyncXrayCopy(xrayExe, out var failure) ? null : failure);
+            if (copyFailure != null)
+            {
+                await UpdateFunc(false, copyFailure);
+            }
+        }
+
         if (Utils.IsNonWindows())
         {
             var coreInfo = CoreInfoManager.Instance.GetCoreInfo();

@@ -2,7 +2,8 @@ namespace ServiceLib.Tests.Manager;
 
 /// <summary>
 /// PattN: Xray on Windows runs from its copy p-xray-p.exe beside xray.exe and never as xray.exe, whatever it runs for: a
-/// session, a test, a scan, a key run, or a version check (<see cref="CoreInfoManager.RunFileOf" />).
+/// session, a test, a scan, a key run, or a version check (<see cref="CoreInfoManager.RunFileOf" />); the copy is kept equal
+/// to xray.exe but for its name (<see cref="CoreInfoManager.SyncXrayCopy" />).
 /// </summary>
 public class CoreInfoManagerXrayTests : IDisposable
 {
@@ -24,7 +25,16 @@ public class CoreInfoManagerXrayTests : IDisposable
     }
 
     [Test]
-    public async Task XrayRunsFromItsCopyMadeBesideIt()
+    public async Task TheCopyIsXrayUnderAnotherNameBesideIt()
+    {
+        var xray = Xray("Xray 26.1.1");
+
+        await CoreInfoManager.XrayCopyOf(xray).Should().BeEqualTo(Copy);
+        await Path.GetFileName(Copy).Should().BeEqualTo("p-xray-p.exe");
+    }
+
+    [Test]
+    public async Task XrayRunsFromItsCopyMadeWhereThereIsNone()
     {
         var xray = Xray("Xray 26.1.1");
 
@@ -37,13 +47,30 @@ public class CoreInfoManagerXrayTests : IDisposable
     }
 
     [Test]
-    public async Task TheCopyFollowsXrayWhenItIsUpdated()
+    public async Task AnUpdatedXrayIsCopiedOverTheOldCopy()
     {
+        // As once an update replaced xray.exe.
         File.WriteAllText(Copy, "Xray 25.9.11");
         var xray = Xray("Xray 26.1.1");
 
+        await CoreInfoManager.SyncXrayCopy(xray, out var msg).Should().BeTrue();
+        await msg.Should().BeEmpty();
+        await File.ReadAllText(Copy).Should().BeEqualTo("Xray 26.1.1");
+        // And a run, or a version check, runs the new one.
         await CoreInfoManager.XrayRunFile(xray, out _).Should().BeEqualTo(Copy);
         await File.ReadAllText(Copy).Should().BeEqualTo("Xray 26.1.1");
+    }
+
+    [Test]
+    public async Task ACopyEqualToXrayIsLeftAsItIs()
+    {
+        var xray = Xray("Xray 26.1.1");
+        File.WriteAllText(Copy, "Xray 26.1.1");
+        var written = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(Copy, written);
+
+        await CoreInfoManager.SyncXrayCopy(xray, out _).Should().BeTrue();
+        await File.GetLastWriteTimeUtc(Copy).Should().BeEqualTo(written);
     }
 
     [Test]
@@ -53,14 +80,15 @@ public class CoreInfoManagerXrayTests : IDisposable
         // A folder where the copy would go: no file can be made there, and xray.exe is not run instead.
         Directory.CreateDirectory(Copy);
 
+        await CoreInfoManager.SyncXrayCopy(xray, out var syncFailure).Should().BeFalse();
+        await syncFailure.Should().Contain(Copy);
         var run = CoreInfoManager.XrayRunFile(xray, out var msg);
-
         await run.Should().BeEmpty();
         await msg.Should().Contain(Copy);
     }
 
     [Test]
-    public async Task ACopyThatRunsIsUsedAsItIs()
+    public async Task ACopyThatRunsIsUsedAsItIsAndCannotBeMadeEqual()
     {
         // Windows keeps a file that runs, or is open, from being replaced; elsewhere it can be replaced at any time.
         if (!OperatingSystem.IsWindows())
@@ -72,10 +100,17 @@ public class CoreInfoManagerXrayTests : IDisposable
 
         using (new FileStream(Copy, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
+            // An update says so...
+            await CoreInfoManager.SyncXrayCopy(xray, out var syncFailure).Should().BeFalse();
+            await syncFailure.Should().Contain(Copy);
+            // ... and another run uses the copy that runs.
             await CoreInfoManager.XrayRunFile(xray, out var msg).Should().BeEqualTo(Copy);
             await msg.Should().BeEmpty();
         }
         await File.ReadAllText(Copy).Should().BeEqualTo("Xray 25.9.11");
+        // Once it no longer runs, the next run brings it up to date.
+        await CoreInfoManager.XrayRunFile(xray, out _).Should().BeEqualTo(Copy);
+        await File.ReadAllText(Copy).Should().BeEqualTo("Xray 26.1.1");
     }
 
     [Test]

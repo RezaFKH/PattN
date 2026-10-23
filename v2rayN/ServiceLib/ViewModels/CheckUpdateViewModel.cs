@@ -513,7 +513,17 @@ public partial class CheckUpdateViewModel : MyReactiveObject
                 }
             }
 
-            await UpdateView(item.CoreType, ResUI.MsgUpdateV2rayCoreSuccessfully);
+            // PattN: on Windows Xray runs from its copy p-xray-p.exe, made equal to the new xray.exe right away, the cores
+            // being stopped by now; where something still runs from it, the row says so, and the copy is made equal
+            // before Xray next runs
+            var outcome = ResUI.MsgUpdateV2rayCoreSuccessfully;
+            if (item.CoreType == ECoreType.Xray && Utils.IsWindows()
+                && CoreInfoManager.Instance.FindInstalledXray() is { } xrayExe
+                && !CoreInfoManager.SyncXrayCopy(xrayExe, out var copyFailure))
+            {
+                outcome = copyFailure;
+            }
+            await UpdateView(item.CoreType, outcome);
 
             if (File.Exists(fileName))
             {

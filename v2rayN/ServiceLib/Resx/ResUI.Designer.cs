@@ -3238,7 +3238,7 @@ namespace ServiceLib.Resx {
         }
         
         /// <summary>
-        ///   查找类似 Xray-core was not started: on Windows PattN runs it as {0}, a copy of xray.exe, and that copy could not be made: {1} 的本地化字符串。
+        ///   查找类似 On Windows PattN runs Xray-core as {0}, a copy of xray.exe, and that copy could not be made: {1} 的本地化字符串。
         /// </summary>
         public static string MsgXrayRunCopyFailed {
             get {

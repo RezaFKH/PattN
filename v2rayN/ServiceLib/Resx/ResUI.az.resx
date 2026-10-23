@@ -2542,6 +2542,6 @@ Təyin edildikdə sertifikat sabitlənəcək və "Təhlükəsiz olmayan əlaqəy
     <value>Aether nüvəsinin lisenziyaları</value>
   </data>
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
-    <value>Xray nüvəsi işə salınmadı: Windows-da PattN onu xray.exe-nin surəti olan {0} kimi işə salır və bu surəti yaratmaq mümkün olmadı: {1}</value>
+    <value>Windows-da PattN Xray nüvəsini xray.exe-nin surəti olan {0} kimi işə salır və bu surəti yaratmaq mümkün olmadı: {1}</value>
   </data>
 </root>

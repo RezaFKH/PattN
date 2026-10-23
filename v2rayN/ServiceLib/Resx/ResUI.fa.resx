@@ -2416,6 +2416,6 @@ The "Get Certificate" action may fail if a self-signed certificate is used or if
     <value>مجوزهای هسته Aether</value>
   </data>
   <data name="MsgXrayRunCopyFailed" xml:space="preserve">
-    <value>هسته Xray اجرا نشد: PattN در ویندوز آن را با نام {0}، که کپی xray.exe است، اجرا می‌کند و این کپی ساخته نشد: {1}</value>
+    <value>PattN در ویندوز هسته Xray را با نام {0}، که کپی xray.exe است، اجرا می‌کند و این کپی ساخته نشد: {1}</value>
   </data>
 </root>
