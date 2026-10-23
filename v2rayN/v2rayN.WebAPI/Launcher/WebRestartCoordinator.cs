@@ -256,7 +256,7 @@ public sealed class NativeWebRestartCoordinator
             {
                 return new(false, "The previous Web owner did not release the current data-scope instance lock.");
             }
-            await _delay(Min(_pollInterval, _timeout - timeout.Elapsed), cancellationToken);
+            await _delay(NextWait(timeout), cancellationToken);
         }
 
         IWebReplacementProcess? replacement;
@@ -302,7 +302,7 @@ public sealed class NativeWebRestartCoordinator
                     return new(false, "The native replacement process exited before its Web health endpoint became ready.", replacement.Id);
                 }
 
-                await _delay(Min(_pollInterval, _timeout - timeout.Elapsed), cancellationToken);
+                await _delay(NextWait(timeout), cancellationToken);
             }
 
             var currentOwner = _ownershipProbe.IsLockHeld(lockPath)
@@ -329,4 +329,13 @@ public sealed class NativeWebRestartCoordinator
     }
 
     private static TimeSpan Min(TimeSpan left, TimeSpan right) => left < right ? left : right;
+
+    // PattN: the next poll wait, never below zero. The time can run out between a loop's check and this wait, and
+    // Task.Delay throws for less than -1 ms and waits forever for -1 ms, which a cast to whole milliseconds makes of
+    // anything from -1 to -2 ms: that hung a handoff instead of ending it with its timeout.
+    private TimeSpan NextWait(Stopwatch elapsed)
+    {
+        var left = _timeout - elapsed.Elapsed;
+        return left > TimeSpan.Zero ? Min(_pollInterval, left) : TimeSpan.Zero;
+    }
 }

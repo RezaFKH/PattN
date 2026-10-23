@@ -224,6 +224,46 @@ public class WebRestartCoordinatorTests
         await starter.StartCount.Should().BeEqualTo(1);
     }
 
+    // PattN: a time that runs out between a poll's check and its wait ends the handoff with its timeout. A negative wait
+    // made Task.Delay throw, or, from -1 to -2 ms, wait forever, which hung a whole test run.
+    [Test]
+    public async Task AHandoffWhoseTimeRunsOutDuringAPollEndsWithItsTimeout()
+    {
+        const string lockPath = "/data/current/v2rayN.WebAPI.instance.lock";
+        var ownership = new FakeOwnershipProbe();
+        ownership.Set(lockPath, held: false, owner: null);
+        var starter = new FakeProcessStarter(() =>
+        {
+            ownership.Set(lockPath, held: true, owner: 456);
+            return (new FakeReplacementProcess(456), true);
+        });
+        var waits = new List<TimeSpan>();
+        // The probe outlasts the whole handoff, so the time is up once it answers.
+        var probe = new SlowUnhealthyProbe(TimeSpan.FromMilliseconds(600));
+        var coordinator = new NativeWebRestartCoordinator(
+            probe,
+            starter,
+            ownership,
+            timeout: TimeSpan.FromMilliseconds(300),
+            pollInterval: TimeSpan.FromMilliseconds(2),
+            delay: (wait, _) =>
+            {
+                waits.Add(wait);
+                return Task.CompletedTask;
+            });
+
+        var result = await coordinator.StartReplacementAfterOwnerReleaseAsync(
+            lockPath,
+            new Uri("http://127.0.0.1:5080/api/health"),
+            NewCommand()).WaitAsync(TimeSpan.FromSeconds(10));
+
+        await result.Success.Should().BeFalse();
+        await result.Message.Should().Contain("did not become healthy");
+        await probe.Calls.Should().BeEqualTo(1);
+        await waits.Count.Should().BeEqualTo(1);
+        await waits.All(wait => wait >= TimeSpan.Zero).Should().BeTrue();
+    }
+
     private static WebReplacementCommand NewCommand() => new(
         "/usr/bin/setsid",
         ["/opt/v2rayN.WebAPI", WebLaunchOptions.BackgroundChildFlag],
@@ -271,6 +311,19 @@ public class WebRestartCoordinatorTests
         public bool Killed { get; private set; }
         public void KillTree() => Killed = true;
         public void Dispose() { }
+    }
+
+    // Takes longer than the whole handoff may, and finds the replacement not healthy yet.
+    private sealed class SlowUnhealthyProbe(TimeSpan takes) : IWebHealthProbe
+    {
+        public int Calls { get; private set; }
+
+        public async Task<WebHealthProbeResult> ProbeAsync(Uri healthUri, CancellationToken cancellationToken)
+        {
+            Calls++;
+            await Task.Delay(takes, cancellationToken);
+            return new WebHealthProbeResult(false, null);
+        }
     }
 
     private sealed class FakeHealthProbe(int? processId) : IWebHealthProbe
