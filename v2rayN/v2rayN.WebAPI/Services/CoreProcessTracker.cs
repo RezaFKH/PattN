@@ -144,6 +144,17 @@ internal static class CoreProcessTracker
         }
     }
 
+    /// <summary>
+    /// PattN: whether <paramref name="process" /> runs a program right inside <paramref name="folder" />, the two compared
+    /// as the tracker compares programs (full paths, links resolved).
+    /// </summary>
+    internal static bool RunsFrom(CoreProcessIdentity process, string folder)
+    {
+        var normalized = NormalizeExecutablePath(folder);
+        return normalized is not null
+            && PathComparer.Equals(Path.GetDirectoryName(process.ExecutablePath), Path.TrimEndingDirectorySeparator(normalized));
+    }
+
     private static string NormalizeProcessName(string name) =>
         Path.GetFileNameWithoutExtension(name.Trim());
 

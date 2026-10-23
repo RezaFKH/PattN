@@ -345,6 +345,61 @@ public class CoreUpdateWorkflowTests
         await (await File.ReadAllTextAsync(Path.Combine(install, "geoip.dat"))).Should().BeEqualTo("other");
     }
 
+    // PattN: what earlier updates left in bin goes: a backup a running program kept from deletion, a candidate, and, only
+    // while no update runs, a staged package; nothing else, and no backup that is its core's only copy.
+    [Test]
+    public async Task LeftoversOfEarlierUpdatesAreRemoved()
+    {
+        using var directory = new TemporaryDirectory();
+        var bin = directory.Path;
+        string Folder(string name)
+        {
+            var path = Path.Combine(bin, name);
+            Directory.CreateDirectory(path);
+            File.WriteAllText(Path.Combine(path, "xray"), name);
+            return path;
+        }
+        var id = Guid.NewGuid().ToString("N");
+        var candidate = Folder($".Xray-candidate-{id}");
+        var backup = Folder($".Xray-backup-{id}");
+        var package = Folder($".Xray-package-{id}");
+        var otherCore = Folder($".sing_box-backup-{id}");
+        var notAnUpdates = Folder(".Xray-backup-mine");
+        var install = Folder("xray");
+
+        // While updates may run: the core's own candidates and backups, and no package.
+        var left = CoreUpdateWorkflow.RemoveLeftovers(bin, [ECoreType.Xray], includePackages: false, _ => true);
+
+        await left.Count.Should().BeEqualTo(0);
+        await Directory.Exists(candidate).Should().BeFalse();
+        await Directory.Exists(backup).Should().BeFalse();
+        await Directory.Exists(package).Should().BeTrue();
+        await Directory.Exists(otherCore).Should().BeTrue();
+
+        // At a start: the packages too, of every core asked for.
+        CoreUpdateWorkflow.RemoveLeftovers(bin, [ECoreType.Xray, ECoreType.sing_box], includePackages: true, _ => true);
+
+        await Directory.Exists(package).Should().BeFalse();
+        await Directory.Exists(otherCore).Should().BeFalse();
+        await Directory.Exists(notAnUpdates).Should().BeTrue();
+        await Directory.Exists(install).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task ABackupIsKeptWhileItsCoreIsNotInItsOwnFolder()
+    {
+        using var directory = new TemporaryDirectory();
+        var backup = Path.Combine(directory.Path, $".Xray-backup-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(backup);
+        await File.WriteAllTextAsync(Path.Combine(backup, "xray"), "old-binary");
+
+        var left = CoreUpdateWorkflow.RemoveLeftovers(directory.Path, [ECoreType.Xray], includePackages: true, _ => false);
+
+        await Directory.Exists(backup).Should().BeTrue();
+        await left.Count.Should().BeEqualTo(1);
+        await left[0].Should().Contain(backup);
+    }
+
     [Test]
     public async Task OnlyTheExactUpdatedCoreIsStoppedAndRestarted()
     {

@@ -169,6 +169,52 @@ public class CoreProcessTrackerTests
         }
     }
 
+    // PattN: a Core update tells the configuration's cores that run from the folder it replaces, whatever core the
+    // runtime names (V2rayRuntime.IsCoreTypeRunning); the program's path is the one the tracker reads from the process.
+    [Test]
+    public async Task ACoreIsKnownToRunFromItsOwnFolderOnly()
+    {
+        using var directory = new TemporaryDirectory();
+        var folder = System.IO.Path.Combine(directory.Path, "xray");
+        Directory.CreateDirectory(folder);
+        var copy = System.IO.Path.Combine(folder, OperatingSystem.IsWindows() ? "p-xray-p.exe" : "sleep-core-test");
+        File.Copy(OperatingSystem.IsWindows() ? System.IO.Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep", copy);
+        var startInfo = new ProcessStartInfo(copy) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
+        foreach (var argument in OperatingSystem.IsWindows() ? ["-n", "60", "127.0.0.1"] : new[] { "60" })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start the test process.");
+        try
+        {
+            var identity = CoreProcessTracker.CaptureProcess(process.Id).Single();
+
+            await CoreProcessTracker.RunsFrom(identity, folder).Should().BeTrue();
+            await CoreProcessTracker.RunsFrom(identity, directory.Path).Should().BeFalse();
+            await CoreProcessTracker.RunsFrom(identity, System.IO.Path.Combine(directory.Path, "sing_box")).Should().BeFalse();
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            await process.WaitForExitAsync();
+            // Windows may hold the program's file a moment after its process ends.
+            for (var tries = 0; File.Exists(copy) && tries < 50; tries++)
+            {
+                try
+                {
+                    File.Delete(copy);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    await Task.Delay(100);
+                }
+            }
+        }
+    }
+
     private static Process StartSleepProcess(string executable = "/bin/sleep")
     {
         var startInfo = new ProcessStartInfo(executable) { UseShellExecute = false };

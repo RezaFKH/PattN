@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ServiceLib;
+using ServiceLib.Aether; // PattN
 using ServiceLib.Common;
 using ServiceLib.Enums;
 using ServiceLib.Handler;
@@ -748,9 +749,23 @@ public sealed partial class V2rayRuntime
         ProfileItem? runningProfile = null;
         var oldCoreWasStopped = false;
         var candidateInstalled = false;
+        // PattN: the hold on every Aether core while Xray's files are replaced (see below), ended before the configuration
+        // starts again or is rolled back, as its Aether session would wait for it
+        IAsyncDisposable? aetherHold = null;
+        async ValueTask EndAetherHoldAsync()
+        {
+            if (aetherHold is { } hold)
+            {
+                aetherHold = null;
+                await hold.DisposeAsync();
+            }
+        }
 
         try
         {
+            // PattN: what an earlier update of this core left in bin
+            RemoveCoreUpdateLeftovers([stage.CoreType], includePackages: false);
+
             if (originalCoreWasRunning)
             {
                 runningProfile = await AppManager.Instance.GetProfileItem(CurrentCoreRuntime.ProfileId ?? string.Empty);
@@ -800,32 +815,53 @@ public sealed partial class V2rayRuntime
                 oldCoreWasStopped = true;
             }
 
+            // PattN: an Aether scan, test or key run runs an Xray of its own from Xray's folder, which the configuration's
+            // stop does not end: every Aether core is ended, and none starts, until the new files are in place, as the
+            // desktop's update does (AetherCoreManager.HoldAsync)
+            if (stage.CoreType == ECoreType.Xray)
+            {
+                aetherHold = await AetherCoreManager.Instance.HoldAsync();
+            }
+
             PublishCoreUpdateProgress(stage.CoreType, "installing", isComplete: false, success: false, originalCoreWasRunning, stage.VersionOutput, null, batch);
-            if (hadInstalledCore)
+            // PattN: on Windows no Xray starts from Xray's folder while it is swapped, and none may still run from its copy,
+            // as a latency or speed test does that no stop above ends: then nothing is replaced, as on the desktop
+            // (CoreInfoManager.HoldXrayFilesAsync, XrayCopyInUse). CoreManager.Init below takes the hold itself.
+            using (var xrayFiles = stage.CoreType == ECoreType.Xray && OperatingSystem.IsWindows()
+                       ? await CoreInfoManager.HoldXrayFilesAsync()
+                       : null)
             {
-                Directory.Move(installPath, backupPath);
-            }
-            try
-            {
-                // PattN: over an empty folder a request may have made meanwhile (DirectorySwap)
-                DirectorySwap.MoveIntoPlace(candidatePath, installPath);
-                candidateInstalled = true;
-            }
-            catch
-            {
-                if (hadInstalledCore && Directory.Exists(backupPath))
+                if (xrayFiles != null && hadInstalledCore
+                    && CoreInfoManager.XrayCopyInUse(Path.Combine(installPath, Utils.GetExeName("xray"))) is { } inUse)
                 {
-                    try
-                    {
-                        DirectorySwap.MoveIntoPlace(backupPath, installPath);
-                    }
-                    catch (Exception exception)
-                    {
-                        // The rollback below tries again, and says where the previous files are when it cannot.
-                        AddLog("update", $"{stage.CoreType} previous files could not be put back yet: {exception.Message}");
-                    }
+                    throw new InvalidOperationException(inUse);
                 }
-                throw;
+                if (hadInstalledCore)
+                {
+                    Directory.Move(installPath, backupPath);
+                }
+                try
+                {
+                    // PattN: over an empty folder a request may have made meanwhile (DirectorySwap)
+                    DirectorySwap.MoveIntoPlace(candidatePath, installPath);
+                    candidateInstalled = true;
+                }
+                catch
+                {
+                    if (hadInstalledCore && Directory.Exists(backupPath))
+                    {
+                        try
+                        {
+                            DirectorySwap.MoveIntoPlace(backupPath, installPath);
+                        }
+                        catch (Exception exception)
+                        {
+                            // The rollback below tries again, and says where the previous files are when it cannot.
+                            AddLog("update", $"{stage.CoreType} previous files could not be put back yet: {exception.Message}");
+                        }
+                    }
+                    throw;
+                }
             }
 
             await CoreManager.Instance.Init(Config, OnCoreMessageAsync);
@@ -837,6 +873,8 @@ public sealed partial class V2rayRuntime
                     throw new InvalidDataException(missingXrayMessage);
                 }
             }
+            // PattN: Aether's cores may start again, the configuration's Aether session among them
+            await EndAetherHoldAsync();
 
             if (originalCoreWasRunning && runningProfile is not null)
             {
@@ -864,6 +902,7 @@ public sealed partial class V2rayRuntime
         }
         catch (OperationCanceledException)
         {
+            await EndAetherHoldAsync(); // PattN: before the rollback starts the configuration again
             if (candidateInstalled || oldCoreWasStopped || Directory.Exists(backupPath))
             {
                 var rollback = await RollBackCoreUpdateAsync(
@@ -887,6 +926,7 @@ public sealed partial class V2rayRuntime
         }
         catch (Exception exception)
         {
+            await EndAetherHoldAsync(); // PattN: before the rollback starts the configuration again
             AddLog("update", $"{stage.CoreType} apply failed: {exception.Message}");
             if (CurrentCoreRuntime.State is CoreRuntimeState.Stopping or CoreRuntimeState.Restarting or CoreRuntimeState.Starting)
             {
@@ -931,7 +971,21 @@ public sealed partial class V2rayRuntime
             {
                 AddLog("update", $"{stage.CoreType} candidate cleanup failed: {exception.Message}");
             }
+            await EndAetherHoldAsync(); // PattN: whatever way the update ended
             _coreGate.Release();
+        }
+    }
+
+    // PattN: CoreUpdateWorkflow.RemoveLeftovers in this deployment's bin, the log saying what stays
+    private void RemoveCoreUpdateLeftovers(IEnumerable<ECoreType> coreTypes, bool includePackages)
+    {
+        var bin = Path.Combine(Utils.StartupPath(), "bin");
+        var notRemoved = CoreUpdateWorkflow.RemoveLeftovers(bin, coreTypes, includePackages, coreType =>
+            CoreInfoManager.Instance.GetCoreInfo(coreType) is { } coreInfo
+            && FindCoreExecutable(coreInfo, Path.Combine(bin, coreType.ToString().ToLower())) is not null);
+        foreach (var left in notRemoved)
+        {
+            AddLog("update", $"Left by an earlier Core update: {left}");
         }
     }
 
@@ -1089,8 +1143,18 @@ public sealed partial class V2rayRuntime
 
     private bool IsCoreTypeRunning(ECoreType coreType) =>
         CurrentCoreRuntime.State is CoreRuntimeState.Running or CoreRuntimeState.Faulted
-        && CurrentCoreRuntime.CoreType == coreType
-        && HasTrackedCoreProcesses;
+        && ((CurrentCoreRuntime.CoreType == coreType && HasTrackedCoreProcesses)
+            // PattN: or one of the configuration's cores runs from that core's folder, whatever core its runtime names: a
+            // custom configuration's pre-socks core is named in front of its own core. Windows lets an update move that
+            // folder from under a program that runs from it, which then runs on, old, and keeps its folder from deletion.
+            || RunsFromCoreFolder(coreType));
+
+    // PattN: the folder of coreType's programs as Utils.GetBinPath names it, without making it as GetBinPath does
+    private bool RunsFromCoreFolder(ECoreType coreType)
+    {
+        var folder = Path.Combine(Utils.StartupPath(), "bin", coreType.ToString().ToLower());
+        return GetActiveCoreProcesses().Any(process => CoreProcessTracker.RunsFrom(process, folder));
+    }
 
     private static string GetArchiveSuffix(string downloadUrl)
     {
@@ -1447,6 +1511,66 @@ internal static class CoreUpdateWorkflow
         {
             DirectorySwap.MoveIntoPlace(backupPath, installPath);
         }
+    }
+
+    /// <summary>
+    /// PattN: removes the folders earlier core updates left in <paramref name="bin" />, named as ApplyCoreUpdateAsync and
+    /// DownloadAndVerifyCoreUpdateAsync name them: candidates; staged packages, with <paramref name="includePackages" />
+    /// only while no update runs (a batch stages every package before it applies any); and backups of previous cores,
+    /// which a program still running from them kept from deletion. A backup goes only while <paramref name="installed" />
+    /// says its core is in its own folder: one a failed rollback could not put back is the only copy. Returns each folder
+    /// left in place, and why.
+    /// </summary>
+    public static IReadOnlyList<string> RemoveLeftovers(
+        string bin,
+        IEnumerable<ECoreType> coreTypes,
+        bool includePackages,
+        Func<ECoreType, bool> installed)
+    {
+        var notRemoved = new List<string>();
+        if (!Directory.Exists(bin))
+        {
+            return notRemoved;
+        }
+        foreach (var coreType in coreTypes)
+        {
+            foreach (var kind in includePackages ? new[] { "candidate", "package", "backup" } : new[] { "candidate", "backup" })
+            {
+                var prefix = $".{coreType}-{kind}-";
+                string[] folders;
+                try
+                {
+                    folders = Directory.GetDirectories(bin, prefix + "*");
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    notRemoved.Add($"{Path.Combine(bin, prefix)}*: {exception.Message}");
+                    continue;
+                }
+                foreach (var folder in folders)
+                {
+                    var name = Path.GetFileName(folder);
+                    if (!name.StartsWith(prefix, StringComparison.Ordinal) || !Guid.TryParseExact(name[prefix.Length..], "N", out _))
+                    {
+                        continue;
+                    }
+                    if (kind == "backup" && !installed(coreType))
+                    {
+                        notRemoved.Add($"{folder}: kept, as {coreType} is not in its own folder");
+                        continue;
+                    }
+                    try
+                    {
+                        Directory.Delete(folder, recursive: true);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        notRemoved.Add($"{folder}: {exception.Message}");
+                    }
+                }
+            }
+        }
+        return notRemoved;
     }
 
     public static async Task<CoreUpdateRollbackResult> RollBackAndRestoreAsync(

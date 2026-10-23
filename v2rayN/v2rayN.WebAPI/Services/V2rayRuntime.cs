@@ -282,6 +282,8 @@ public sealed partial class V2rayRuntime(
         await _mutations.RunAsync(() => EnsureConfigSaveSucceededAsync(() => ConfigHandler.SaveConfig(Config)));
         await ProfileExManager.Instance.Init();
         await CertPemManager.Instance.Init(Config);
+        // PattN: what core updates left in bin before this start, when nothing runs from it and no update is under way
+        RemoveCoreUpdateLeftovers(Enum.GetValues<ECoreType>().Where(CoreUpdatePackageStager.SupportsCore), includePackages: true);
         // The Web frontend owns its runtime and rejects generated launch contexts that enable TUN.
         await CoreManager.Instance.Init(Config, OnCoreMessageAsync);
         // PattN: the cores stopped because the Aether core exited on its own (critique 32)
