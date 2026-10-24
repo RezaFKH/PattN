@@ -481,22 +481,42 @@ public sealed record AetherKeyKind
 
 /// <summary>
 /// <para>
-/// The cipher suites and groups the TLS handshakes of the core offer, after a client whose ClientHello was captured: its
-/// TLS 1.2 suites as BoringSSL names them, in its order, or Chrome's own rule; its TLS 1.3 suites in its order, where
-/// that order is not BoringSSL's; its groups in its order, those BoringSSL has, and its key shares, where they are not
-/// BoringSSL's; whether it sends GREASE values; and whether it sends one among its signature algorithms as well. BoringSSL
-/// writes the TLS 1.3 suites before the TLS 1.2 ones, whatever the client does. Unless they are named, it orders the TLS
-/// 1.3 suites by the machine's AES instructions, as Chrome does, AES-GCM first with them and ChaCha20 first without, and
-/// it sends key shares for the first group and for the first one of the other kind, post-quantum or not.
+/// The ClientHello of the TLS handshakes of the core, after a client whose ClientHello was captured: its TLS 1.2 suites as
+/// BoringSSL names them, in its order, or Chrome's own rule; its TLS 1.3 suites in its order, where that order is not
+/// BoringSSL's; its groups in its order, those BoringSSL has, and its key shares, where they are not BoringSSL's; its
+/// signature algorithms, those BoringSSL has; the extensions it sends that BoringSSL can send, and only those: GREASE
+/// values, GREASE among the signature algorithms, certificate compression, ALPS, GREASE ECH, trust anchors, server
+/// padding, OCSP, signed certificate timestamps and a session ticket; and whether its extensions go in a new order on
+/// each handshake. BoringSSL writes the TLS 1.3 suites before the TLS 1.2 ones, whatever the client does. Unless they
+/// are named, it orders the TLS 1.3 suites by the machine's AES instructions, as Chrome does, AES-GCM first with them and
+/// ChaCha20 first without, and it sends key shares for the first group and for the first one of the other kind,
+/// post-quantum or not. It cannot send delegated_credentials, record_size_limit, signature_algorithms_cert,
+/// encrypt_then_mac or more than one point format, always sends psk_key_exchange_modes, and keeps an order of the
+/// extensions of its own.
 /// </para>
 /// <para>
-/// Each names its suites and its groups, so that it stays the client's whatever the core's defaults become; GREASE is
-/// left on by giving no --disable-grease, as the core has no option that turns it on. The core takes --tls13-ciphers,
-/// --tls-key-shares and --enable-grease-sigalgs from Aether 2.3.8 on.
+/// Each names its suites, its groups and its signature algorithms, so that it stays the client's whatever the core's
+/// defaults become; what the core sends unless told otherwise (GREASE, OCSP, signed certificate timestamps, the session
+/// ticket, the new order on each handshake) a fingerprint without it turns off, and what the core leaves out unless told
+/// otherwise a fingerprint with it turns on. The core takes these options from Aether 2.3.10 on, --tls13-ciphers,
+/// --tls-key-shares and --enable-grease-sigalgs from 2.3.8 on (PattNG enums/AetherOption.kt).
 /// </para>
 /// </summary>
 public sealed record AetherFingerprint
 {
+    /// <summary>Chrome's eight signature algorithms, which Chrome 120 sends alone and Chrome of today after ML-DSA.</summary>
+    private const string ChromeEightSigalgs = "ecdsa_secp256r1_sha256:rsa_pss_rsae_sha256:rsa_pkcs1_sha256:"
+        + "ecdsa_secp384r1_sha384:rsa_pss_rsae_sha384:rsa_pkcs1_sha384:rsa_pss_rsae_sha512:rsa_pkcs1_sha512";
+
+    /// <summary>
+    /// The trust anchors Chrome's ClientHello of October 2026 asks for, the 28 IDs of its trust_anchors (0xca34) in dotted
+    /// decimal, in its order.
+    /// </summary>
+    private const string ChromeTrustAnchors = "44947.2.1:44947.2.6:44947.2.13:44947.2.14:44947.2.15:44947.2.18:44947.2.19:"
+        + "44947.2.20:52580.200109.1.7:52580.200109.1.8:52580.200109.1.9:52580.200109.1.10:52580.200109.1.11:"
+        + "52580.200109.1.12:52580.200109.1.13:52580.200109.1.18:52580.200109.1.19:11129.9.1:11129.9.4:11129.9.5:"
+        + "11129.9.6:11129.9.7:11129.9.8:11129.9.10:11129.9.11:11129.9.12:11129.9.13:11129.9.15";
+
     /// <summary>
     /// <para>
     /// Chrome's own rule rather than a list, which BoringSSL orders as it does for Chrome, by the machine's AES
@@ -509,26 +529,44 @@ public sealed record AetherFingerprint
     /// P-256, P-384. BoringSSL gives the first a key share, and X25519, the first that is not post-quantum, another, as
     /// Chrome does.
     /// </para>
-    /// <para>A GREASE value leads its signature algorithms too, which BoringSSL sends only when told to.</para>
+    /// <para>
+    /// Its signature algorithms after a GREASE value, which BoringSSL sends only when told to: ML-DSA-44, -65 and -87,
+    /// then its eight. Its extensions, all of which BoringSSL sends as Chrome does, Chrome's BoringSSL being the same:
+    /// brotli certificate compression; ALPS for HTTP/2 under the new codepoint; a GREASE ECH, where its capture went with
+    /// Cloudflare's ECH key; its 28 trust anchors; 6000 bytes of padding asked of the server; OCSP, signed certificate
+    /// timestamps and a session ticket; and a new order on each handshake, as Chrome's since its version 110.
+    /// </para>
     /// </summary>
     public static readonly AetherFingerprint Chrome = new(
         "chrome",
         "ALL:!aPSK:!ECDSA+SHA1:!3DES",
         true,
         "X25519MLKEM768:X25519:P-256:P-384",
-        greaseSigalgs: true);
+        sigalgs: "mldsa44:mldsa65:mldsa87:" + ChromeEightSigalgs,
+        greaseSigalgs: true,
+        certCompression: "brotli",
+        alps: "new",
+        trustAnchors: ChromeTrustAnchors,
+        serverPadding: 6000,
+        echGrease: true);
 
     /// <summary>
     /// Chrome 120's, as its ClientHello was captured: Chrome's own rule, which gives the TLS 1.2 suites of Chrome's of
     /// today in the same order, after a GREASE value and BoringSSL's TLS 1.3 order. Its groups, after a GREASE value,
     /// are X25519, P-256 and P-384, none of them post-quantum, with a key share for X25519, which BoringSSL sends of
-    /// itself. GREASE as Chrome's, but none among its signature algorithms.
+    /// itself. GREASE as Chrome's, but none among its signature algorithms, which are Chrome's eight without ML-DSA.
+    /// Brotli certificate compression, ALPS for HTTP/2 under the old codepoint, a GREASE ECH, OCSP, signed certificate
+    /// timestamps, a session ticket and a new order on each handshake; neither trust anchors nor server padding.
     /// </summary>
     public static readonly AetherFingerprint Chrome120 = new(
         "chrome-120",
         "ALL:!aPSK:!ECDSA+SHA1:!3DES",
         true,
-        "X25519:P-256:P-384");
+        "X25519:P-256:P-384",
+        sigalgs: ChromeEightSigalgs,
+        certCompression: "brotli",
+        alps: "old",
+        echGrease: true);
 
     /// <summary>
     /// <para>
@@ -539,6 +577,12 @@ public sealed record AetherFingerprint
     /// Firefox's groups, as its ClientHello of October 2026 lists them: X25519MLKEM768, X25519, P-256, P-384, P-521, with
     /// key shares for the first three, where BoringSSL would send two.
     /// </para>
+    /// <para>
+    /// Its signature algorithms; zlib, brotli and zstd certificate compression; a GREASE ECH, where its capture went with
+    /// Cloudflare's ECH key, as Firefox sends one otherwise; OCSP and signed certificate timestamps; no session ticket;
+    /// and one order of the extensions, BoringSSL's, as Firefox keeps one of its own. Its delegated_credentials and
+    /// record_size_limit BoringSSL cannot send.
+    /// </para>
     /// </summary>
     public static readonly AetherFingerprint Firefox = new(
         "firefox",
@@ -547,8 +591,15 @@ public sealed record AetherFingerprint
         + "AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA",
         false,
         "X25519MLKEM768:X25519:P-256:P-384:P-521",
+        sigalgs: "ecdsa_secp256r1_sha256:ecdsa_secp384r1_sha384:ecdsa_secp521r1_sha512:rsa_pss_rsae_sha256:"
+        + "rsa_pss_rsae_sha384:rsa_pss_rsae_sha512:rsa_pkcs1_sha256:rsa_pkcs1_sha384:rsa_pkcs1_sha512:ecdsa_sha1:"
+        + "rsa_pkcs1_sha1",
         tls13Ciphers: "TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_256_GCM_SHA384",
-        keyShares: "X25519MLKEM768:X25519:P-256");
+        keyShares: "X25519MLKEM768:X25519:P-256",
+        certCompression: "zlib:brotli:zstd",
+        echGrease: true,
+        sessionTicket: false,
+        permuteExtensions: false);
 
     /// <summary>
     /// <para>
@@ -563,6 +614,11 @@ public sealed record AetherFingerprint
     /// BoringSSL does not have: X25519MLKEM768, X25519, P-256, P-384, P-521. Key shares for the first two, as Python
     /// sends them.
     /// </para>
+    /// <para>
+    /// Its signature algorithms that BoringSSL has, in its order: Ed448, the brainpool curves, RSA-PSS with PSS keys,
+    /// SHA-224 and DSA left out. Neither OCSP nor signed certificate timestamps; a session ticket; one order of the
+    /// extensions. Its encrypt_then_mac and its three point formats BoringSSL cannot send.
+    /// </para>
     /// </summary>
     public static readonly AetherFingerprint SemiPython = new(
         "semi-python",
@@ -571,7 +627,13 @@ public sealed record AetherFingerprint
         + "ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256",
         false,
         "X25519MLKEM768:X25519:P-256:P-384:P-521",
-        tls13Ciphers: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256");
+        sigalgs: "mldsa65:mldsa87:mldsa44:ecdsa_secp256r1_sha256:ecdsa_secp384r1_sha384:ecdsa_secp521r1_sha512:"
+        + "ed25519:rsa_pss_rsae_sha256:rsa_pss_rsae_sha384:rsa_pss_rsae_sha512:rsa_pkcs1_sha256:rsa_pkcs1_sha384:"
+        + "rsa_pkcs1_sha512",
+        tls13Ciphers: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256",
+        ocspStapling: false,
+        sct: false,
+        permuteExtensions: false);
 
     /// <summary>
     /// <para>
@@ -583,6 +645,10 @@ public sealed record AetherFingerprint
     /// which BoringSSL does not have: X25519MLKEM768, X25519, P-256, P-384, P-521. Key shares for the first two, as Go
     /// sends them.
     /// </para>
+    /// <para>
+    /// Its signature algorithms; OCSP and signed certificate timestamps; no session ticket; one order of the extensions.
+    /// Its signature_algorithms_cert BoringSSL cannot send.
+    /// </para>
     /// </summary>
     public static readonly AetherFingerprint Go = new(
         "go",
@@ -590,7 +656,12 @@ public sealed record AetherFingerprint
         + "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:"
         + "ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA",
         false,
-        "X25519MLKEM768:X25519:P-256:P-384:P-521");
+        "X25519MLKEM768:X25519:P-256:P-384:P-521",
+        sigalgs: "mldsa44:mldsa65:mldsa87:rsa_pss_rsae_sha256:ecdsa_secp256r1_sha256:ed25519:rsa_pss_rsae_sha384:"
+        + "rsa_pss_rsae_sha512:rsa_pkcs1_sha256:rsa_pkcs1_sha384:rsa_pkcs1_sha512:ecdsa_secp384r1_sha384:"
+        + "ecdsa_secp521r1_sha512",
+        sessionTicket: false,
+        permuteExtensions: false);
 
     public static IReadOnlyList<AetherFingerprint> All { get; } = [Chrome, Chrome120, Firefox, SemiPython, Go];
 
@@ -599,17 +670,37 @@ public sealed record AetherFingerprint
         string ciphers,
         bool grease,
         string groups,
+        string sigalgs,
         string? tls13Ciphers = null,
         string? keyShares = null,
-        bool greaseSigalgs = false)
+        bool greaseSigalgs = false,
+        string? certCompression = null,
+        string? alps = null,
+        string? trustAnchors = null,
+        int? serverPadding = null,
+        bool echGrease = false,
+        bool ocspStapling = true,
+        bool sct = true,
+        bool sessionTicket = true,
+        bool permuteExtensions = true)
     {
         Type = type;
         Ciphers = ciphers;
         Grease = grease;
         Groups = groups;
+        Sigalgs = sigalgs;
         Tls13Ciphers = tls13Ciphers;
         KeyShares = keyShares;
         GreaseSigalgs = greaseSigalgs;
+        CertCompression = certCompression;
+        Alps = alps;
+        TrustAnchors = trustAnchors;
+        ServerPadding = serverPadding;
+        EchGrease = echGrease;
+        OcspStapling = ocspStapling;
+        Sct = sct;
+        SessionTicket = sessionTicket;
+        PermuteExtensions = permuteExtensions;
     }
 
     public string Type { get; }
@@ -618,6 +709,9 @@ public sealed record AetherFingerprint
 
     /// <summary>The groups, in order, for --tls-groups.</summary>
     public string Groups { get; }
+
+    /// <summary>The signature algorithms, in order, by the names BoringSSL gives them, for --tls-sigalgs.</summary>
+    public string Sigalgs { get; }
 
     /// <summary>The TLS 1.3 suites, in order, for --tls13-ciphers; null leaves BoringSSL's order.</summary>
     public string? Tls13Ciphers { get; }
@@ -628,10 +722,39 @@ public sealed record AetherFingerprint
     /// <summary>Whether a GREASE value leads the signature algorithms, for --enable-grease-sigalgs.</summary>
     public bool GreaseSigalgs { get; }
 
+    /// <summary>The certificate compression offered, of zlib, brotli and zstd, in order, for --tls-cert-compression.</summary>
+    public string? CertCompression { get; }
+
+    /// <summary>The ALPS codepoint, new (0x44cd) or old (0x4469), for --tls-alps; ALPS goes for HTTP/2 and HTTP/3.</summary>
+    public string? Alps { get; }
+
+    /// <summary>The trust anchor IDs asked for, in dotted decimal, for --tls-trust-anchors.</summary>
+    public string? TrustAnchors { get; }
+
+    /// <summary>The bytes of padding asked of the server, for --tls-server-padding.</summary>
+    public int? ServerPadding { get; }
+
+    /// <summary>A GREASE ECH when no ECH key is offered, --enable-ech-grease.</summary>
+    public bool EchGrease { get; }
+
+    /// <summary>OCSP asked for; without it, --disable-ocsp-stapling.</summary>
+    public bool OcspStapling { get; }
+
+    /// <summary>Signed certificate timestamps asked for; without them, --disable-sct.</summary>
+    public bool Sct { get; }
+
+    /// <summary>A session_ticket extension; without it, --disable-session-ticket.</summary>
+    public bool SessionTicket { get; }
+
+    /// <summary>The extensions in a new order on each handshake; without it, --disable-extension-permutation.</summary>
+    public bool PermuteExtensions { get; }
+
     /// <summary>
     /// The core's options for this fingerprint: its TLS 1.2 suites, its TLS 1.3 order where it has one, its groups, its
-    /// key shares where it names them, GREASE left out where it sends none, and GREASE among the signature algorithms
-    /// where it sends one there.
+    /// key shares where it names them, its signature algorithms, the certificate compression, ALPS, trust anchors and
+    /// server padding it has, and a flag for each of the rest that is not the core's own: GREASE left out, GREASE among
+    /// the signature algorithms, GREASE ECH, and OCSP, signed certificate timestamps, the session ticket and the new
+    /// order on each handshake left out.
     /// </summary>
     public IReadOnlyList<string> Arguments
     {
@@ -647,6 +770,23 @@ public sealed record AetherFingerprint
             {
                 arguments.AddRange(["--tls-key-shares", KeyShares]);
             }
+            arguments.AddRange(["--tls-sigalgs", Sigalgs]);
+            if (CertCompression is not null)
+            {
+                arguments.AddRange(["--tls-cert-compression", CertCompression]);
+            }
+            if (Alps is not null)
+            {
+                arguments.AddRange(["--tls-alps", Alps]);
+            }
+            if (TrustAnchors is not null)
+            {
+                arguments.AddRange(["--tls-trust-anchors", TrustAnchors]);
+            }
+            if (ServerPadding is int padding)
+            {
+                arguments.AddRange(["--tls-server-padding", padding.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
+            }
             if (!Grease)
             {
                 arguments.Add("--disable-grease");
@@ -654,6 +794,26 @@ public sealed record AetherFingerprint
             if (GreaseSigalgs)
             {
                 arguments.Add("--enable-grease-sigalgs");
+            }
+            if (EchGrease)
+            {
+                arguments.Add("--enable-ech-grease");
+            }
+            if (!OcspStapling)
+            {
+                arguments.Add("--disable-ocsp-stapling");
+            }
+            if (!Sct)
+            {
+                arguments.Add("--disable-sct");
+            }
+            if (!SessionTicket)
+            {
+                arguments.Add("--disable-session-ticket");
+            }
+            if (!PermuteExtensions)
+            {
+                arguments.Add("--disable-extension-permutation");
             }
             return arguments;
         }

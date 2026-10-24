@@ -113,9 +113,10 @@ public class AetherArgumentsTests
         await ShouldBe(Command(Of(new ProtocolExtraItem())),
             "--bind", "127.0.0.1:10819", "--protocol", "wg", "--scan", "balanced", "--ip", "v4", "--quick-reconnect");
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Masque.Type })),
-            "--bind", "127.0.0.1:10819", "--protocol", "masque", "--scan", "balanced", "--ip", "v4",
-            "--masque-sni", "www.cloudflare.com", "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
-            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384", "--enable-grease-sigalgs", "--quick-reconnect");
+            [
+                "--bind", "127.0.0.1:10819", "--protocol", "masque", "--scan", "balanced", "--ip", "v4",
+                "--masque-sni", "www.cloudflare.com", .. AetherFingerprint.Chrome.Arguments, "--quick-reconnect",
+            ]);
         // WARP-in-WARP without hops.
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Gool.Type })),
             "--bind", "127.0.0.1:10819", "--protocol", "gool", "--gool-classic", "--scan", "balanced", "--ip", "v4", "--wiw-scan",
@@ -745,6 +746,18 @@ public class AetherArgumentsTests
                     await (ValueAfter(arguments, "--tls-key-shares") == fingerprint.KeyShares).Should().BeTrue();
                     await arguments.Contains("--disable-grease").Should().BeTrue();
                     await arguments.Contains("--enable-grease-sigalgs").Should().BeFalse();
+                    // One order of the extensions, as these clients keep.
+                    await arguments.Contains("--disable-extension-permutation").Should().BeTrue();
+                }
+                // Every option of every fingerprint goes to the core, in the fingerprint's order: the signature
+                // algorithms, the extensions and the rest.
+                foreach (var fingerprint in AetherFingerprint.All)
+                {
+                    var arguments = Build(Profile(protocol, transport, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10819);
+                    var expected = fingerprint.Arguments;
+                    var found = Enumerable.Range(0, arguments.Count - expected.Count + 1)
+                        .Any(at => arguments.Skip(at).Take(expected.Count).SequenceEqual(expected));
+                    await found.Should().BeTrue();
                 }
             }
         }
@@ -763,6 +776,12 @@ public class AetherArgumentsTests
             await firefox.Contains("--tls13-ciphers").Should().BeFalse();
             await firefox.Contains("--tls-key-shares").Should().BeFalse();
             await Build(Profile(protocol, AetherTransport.Http2), 10819).Contains("--enable-grease-sigalgs").Should().BeFalse();
+            foreach (var fingerprint in AetherFingerprint.All)
+            {
+                var unshaped = Build(Profile(protocol, AetherTransport.Http2, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10819);
+                var flags = fingerprint.Arguments.Where(word => word.StartsWith("--", StringComparison.Ordinal));
+                await flags.Any(unshaped.Contains).Should().BeFalse();
+            }
         }
         // A scan's probes send the ClientHello the tunnel will.
         await Build(Profile(copy: it => it with { AetherFingerprint = "firefox" }), 0, scan: true).Contains("--disable-grease").Should().BeTrue();
