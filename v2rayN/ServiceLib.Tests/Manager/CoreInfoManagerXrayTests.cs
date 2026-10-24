@@ -186,6 +186,13 @@ public class CoreInfoManagerXrayTests : IDisposable
         File.WriteAllText(Copy, "Xray 25.9.11");
         await CoreInfoManager.XrayCopyInUse(xray).Should().BeNull();
 
+        // Windows refuses to open for writing a file that is open for reading alone, as one a running program is; elsewhere
+        // it can be written whatever holds it, and only on Windows does an update ask, see CheckUpdateViewModel.
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         // As a latency test's Xray holds it.
         using (new FileStream(Copy, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
