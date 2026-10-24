@@ -95,7 +95,7 @@ public class AetherKeysTests
         {
             var arguments = AetherKeys.Arguments(new AetherKeysSettings { Fingerprint = fingerprint });
             await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
-            await (ValueAfter(arguments, "--tls-groups") == fingerprint.Groups).Should().BeTrue();
+            await ValueAfter(arguments, "--tls-groups").Should().BeEqualTo(fingerprint.Groups);
             await arguments.Contains("--disable-grease").Should().BeEqualTo(!fingerprint.Grease);
         }
     }

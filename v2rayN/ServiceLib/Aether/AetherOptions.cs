@@ -480,10 +480,17 @@ public sealed record AetherKeyKind
 }
 
 /// <summary>
-/// The cipher suites the TLS handshakes of the core offer, after a client whose ClientHello was captured: its TLS 1.2
-/// suites as BoringSSL names them, in its order, or Chrome's own rule, and whether it sends GREASE values; and its
-/// groups, where they are named, else the core's. BoringSSL writes its TLS 1.3 suites first, in an order of its own, so
-/// only the TLS 1.2 part follows the client.
+/// <para>
+/// The cipher suites and groups the TLS handshakes of the core offer, after a client whose ClientHello was captured: its
+/// TLS 1.2 suites as BoringSSL names them, in its order, or Chrome's own rule; its groups in its order, those BoringSSL
+/// has; and whether it sends GREASE values. BoringSSL writes its TLS 1.3 suites first, in an order of its own, so only
+/// the TLS 1.2 part follows the client; and it sends key shares for the first group and for the first one of the other
+/// kind, post-quantum or not, two at most.
+/// </para>
+/// <para>
+/// Each names its suites and its groups, so that it stays the client's whatever the core's defaults become; GREASE is
+/// left on by giving no --disable-grease, as the core has no option that turns it on.
+/// </para>
 /// </summary>
 public sealed record AetherFingerprint
 {
@@ -499,10 +506,6 @@ public sealed record AetherFingerprint
     /// P-256, P-384. BoringSSL gives the first a key share, and X25519, the first that is not post-quantum, another, as
     /// Chrome does.
     /// </para>
-    /// <para>
-    /// The rule and the groups are named, and GREASE left on by giving no --disable-grease, so that the fingerprint stays
-    /// Chrome's whatever the core's defaults become.
-    /// </para>
     /// </summary>
     public static readonly AetherFingerprint Chrome = new(
         "chrome",
@@ -510,38 +513,61 @@ public sealed record AetherFingerprint
         true,
         "X25519MLKEM768:X25519:P-256:P-384");
 
-    /// <summary>c02b c02f cca9 cca8 c02c c030 c013 c014 009c 009d 002f 0035.</summary>
+    /// <summary>
+    /// <para>c02b c02f cca9 cca8 c02c c030 c013 c014 009c 009d 002f 0035, without GREASE.</para>
+    /// <para>
+    /// Firefox's groups, as its ClientHello of October 2026 lists them: X25519MLKEM768, X25519, P-256, P-384, P-521.
+    /// Firefox sends key shares for the first three, BoringSSL for the first two.
+    /// </para>
+    /// </summary>
     public static readonly AetherFingerprint Firefox = new(
         "firefox",
         "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:"
         + "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:"
         + "AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA",
-        false);
+        false,
+        "X25519MLKEM768:X25519:P-256:P-384:P-521");
 
     /// <summary>
+    /// <para>
     /// c02c c030 c02b c02f cca9 cca8 c00a c014 c023 c027: Python's first ten TLS 1.2 suites, with c00a and c014
     /// (AES-256-CBC with SHA-1) in place of c024 and c028 (with SHA-384), the nearest ones BoringSSL has; Python's four
     /// DHE suites after them are left out, as BoringSSL has none. Hence semi-python: not Python's list as it is, but
-    /// every suite of it a core on boring 5.2 or newer takes; an older one refuses c023.
+    /// every suite of it a core on boring 5.2 or newer takes; an older one refuses c023. Without GREASE.
+    /// </para>
+    /// <para>
+    /// Python's groups, as its ClientHello of October 2026 lists them, without X448, ffdhe2048 and ffdhe3072, which
+    /// BoringSSL does not have: X25519MLKEM768, X25519, P-256, P-384, P-521. Key shares for the first two, as Python
+    /// sends them.
+    /// </para>
     /// </summary>
     public static readonly AetherFingerprint SemiPython = new(
         "semi-python",
         "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:"
         + "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:"
         + "ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256",
-        false);
+        false,
+        "X25519MLKEM768:X25519:P-256:P-384:P-521");
 
-    /// <summary>c02b c02f c02c c030 cca9 cca8 c009 c013 c00a c014; Go lists its TLS 1.3 suites after them.</summary>
+    /// <summary>
+    /// <para>c02b c02f c02c c030 cca9 cca8 c009 c013 c00a c014; Go lists its TLS 1.3 suites after them. Without GREASE.</para>
+    /// <para>
+    /// Go's groups, as its ClientHello of October 2026 lists them, without SecP256r1MLKEM768 and SecP384r1MLKEM1024,
+    /// which BoringSSL does not have: X25519MLKEM768, X25519, P-256, P-384, P-521. Key shares for the first two, as Go
+    /// sends them.
+    /// </para>
+    /// </summary>
     public static readonly AetherFingerprint Go = new(
         "go",
         "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:"
         + "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:"
         + "ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA",
-        false);
+        false,
+        "X25519MLKEM768:X25519:P-256:P-384:P-521");
 
     public static IReadOnlyList<AetherFingerprint> All { get; } = [Chrome, Firefox, SemiPython, Go];
 
-    private AetherFingerprint(string type, string ciphers, bool grease, string? groups = null)
+    private AetherFingerprint(string type, string ciphers, bool grease, string groups)
     {
         Type = type;
         Ciphers = ciphers;
@@ -553,22 +579,15 @@ public sealed record AetherFingerprint
     public string Ciphers { get; }
     public bool Grease { get; }
 
-    /// <summary>The groups, in order, for --tls-groups; null leaves them to the core.</summary>
-    public string? Groups { get; }
+    /// <summary>The groups, in order, for --tls-groups.</summary>
+    public string Groups { get; }
 
-    /// <summary>
-    /// The core's options for this fingerprint: its TLS 1.2 suites, its groups where it names them, and GREASE left out
-    /// where it sends none.
-    /// </summary>
+    /// <summary>The core's options for this fingerprint: its TLS 1.2 suites, its groups, and GREASE left out where it sends none.</summary>
     public IReadOnlyList<string> Arguments
     {
         get
         {
-            List<string> arguments = ["--tls-ciphers", Ciphers];
-            if (Groups is not null)
-            {
-                arguments.AddRange(["--tls-groups", Groups]);
-            }
+            List<string> arguments = ["--tls-ciphers", Ciphers, "--tls-groups", Groups];
             if (!Grease)
             {
                 arguments.Add("--disable-grease");

@@ -726,7 +726,7 @@ public class AetherArgumentsTests
                 {
                     var arguments = Build(Profile(protocol, transport, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10819);
                     await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
-                    await arguments.Contains("--tls-groups").Should().BeFalse();
+                    await ValueAfter(arguments, "--tls-groups").Should().BeEqualTo(fingerprint.Groups);
                     await arguments.Contains("--disable-grease").Should().BeTrue();
                 }
             }

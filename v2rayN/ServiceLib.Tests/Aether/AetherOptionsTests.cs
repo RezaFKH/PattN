@@ -37,6 +37,32 @@ public class AetherOptionsTests
         return fingerprint.Ciphers.Split(':').Select(name => SuiteIds[name]).ToList();
     }
 
+    /// <summary>The number of each group by the name BoringSSL gives it, for every group it has (boring 5.2).</summary>
+    private static readonly Dictionary<string, int> GroupIds = new()
+    {
+        ["P-256"] = 0x0017,
+        ["P-384"] = 0x0018,
+        ["P-521"] = 0x0019,
+        ["X25519"] = 0x001d,
+        ["X25519Kyber768Draft00"] = 0x6399,
+        ["X25519MLKEM768"] = 0x11ec,
+        ["MLKEM1024"] = 0x0202,
+    };
+
+    /// <summary>The groups of a ClientHello's supported_groups in hex that BoringSSL has, in order: GREASE and the rest left out.</summary>
+    private static List<int> CapturedGroups(string captured)
+    {
+        return captured.Chunk(4)
+            .Select(chunk => Convert.ToInt32(new string(chunk), 16))
+            .Where(GroupIds.ContainsValue)
+            .ToList();
+    }
+
+    private static List<int> GroupsOf(AetherFingerprint fingerprint)
+    {
+        return fingerprint.Groups.Split(':').Select(name => GroupIds[name]).ToList();
+    }
+
     // From PattNG AetherFmtTest; the assertion on a link written before the rename goes with AetherFmt.
     [Test]
     public async Task TheOldNameOfTheVerifiedScanModeStillReads()
@@ -78,6 +104,19 @@ public class AetherOptionsTests
         await SuitesOf(AetherFingerprint.Go).SequenceEqual(Tls12Of("c02bc02fc02cc030cca9cca8c009c013c00ac014130113021303")).Should().BeTrue();
     }
 
+    // From PattNG AetherKeysTest.
+    [Test]
+    public async Task EachFingerprintOffersTheGroupsOfItsCapturedClientHelloThatBoringSslHas()
+    {
+        // The supported_groups of the ClientHellos captured in October 2026. Chrome's leads with a GREASE value; Python's
+        // also lists X448, ffdhe2048 and ffdhe3072, and Go's SecP256r1MLKEM768 and SecP384r1MLKEM1024, none of which
+        // BoringSSL has.
+        await GroupsOf(AetherFingerprint.Chrome).SequenceEqual(CapturedGroups("5a5a11ec001d00170018")).Should().BeTrue();
+        await GroupsOf(AetherFingerprint.Firefox).SequenceEqual(CapturedGroups("11ec001d001700180019")).Should().BeTrue();
+        await GroupsOf(AetherFingerprint.SemiPython).SequenceEqual(CapturedGroups("11ec001d0017001e0018001901000101")).Should().BeTrue();
+        await GroupsOf(AetherFingerprint.Go).SequenceEqual(CapturedGroups("11ec11eb11ed001d001700180019")).Should().BeTrue();
+    }
+
     // From PattNG AetherKeysTest; the check of AetherKeys.arguments for every fingerprint goes with AetherKeys.
     [Test]
     public async Task OnlyChromeSendsGrease()
@@ -90,19 +129,18 @@ public class AetherOptionsTests
 
     // From PattNG AetherKeysTest.
     [Test]
-    public async Task ChromeNamesItsRuleAndItsGroupsAndKeepsGrease()
+    public async Task EachFingerprintNamesItsSuitesAndItsGroups()
     {
-        // Chrome's ClientHello of October 2026: after a GREASE value, X25519MLKEM768, X25519, P-256 and P-384, with key
-        // shares for the first two. Each is named, so that the core's defaults cannot change it; GREASE is the one left
-        // to the core, which has no option that turns it on.
+        // Each is named, so that the core's defaults cannot change it. GREASE is the one left to the core, which has no
+        // option that turns it on; Chrome alone keeps it.
         await AetherFingerprint.Chrome.Arguments
             .SequenceEqual(["--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES", "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384"])
             .Should().BeTrue();
-        // The others name their suites and leave GREASE out; their groups stay the core's.
         foreach (var fingerprint in new[] { AetherFingerprint.Firefox, AetherFingerprint.SemiPython, AetherFingerprint.Go })
         {
-            await fingerprint.Groups.Should().BeNull();
-            await fingerprint.Arguments.SequenceEqual(["--tls-ciphers", fingerprint.Ciphers, "--disable-grease"]).Should().BeTrue();
+            await fingerprint.Arguments
+                .SequenceEqual(["--tls-ciphers", fingerprint.Ciphers, "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384:P-521", "--disable-grease"])
+                .Should().BeTrue();
         }
     }
 
