@@ -95,8 +95,11 @@ public class AetherKeysTests
         {
             var arguments = AetherKeys.Arguments(new AetherKeysSettings { Fingerprint = fingerprint });
             await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
+            await (ValueAfter(arguments, "--tls13-ciphers") == fingerprint.Tls13Ciphers).Should().BeTrue();
             await ValueAfter(arguments, "--tls-groups").Should().BeEqualTo(fingerprint.Groups);
+            await (ValueAfter(arguments, "--tls-key-shares") == fingerprint.KeyShares).Should().BeTrue();
             await arguments.Contains("--disable-grease").Should().BeEqualTo(!fingerprint.Grease);
+            await arguments.Contains("--enable-grease-sigalgs").Should().BeEqualTo(fingerprint.GreaseSigalgs);
         }
     }
 
@@ -108,9 +111,12 @@ public class AetherKeysTests
         await ShouldBe(AetherKeys.Arguments(new AetherKeysSettings()),
             "--register", "all",
             "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
-            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384",
+            "--enable-grease-sigalgs");
         await AetherKeys.BuiltCommand(new AetherKeysSettings())
-            .Should().BeEqualTo("aether --register all --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES --tls-groups X25519MLKEM768:X25519:P-256:P-384");
+            .Should().BeEqualTo(
+                "aether --register all --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES --tls-groups X25519MLKEM768:X25519:P-256:P-384 "
+                + "--enable-grease-sigalgs");
         await AetherKeys.DefaultApiHost.Should().BeEqualTo("api.devices.cloudflare.com");
         await AetherKeys.FallbackApiHost.Should().BeEqualTo("api.cloudflareclient.com");
         // A plain exit-node.
@@ -213,7 +219,8 @@ public class AetherKeysTests
             "--api-sni", "api.cloudflareclient.com",
             "--api-host", "api.cloudflareclient.com",
             "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
-            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384",
+            "--enable-grease-sigalgs");
         // One alone leaves the others to the core.
         var hostOnly = AetherKeys.Arguments(new AetherKeysSettings { ApiHost = "api.cloudflareclient.com" });
         await ValueAfter(hostOnly, "--api-host").Should().BeEqualTo("api.cloudflareclient.com");
@@ -304,7 +311,8 @@ public class AetherKeysTests
             "--register", "all",
             "--fragment",
             "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
-            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384",
+            "--enable-grease-sigalgs");
         var shaped = AetherKeys.Arguments(on with { FragmentSize = " 16 - 8 ", FragmentDelay = "5" });
         await ValueAfter(shaped, "--fragment-size").Should().BeEqualTo("8-16");
         await ValueAfter(shaped, "--fragment-delay").Should().BeEqualTo("5");

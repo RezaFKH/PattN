@@ -794,7 +794,7 @@ public class AddServerAetherViewModelTests
         var vm = await Editor(new FakeSource());
         await vm.ProtocolLabels.Should().BeEquivalentTo(["MASQUE", "WireGuard", "WARP-in-WARP", "MASQUE-in-MASQUE", "WireGuard over MASQUE"], CollectionOrdering.Matching);
         await vm.TransportLabels.Should().BeEquivalentTo(["HTTP/3", "HTTP/2"], CollectionOrdering.Matching);
-        await vm.FingerprintLabels.Should().BeEquivalentTo(["Chrome", "Firefox", "Semi-Python", "Go"], CollectionOrdering.Matching);
+        await vm.FingerprintLabels.Should().BeEquivalentTo(["Chrome", "Chrome 120", "Firefox", "Semi-Python", "Go"], CollectionOrdering.Matching);
         await vm.ScanModeLabels.Count.Should().BeEqualTo(AetherScanMode.All.Count);
         await vm.ObfuscationLabels.Count.Should().BeEqualTo(AetherObfuscation.All.Count);
         await vm.PsiphonLabels.Count.Should().BeEqualTo(AetherPsiphon.All.Count);

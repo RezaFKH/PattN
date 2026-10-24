@@ -34,7 +34,7 @@ public static class AetherLabels
 
     public static IReadOnlyList<string> Transports => ["HTTP/3", "HTTP/2"];
 
-    public static IReadOnlyList<string> Fingerprints => ["Chrome", "Firefox", "Semi-Python", "Go"];
+    public static IReadOnlyList<string> Fingerprints => ["Chrome", "Chrome 120", "Firefox", "Semi-Python", "Go"];
 
     public static IReadOnlyList<string> IpVersions => ["IPv4", "IPv6", "IPv4 + IPv6"];
 
