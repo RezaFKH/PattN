@@ -95,6 +95,7 @@ public class AetherKeysTests
         {
             var arguments = AetherKeys.Arguments(new AetherKeysSettings { Fingerprint = fingerprint });
             await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
+            await (ValueAfter(arguments, "--tls-groups") == fingerprint.Groups).Should().BeTrue();
             await arguments.Contains("--disable-grease").Should().BeEqualTo(!fingerprint.Grease);
         }
     }
@@ -106,9 +107,10 @@ public class AetherKeysTests
         // that one gets no answer.
         await ShouldBe(AetherKeys.Arguments(new AetherKeysSettings()),
             "--register", "all",
-            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
+            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
         await AetherKeys.BuiltCommand(new AetherKeysSettings())
-            .Should().BeEqualTo("aether --register all --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES");
+            .Should().BeEqualTo("aether --register all --tls-ciphers ALL:!aPSK:!ECDSA+SHA1:!3DES --tls-groups X25519MLKEM768:X25519:P-256:P-384");
         await AetherKeys.DefaultApiHost.Should().BeEqualTo("api.devices.cloudflare.com");
         await AetherKeys.FallbackApiHost.Should().BeEqualTo("api.cloudflareclient.com");
         // A plain exit-node.
@@ -210,7 +212,8 @@ public class AetherKeysTests
             "--api-address", "162.159.137.105",
             "--api-sni", "api.cloudflareclient.com",
             "--api-host", "api.cloudflareclient.com",
-            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
+            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
         // One alone leaves the others to the core.
         var hostOnly = AetherKeys.Arguments(new AetherKeysSettings { ApiHost = "api.cloudflareclient.com" });
         await ValueAfter(hostOnly, "--api-host").Should().BeEqualTo("api.cloudflareclient.com");
@@ -300,7 +303,8 @@ public class AetherKeysTests
         await ShouldBe(AetherKeys.Arguments(on),
             "--register", "all",
             "--fragment",
-            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES");
+            "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384");
         var shaped = AetherKeys.Arguments(on with { FragmentSize = " 16 - 8 ", FragmentDelay = "5" });
         await ValueAfter(shaped, "--fragment-size").Should().BeEqualTo("8-16");
         await ValueAfter(shaped, "--fragment-delay").Should().BeEqualTo("5");

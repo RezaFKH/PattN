@@ -103,7 +103,8 @@ public static class AetherKeys
     /// ClientHello of those calls in pieces when fragmenting is on (--fragment, which a run that only registers keys
     /// applies to those calls alone), sized and spaced as set or as the core has them by default, and whole without the
     /// flag, Encrypted Client Hello on those calls with the key of the ECH domain, asked of the ECH DNS, and the TLS 1.2
-    /// cipher suites of the fingerprint, with GREASE left out where the fingerprint has none.
+    /// cipher suites of the fingerprint, its groups where it names them, with GREASE left out where the fingerprint has
+    /// none.
     /// </summary>
     public static List<string> Arguments(AetherKeysSettings settings)
     {

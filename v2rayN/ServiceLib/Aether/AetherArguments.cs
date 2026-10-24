@@ -213,7 +213,7 @@ public static class AetherArguments
                 arguments.AddRange(["--ech-domain", SettingValue(extra.AetherEchDomain) ?? DefaultEchDomain]);
             }
             // The ClientHello of the MASQUE handshakes, and of the WARP API calls and the ECH key lookup the core makes:
-            // over HTTP/3, which carries TLS 1.3 alone, only its GREASE shows.
+            // over HTTP/3, which carries TLS 1.3 alone, its groups and GREASE show, not its TLS 1.2 suites.
             if (protocol.OverMasque)
             {
                 arguments.AddRange(AetherFingerprint.FromString(extra.AetherFingerprint).Arguments);

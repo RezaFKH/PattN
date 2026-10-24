@@ -66,7 +66,6 @@ public class AetherOptionsTests
         // suites: these twelve with them, ChaCha20 first without (both seen on boring 5.2.0). So Chrome names its rule,
         // as Chromium sets it, and keeps GREASE.
         await AetherFingerprint.Chrome.Ciphers.Should().BeEqualTo("ALL:!aPSK:!ECDSA+SHA1:!3DES");
-        await AetherFingerprint.Chrome.Arguments.SequenceEqual(["--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES"]).Should().BeTrue();
         await SuitesOf(AetherFingerprint.Firefox).SequenceEqual(Tls12Of("130113031302c02bc02fcca9cca8c02cc030c013c014009c009d002f0035")).Should().BeTrue();
         // Python's first ten, with c00a and c014 (AES-256-CBC with SHA-1) in place of c024 and c028 (with SHA-384),
         // which BoringSSL does not have; its four DHE suites after them are left out.
@@ -87,6 +86,24 @@ public class AetherOptionsTests
         await AetherFingerprint.Firefox.Grease.Should().BeFalse();
         await AetherFingerprint.SemiPython.Grease.Should().BeFalse();
         await AetherFingerprint.Go.Grease.Should().BeFalse();
+    }
+
+    // From PattNG AetherKeysTest.
+    [Test]
+    public async Task ChromeNamesItsRuleAndItsGroupsAndKeepsGrease()
+    {
+        // Chrome's ClientHello of October 2026: after a GREASE value, X25519MLKEM768, X25519, P-256 and P-384, with key
+        // shares for the first two. Each is named, so that the core's defaults cannot change it; GREASE is the one left
+        // to the core, which has no option that turns it on.
+        await AetherFingerprint.Chrome.Arguments
+            .SequenceEqual(["--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES", "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384"])
+            .Should().BeTrue();
+        // The others name their suites and leave GREASE out; their groups stay the core's.
+        foreach (var fingerprint in new[] { AetherFingerprint.Firefox, AetherFingerprint.SemiPython, AetherFingerprint.Go })
+        {
+            await fingerprint.Groups.Should().BeNull();
+            await fingerprint.Arguments.SequenceEqual(["--tls-ciphers", fingerprint.Ciphers, "--disable-grease"]).Should().BeTrue();
+        }
     }
 
     // From PattNG AetherKeysTest. Its check of the dropdown's labels (Chrome, Firefox, Semi-Python, Go) against this

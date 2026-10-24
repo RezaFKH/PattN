@@ -114,7 +114,8 @@ public class AetherArgumentsTests
             "--bind", "127.0.0.1:10819", "--protocol", "wg", "--scan", "balanced", "--ip", "v4", "--quick-reconnect");
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Masque.Type })),
             "--bind", "127.0.0.1:10819", "--protocol", "masque", "--scan", "balanced", "--ip", "v4",
-            "--masque-sni", "www.cloudflare.com", "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES", "--quick-reconnect");
+            "--masque-sni", "www.cloudflare.com", "--tls-ciphers", "ALL:!aPSK:!ECDSA+SHA1:!3DES",
+            "--tls-groups", "X25519MLKEM768:X25519:P-256:P-384", "--quick-reconnect");
         // WARP-in-WARP without hops.
         await ShouldBe(Command(Of(new ProtocolExtraItem { AetherProtocol = AetherProtocol.Gool.Type })),
             "--bind", "127.0.0.1:10819", "--protocol", "gool", "--gool-classic", "--scan", "balanced", "--ip", "v4", "--wiw-scan",
@@ -715,14 +716,17 @@ public class AetherArgumentsTests
             foreach (var transport in AetherTransport.All)
             {
                 // Chrome's rule is named, whatever the core's default; BoringSSL orders it by the machine's AES
-                // instructions as it does the TLS 1.3 suites. Chrome sends GREASE.
+                // instructions as it does the TLS 1.3 suites. So are Chrome's groups, the post-quantum one first. Chrome
+                // sends GREASE.
                 var chrome = Build(Profile(protocol, transport), 10819);
                 await ValueAfter(chrome, "--tls-ciphers").Should().BeEqualTo("ALL:!aPSK:!ECDSA+SHA1:!3DES");
+                await ValueAfter(chrome, "--tls-groups").Should().BeEqualTo("X25519MLKEM768:X25519:P-256:P-384");
                 await chrome.Contains("--disable-grease").Should().BeFalse();
                 foreach (var fingerprint in new[] { AetherFingerprint.Firefox, AetherFingerprint.SemiPython, AetherFingerprint.Go })
                 {
                     var arguments = Build(Profile(protocol, transport, copy: it => it with { AetherFingerprint = fingerprint.Type }), 10819);
                     await ValueAfter(arguments, "--tls-ciphers").Should().BeEqualTo(fingerprint.Ciphers);
+                    await arguments.Contains("--tls-groups").Should().BeFalse();
                     await arguments.Contains("--disable-grease").Should().BeTrue();
                 }
             }
@@ -737,6 +741,7 @@ public class AetherArgumentsTests
             var arguments = Build(Profile(protocol, AetherTransport.Http2, copy: it => it with { AetherFingerprint = "go" }), 10819);
             await arguments.Contains("--tls-ciphers").Should().BeFalse();
             await arguments.Contains("--disable-grease").Should().BeFalse();
+            await Build(Profile(protocol, AetherTransport.Http2), 10819).Contains("--tls-groups").Should().BeFalse();
         }
         // A scan's probes send the ClientHello the tunnel will.
         await Build(Profile(copy: it => it with { AetherFingerprint = "firefox" }), 0, scan: true).Contains("--disable-grease").Should().BeTrue();
