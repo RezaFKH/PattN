@@ -1,3 +1,5 @@
+using Avalonia.Controls.Primitives;
+using Avalonia.Data;
 using v2rayN.Desktop.Base;
 
 namespace v2rayN.Desktop.Views;
@@ -30,9 +32,13 @@ public partial class AetherKeysWindow : WindowBase<AetherKeysViewModel>
                 .KeepNotNull()
                 .Subscribe(vm =>
                 {
-                    cmbApiAddress.ItemsSource = vm.ApiNameOptions;
-                    cmbApiSni.ItemsSource = vm.ApiNameOptions;
-                    cmbApiHost.ItemsSource = vm.ApiNameOptions;
+                    // Each entry shows by its name and a pick puts its value in the field: default's is blank.
+                    foreach (var apiField in new[] { cmbApiAddress, cmbApiSni, cmbApiHost })
+                    {
+                        apiField.DisplayMemberBinding = new Binding(nameof(ApiNameOption.Display));
+                        TextSearch.SetTextBinding(apiField, new Binding(nameof(ApiNameOption.Value)));
+                        apiField.ItemsSource = vm.ApiNameOptions;
+                    }
                     cmbEchDns.ItemsSource = vm.EchDnsOptions;
                     cmbEchDomain.ItemsSource = vm.EchDomainOptions;
                     cmbFingerprint.ItemsSource = vm.FingerprintLabels;

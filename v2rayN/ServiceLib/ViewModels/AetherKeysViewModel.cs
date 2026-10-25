@@ -220,8 +220,13 @@ public partial class AetherKeysViewModel : MyReactiveObject
 
     public IReadOnlyList<string> FingerprintLabels { get; } = AetherLabels.Fingerprints;
 
-    /// <summary>What the API address, server name and host offer to pick (PattNG aether_api_name_options).</summary>
-    public IReadOnlyList<string> ApiNameOptions { get; } = AetherKeys.ApiNameOptions;
+    /// <summary>
+    /// What the API address, server name and host offer to pick (PattNG aether_api_name_options): first default, as the
+    /// list of a preset field has it, whose value blanks the field and so leaves it to the core, then the two names of the
+    /// API, each its own value.
+    /// </summary>
+    public IReadOnlyList<ApiNameOption> ApiNameOptions { get; } =
+        [new(string.Empty, ResUI.TbPresetDefault), .. AetherKeys.ApiNameOptions.Select(name => new ApiNameOption(name, name))];
 
     public IReadOnlyList<string> EchDnsOptions { get; } = Global.AetherEchDnsOptions;
     public IReadOnlyList<string> EchDomainOptions { get; } = Global.AetherEchDomainOptions;

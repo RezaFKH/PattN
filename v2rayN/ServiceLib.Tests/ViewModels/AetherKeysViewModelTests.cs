@@ -185,12 +185,18 @@ public class AetherKeysViewModelTests
         await vm.KindOptions.Single(option => option.IsChecked).Kind.Should().BeEqualTo(AetherKeyKind.Gool);
         await vm.FingerprintLabels[vm.FingerprintIndex].Should().BeEqualTo("Firefox");
         await vm.Ech.Should().BeTrue();
-        // Blank, the core's own: the address of the server name, which follows the host; the two names of the API to pick.
+        // Blank, the core's own: the address of the server name, which follows the host. To pick, default, which blanks a
+        // field, then the two names of the API.
         await vm.ApiAddress.Should().BeEqualTo(string.Empty);
         await vm.ApiSni.Should().BeEqualTo(string.Empty);
         await vm.ApiHost.Should().BeEqualTo(string.Empty);
-        await vm.ApiNameOptions.Should()
-            .BeEquivalentTo([AetherKeys.DefaultApiHost, AetherKeys.FallbackApiHost], CollectionOrdering.Matching);
+        await vm.ApiNameOptions.Should().BeEquivalentTo(
+            [
+                new ApiNameOption(string.Empty, ResUI.TbPresetDefault),
+                new ApiNameOption(AetherKeys.DefaultApiHost, AetherKeys.DefaultApiHost),
+                new ApiNameOption(AetherKeys.FallbackApiHost, AetherKeys.FallbackApiHost),
+            ],
+            CollectionOrdering.Matching);
         await vm.EchDns.Should().BeEqualTo("udp://1.1.1.1");
         await vm.EchDomain.Should().BeEqualTo("cloudflare-ech.com");
         await vm.ExitNode.IsFreedom.Should().BeTrue();
@@ -239,6 +245,30 @@ public class AetherKeysViewModelTests
         vm.ApiAddress = "188.114.97.6:443";
         vm.ApiHost = "api.devices.cloudflare.com";
         await source.Saved.Count.Should().BeEqualTo(10);
+    }
+
+    [Test]
+    public async Task DefaultInTheListsOfTheApiFieldsBlanksThemForTheCoresOwn()
+    {
+        var source = new FakeSource();
+        var vm = await Window(source);
+        vm.ApiAddress = "188.114.97.6:443";
+        vm.ApiSni = AetherKeys.FallbackApiHost;
+        vm.ApiHost = AetherKeys.FallbackApiHost;
+        await Arguments(vm.Settings).Contains("--api-sni").Should().BeTrue();
+
+        // A pick puts its value in the field, and default's is blank, whatever name the list shows it by.
+        var picked = vm.ApiNameOptions[0];
+        await picked.Display.Should().BeEqualTo(ResUI.TbPresetDefault);
+        vm.ApiAddress = picked.Value;
+        vm.ApiSni = picked.Value;
+        vm.ApiHost = picked.Value;
+
+        await vm.Settings.EnrollAddress.Should().BeEqualTo(string.Empty);
+        await vm.Settings.ApiSni.Should().BeEqualTo(string.Empty);
+        await vm.Settings.ApiHost.Should().BeEqualTo(string.Empty);
+        await source.Saved.Last().Should().BeEqualTo(vm.Settings);
+        await Arguments(vm.Settings).Contains("--api-").Should().BeFalse();
     }
 
     [Test]

@@ -21,6 +21,15 @@
     mc:Ignorable="d">
     <!--  PattN: fork-only window, the WARP keys window (design 3.4): its own settings, saved as they change, in PattNG's order, then the run, the command and the log  -->
     <!--  A hint beside a switch keeps 4 px above and below, apart from the hint of the next row  -->
+    <Window.Resources>
+        <!--  The entries of the API fields go by the name the list shows, which is what a screen reader says: default's value is blank  -->
+        <Style
+            x:Key="ApiNameItem"
+            BasedOn="{StaticResource MaterialDesignComboBoxItemStyle}"
+            TargetType="{x:Type ComboBoxItem}">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Display}" />
+        </Style>
+    </Window.Resources>
     <DockPanel Margin="{StaticResource Margin8}">
         <StackPanel
             Margin="{StaticResource Margin4}"
@@ -86,9 +95,12 @@
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiAddressHint}"
+                            DisplayMemberPath="Display"
                             IsEditable="True"
                             IsTextSearchEnabled="False"
-                            Style="{StaticResource DefComboBox}" />
+                            ItemContainerStyle="{StaticResource ApiNameItem}"
+                            Style="{StaticResource DefComboBox}"
+                            TextSearch.TextPath="Value" />
                     </Grid>
 
                     <!--  2b. API server name, which a blank leaves to the host  -->
@@ -110,9 +122,12 @@
                             Width="400"
                             Margin="{StaticResource Margin4}"
                             materialDesign:HintAssist.Hint="{x:Static resx:ResUI.TbAetherKeysApiSniHint}"
+                            DisplayMemberPath="Display"
                             IsEditable="True"
                             IsTextSearchEnabled="False"
-                            Style="{StaticResource DefComboBox}" />
+                            ItemContainerStyle="{StaticResource ApiNameItem}"
+                            Style="{StaticResource DefComboBox}"
+                            TextSearch.TextPath="Value" />
                     </Grid>
 
                     <!--  2c. API host, the core's own while blank  -->
@@ -139,9 +154,12 @@
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"
+                            DisplayMemberPath="Display"
                             IsEditable="True"
                             IsTextSearchEnabled="False"
-                            Style="{StaticResource DefComboBox}" />
+                            ItemContainerStyle="{StaticResource ApiNameItem}"
+                            Style="{StaticResource DefComboBox}"
+                            TextSearch.TextPath="Value" />
                         <TextBlock
                             Grid.Row="1"
                             Grid.Column="1"
