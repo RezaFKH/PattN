@@ -185,11 +185,14 @@ public class AetherKeysViewModelTests
         await vm.KindOptions.Single(option => option.IsChecked).Kind.Should().BeEqualTo(AetherKeyKind.Gool);
         await vm.FingerprintLabels[vm.FingerprintIndex].Should().BeEqualTo("Firefox");
         await vm.Ech.Should().BeTrue();
-        // Blank, the core's own: the address of the server name, which follows the host. To pick, default, which blanks a
-        // field, then the two names of the API.
+        // Blank, the core's own: the address of the server name, which follows the host, with default under each. To pick,
+        // default, which blanks a field, then the two names of the API.
         await vm.ApiAddress.Should().BeEqualTo(string.Empty);
         await vm.ApiSni.Should().BeEqualTo(string.Empty);
         await vm.ApiHost.Should().BeEqualTo(string.Empty);
+        await vm.ApiAddressHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+        await vm.ApiSniHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+        await vm.ApiHostHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
         await vm.ApiNameOptions.Should().BeEquivalentTo(
             [
                 new ApiNameOption(string.Empty, ResUI.TbPresetDefault),
@@ -256,6 +259,10 @@ public class AetherKeysViewModelTests
         vm.ApiSni = AetherKeys.FallbackApiHost;
         vm.ApiHost = AetherKeys.FallbackApiHost;
         await Arguments(vm.Settings).Contains("--api-sni").Should().BeTrue();
+        // What a field holds then is its text: nothing shows under it.
+        await vm.ApiAddressHeldName.Should().BeNull();
+        await vm.ApiSniHeldName.Should().BeNull();
+        await vm.ApiHostHeldName.Should().BeNull();
 
         // A pick puts its value in the field, and default's is blank, whatever name the list shows it by.
         var picked = vm.ApiNameOptions[0];
@@ -269,6 +276,14 @@ public class AetherKeysViewModelTests
         await vm.Settings.ApiHost.Should().BeEqualTo(string.Empty);
         await source.Saved.Last().Should().BeEqualTo(vm.Settings);
         await Arguments(vm.Settings).Contains("--api-").Should().BeFalse();
+        await vm.ApiAddressHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+        await vm.ApiSniHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+        await vm.ApiHostHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+
+        // Spaces alone are blank too, as the core leaves them out, as a preset field has them.
+        vm.ApiHost = "  ";
+        await vm.ApiHostHeldName.Should().BeEqualTo(ResUI.TbPresetDefault);
+        await Arguments(vm.Settings).Contains("--api-host").Should().BeFalse();
     }
 
     [Test]

@@ -76,12 +76,16 @@
                         </ItemsControl>
                     </Grid>
 
-                    <!--  2. API address  -->
+                    <!--  2. API address; under each API field, default while it is blank, as under a preset field  -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="300" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <TextBlock
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
@@ -101,6 +105,15 @@
                             ItemContainerStyle="{StaticResource ApiNameItem}"
                             Style="{StaticResource DefComboBox}"
                             TextSearch.TextPath="Value" />
+                        <TextBlock
+                            x:Name="txtApiAddressHeld"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLeftRight8}"
+                            HorizontalAlignment="Left"
+                            Opacity="0.7"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Visibility="Collapsed" />
                     </Grid>
 
                     <!--  2b. API server name, which a blank leaves to the host  -->
@@ -109,6 +122,10 @@
                             <ColumnDefinition Width="300" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <TextBlock
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
@@ -128,15 +145,25 @@
                             ItemContainerStyle="{StaticResource ApiNameItem}"
                             Style="{StaticResource DefComboBox}"
                             TextSearch.TextPath="Value" />
+                        <TextBlock
+                            x:Name="txtApiSniHeld"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLeftRight8}"
+                            HorizontalAlignment="Left"
+                            Opacity="0.7"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Visibility="Collapsed" />
                     </Grid>
 
-                    <!--  2c. API host, the core's own while blank  -->
+                    <!--  2c. API host, the core's own while blank: default under it, then its hint  -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="300" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -161,7 +188,16 @@
                             Style="{StaticResource DefComboBox}"
                             TextSearch.TextPath="Value" />
                         <TextBlock
+                            x:Name="txtApiHostHeld"
                             Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLeftRight8}"
+                            HorizontalAlignment="Left"
+                            Opacity="0.7"
+                            Style="{StaticResource ToolbarTextBlock}"
+                            Visibility="Collapsed" />
+                        <TextBlock
+                            Grid.Row="2"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"

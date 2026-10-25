@@ -56,8 +56,8 @@
                         </ItemsControl>
                     </Grid>
 
-                    <!--  2. API address  -->
-                    <Grid ColumnDefinitions="300,Auto">
+                    <!--  2. API address; under each API field, default while it is blank, as under a preset field  -->
+                    <Grid ColumnDefinitions="300,Auto" RowDefinitions="Auto,Auto">
                         <TextBlock
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
@@ -72,10 +72,18 @@
                             HorizontalAlignment="Left"
                             IsEditable="True"
                             PlaceholderText="{x:Static resx:ResUI.TbAetherKeysApiAddressHint}" />
+                        <TextBlock
+                            x:Name="txtApiAddressHeld"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLr8}"
+                            HorizontalAlignment="Left"
+                            IsVisible="False"
+                            Opacity="0.7" />
                     </Grid>
 
                     <!--  2b. API server name, which a blank leaves to the host  -->
-                    <Grid ColumnDefinitions="300,Auto">
+                    <Grid ColumnDefinitions="300,Auto" RowDefinitions="Auto,Auto">
                         <TextBlock
                             Grid.Column="0"
                             Margin="{StaticResource Margin4}"
@@ -90,10 +98,18 @@
                             HorizontalAlignment="Left"
                             IsEditable="True"
                             PlaceholderText="{x:Static resx:ResUI.TbAetherKeysApiSniHint}" />
+                        <TextBlock
+                            x:Name="txtApiSniHeld"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLr8}"
+                            HorizontalAlignment="Left"
+                            IsVisible="False"
+                            Opacity="0.7" />
                     </Grid>
 
-                    <!--  2c. API host, the core's own while blank  -->
-                    <Grid ColumnDefinitions="300,Auto" RowDefinitions="Auto,Auto">
+                    <!--  2c. API host, the core's own while blank: default under it, then its hint  -->
+                    <Grid ColumnDefinitions="300,Auto" RowDefinitions="Auto,Auto,Auto">
                         <TextBlock
                             Grid.Row="0"
                             Grid.Column="0"
@@ -110,7 +126,15 @@
                             HorizontalAlignment="Left"
                             IsEditable="True" />
                         <TextBlock
+                            x:Name="txtApiHostHeld"
                             Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="{StaticResource MarginLr8}"
+                            HorizontalAlignment="Left"
+                            IsVisible="False"
+                            Opacity="0.7" />
+                        <TextBlock
+                            Grid.Row="2"
                             Grid.Column="1"
                             Width="400"
                             Margin="{StaticResource Margin4}"

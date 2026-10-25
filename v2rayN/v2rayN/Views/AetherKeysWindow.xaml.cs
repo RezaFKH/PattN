@@ -40,6 +40,13 @@ public partial class AetherKeysWindow
             this.Bind(ViewModel, vm => vm.ApiAddress, v => v.cmbApiAddress.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.ApiSni, v => v.cmbApiSni.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.ApiHost, v => v.cmbApiHost.Text).DisposeWith(disposables);
+            // Under each API field the name of what it holds, as under a preset field: default while it is blank.
+            this.OneWayBind(ViewModel, vm => vm.ApiAddressHeldName, v => v.txtApiAddressHeld.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.ApiAddressHeldName, v => v.txtApiAddressHeld.Visibility, name => Shown(!string.IsNullOrEmpty(name))).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.ApiSniHeldName, v => v.txtApiSniHeld.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.ApiSniHeldName, v => v.txtApiSniHeld.Visibility, name => Shown(!string.IsNullOrEmpty(name))).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.ApiHostHeldName, v => v.txtApiHostHeld.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.ApiHostHeldName, v => v.txtApiHostHeld.Visibility, name => Shown(!string.IsNullOrEmpty(name))).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.Fragment, v => v.togFragment.IsChecked).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.FragmentSize, v => v.txtFragmentSize.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.FragmentDelay, v => v.txtFragmentDelay.Text).DisposeWith(disposables);

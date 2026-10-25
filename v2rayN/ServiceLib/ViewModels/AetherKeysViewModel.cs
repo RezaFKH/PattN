@@ -133,6 +133,18 @@ public partial class AetherKeysViewModel : MyReactiveObject
         set => Update(settings => settings with { ApiHost = value ?? string.Empty });
     }
 
+    /// <summary>
+    /// What the API address, server name and host show under them, as a preset field shows the name of what it holds:
+    /// default while one is blank, which leaves it to the core, else nothing, as a name the field holds is its text.
+    /// </summary>
+    public string? ApiAddressHeldName => HeldNameOf(Settings.EnrollAddress);
+
+    public string? ApiSniHeldName => HeldNameOf(Settings.ApiSni);
+
+    public string? ApiHostHeldName => HeldNameOf(Settings.ApiHost);
+
+    private string? HeldNameOf(string value) => string.IsNullOrWhiteSpace(value) ? ApiNameOptions[0].Display : null;
+
     public bool Fragment
     {
         get => Settings.Fragment;
@@ -510,6 +522,9 @@ public partial class AetherKeysViewModel : MyReactiveObject
         this.RaisePropertyChanged(nameof(ApiAddress));
         this.RaisePropertyChanged(nameof(ApiSni));
         this.RaisePropertyChanged(nameof(ApiHost));
+        this.RaisePropertyChanged(nameof(ApiAddressHeldName));
+        this.RaisePropertyChanged(nameof(ApiSniHeldName));
+        this.RaisePropertyChanged(nameof(ApiHostHeldName));
         this.RaisePropertyChanged(nameof(Fragment));
         this.RaisePropertyChanged(nameof(FragmentSize));
         this.RaisePropertyChanged(nameof(FragmentDelay));
