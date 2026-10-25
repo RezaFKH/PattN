@@ -8,7 +8,7 @@
 #
 # Usage: ./package-arch.sh [version] [--buildfrom 1|2|3] [--netcore] [--with-core xray|sing-box|both]
 #                          [--xray-ver X] [--singbox-ver X] [--arch x64]
-# Output: ~/archbuild/v2rayn-<pkgver>-1-x86_64.pkg.tar.zst   (pkgver is the version with "-" turned into ".")
+# Output: ~/archbuild/pattn-bin-<pkgver>-1-x86_64.pkg.tar.zst   (pkgver is the version with "-" turned into ".")
 #
 # Needs an Arch-family system (pacman, makepkg). Run as a normal user with sudo, or as root (CI container): makepkg
 # refuses to run as root, so the packaging step then runs as a temporary user.
@@ -22,7 +22,9 @@ BUILD_FROM=""
 XRAY_VER="${XRAY_VER:-}"
 SING_VER="${SING_VER:-}"
 
-PKGNAME="v2rayn"
+# Not the .deb's v2rayn: the AUR's v2rayn is upstream v2rayN, which AUR helpers would offer as an update to a
+# package of that name (see provides/conflicts in write_pkgbuild).
+PKGNAME="pattn-bin"
 PROJECT_HINT="v2rayN.Desktop/v2rayN.Desktop.csproj"
 OUTPUT_DIR="${HOME}/archbuild"
 RID="linux-x64"
@@ -519,6 +521,10 @@ depends=('bash' 'coreutils' 'desktop-file-utils' 'xdg-utils'
          'glibc' 'fontconfig' 'freetype2' 'icu' 'openssl' 'cairo' 'pango' 'mesa'
          'libx11' 'libice' 'libsm')
 options=('!strip' '!debug' '!emptydirs')
+# the AUR's pattn is a source build of PattN, and its v2rayn (upstream v2rayN) installs the same /usr/bin/v2rayn
+# and v2rayn.desktop: pacman replaces either rather than installing both
+provides=('pattn')
+conflicts=('pattn' 'v2rayn')
 
 package() {
     cp -a --no-preserve=ownership "${_stage}/." "${pkgdir}/"

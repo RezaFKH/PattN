@@ -149,7 +149,7 @@ jobs:
       run: |
         mkdir -p "$GITHUB_WORKSPACE/dist/arch"
         rsync -av "$HOME/archbuild/" "$GITHUB_WORKSPACE/dist/arch/" || true
-        find "$GITHUB_WORKSPACE/dist/arch" -name "v2rayn-*-x86_64.pkg.tar.zst" -exec mv {} "$GITHUB_WORKSPACE/dist/arch/PattN-linux-arch-64.pkg.tar.zst" \; || true
+        find "$GITHUB_WORKSPACE/dist/arch" -name "pattn-bin-*-x86_64.pkg.tar.zst" -exec mv {} "$GITHUB_WORKSPACE/dist/arch/PattN-linux-arch-64.pkg.tar.zst" \; || true
         echo "==== Dist tree ===="
         ls -R "$GITHUB_WORKSPACE/dist/arch" || true
     - name: Upload pacman artifact
