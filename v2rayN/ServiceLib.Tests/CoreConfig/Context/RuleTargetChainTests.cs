@@ -162,6 +162,9 @@ public class RuleTargetChainTests
     /// <summary>What <paramref name="build" /> gives while the active routing has <paramref name="rules" />.</summary>
     internal static async Task<T> WithRules<T>(List<RulesItem> rules, Func<Task<T>> build)
     {
+        // The tables Build reads, which the app's start makes and a test can be the first to use: the rules' targets are
+        // looked up among the profiles though the test stores none.
+        SQLiteHelper.Instance.CreateTable<ProfileItem>();
         SQLiteHelper.Instance.CreateTable<FullConfigTemplateItem>();
         SQLiteHelper.Instance.CreateTable<DNSItem>();
         SQLiteHelper.Instance.CreateTable<RoutingItem>();
@@ -880,6 +883,10 @@ public class RuleTargetChainTests
         var socks = SingboxHop("socks", "198.51.100.62");
         var group = CoreConfigTestFactory.CreatePolicyGroupNode(ECoreType.sing_box, NewName("group"), NewName("group"), [warp.IndexId, socks.IndexId]);
         await Store(warp, socks, group);
+        // Taking the candidates builds contexts, which read these tables; the first take is outside WithRuleTo.
+        SQLiteHelper.Instance.CreateTable<FullConfigTemplateItem>();
+        SQLiteHelper.Instance.CreateTable<DNSItem>();
+        SQLiteHelper.Instance.CreateTable<RoutingItem>();
         // Read afresh for each use: the builder rewrites the members of a group it builds.
         async Task<ProfileItem> Group() => (await AppManager.Instance.GetProfileItem(group.IndexId))!;
         async Task<List<ServerTestItem>> Taken()

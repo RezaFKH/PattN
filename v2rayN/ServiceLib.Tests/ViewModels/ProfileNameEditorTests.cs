@@ -54,6 +54,10 @@ public class ProfileNameEditorTests
 
     private static async Task<SubEditViewModel> SubEditor(string remarks, string? prev, string? next)
     {
+        // The editor looks the names up among the profiles and saves into the subscriptions: tables the app's start makes,
+        // which a test can be the first to use.
+        SQLiteHelper.Instance.CreateTable<ProfileItem>();
+        SQLiteHelper.Instance.CreateTable<SubItem>();
         var vm = await Task.Run(() => ViewModelConfig.With(CoreConfigTestFactory.CreateConfig(), () =>
             new SubEditViewModel(new SubItem { Remarks = remarks, Url = string.Empty })));
         vm.PrevProfile = prev!;
@@ -129,7 +133,6 @@ public class ProfileNameEditorTests
         var name = NewName("landing");
         var onlyCustom = NewName("only-custom");
         await Store(SubscriptionNameTests.Custom(name), Vless(NewName("landing"), name), SubscriptionNameTests.Custom(onlyCustom));
-        SQLiteHelper.Instance.CreateTable<SubItem>();
         var refused = NewName("sub");
         var remarks = NewName("sub");
         try
