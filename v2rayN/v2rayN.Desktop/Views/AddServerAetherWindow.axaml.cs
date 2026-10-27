@@ -12,6 +12,7 @@ public partial class AddServerAetherWindow : WindowBase<AddServerAetherViewModel
     public AddServerAetherWindow()
     {
         InitializeComponent();
+        DropDownFit.Attach(cmbPsiphonRegion);
 
         Loaded += Window_Loaded;
         Closed += (_, _) => ViewModel?.OnClosed();

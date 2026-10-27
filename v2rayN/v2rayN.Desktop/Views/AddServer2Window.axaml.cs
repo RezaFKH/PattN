@@ -8,6 +8,8 @@ public partial class AddServer2Window : WindowBase<AddServer2ViewModel>
     public AddServer2Window()
     {
         InitializeComponent();
+        // PattN: the core list can be taller than the free screen space; keep its drop-down on screen
+        DropDownFit.Attach(cmbCoreType);
 
         Loaded += Window_Loaded;
         btnCancel.Click += (s, e) => Close();

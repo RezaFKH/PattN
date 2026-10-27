@@ -1,3 +1,5 @@
+using v2rayN.Desktop.Common;
+
 namespace v2rayN.Desktop.Views;
 
 /// <summary>
@@ -10,6 +12,7 @@ public partial class ExitNodeField : ReactiveUserControl<ExitNodeFieldViewModel>
     public ExitNodeField()
     {
         InitializeComponent();
+        DropDownFit.Attach(cmbNode);
 
         this.WhenActivated(disposables =>
         {
